@@ -855,26 +855,30 @@ export function AdminDashboard({
         </div>
         {tab === "orders" && orders.length > 0 && (
           <div className="flex items-center gap-2">
-            <select
+            <CustomSelect
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs text-espresso focus:outline-none focus:ring-1 focus:ring-clay"
-            >
-              <option value="all">All statuses</option>
-              <option value="pending">Pending</option>
-              <option value="delivered">Delivered</option>
-              <option value="failed">Failed</option>
-            </select>
-            <select
+              onChange={setStatusFilter}
+              options={[
+                { value: "all", label: "All statuses" },
+                { value: "pending", label: "Pending" },
+                { value: "delivered", label: "Delivered" },
+                { value: "failed", label: "Failed" },
+              ]}
+              aria-label="Filter by status"
+              className="w-auto"
+            />
+            <CustomSelect
               value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
-              className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs text-espresso focus:outline-none focus:ring-1 focus:ring-clay"
-            >
-              <option value="all">All time</option>
-              <option value="today">Today</option>
-              <option value="week">This week</option>
-              <option value="month">This month</option>
-            </select>
+              onChange={setDateFilter}
+              options={[
+                { value: "all", label: "All time" },
+                { value: "today", label: "Today" },
+                { value: "week", label: "This week" },
+                { value: "month", label: "This month" },
+              ]}
+              aria-label="Filter by date"
+              className="w-auto"
+            />
             {(statusFilter !== "all" || dateFilter !== "all") && (
               <button
                 type="button"
