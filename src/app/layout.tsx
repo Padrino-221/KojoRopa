@@ -27,6 +27,11 @@ const inter = Inter({
   display: "swap",
 });
 
+// The whole site is DB-driven (products, site settings, shipping fee). Render
+// on demand so builds never require a reachable database — and so content is
+// always fresh instead of baked in at build time.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_SITE_URL ?? "https://kojoropa.example"

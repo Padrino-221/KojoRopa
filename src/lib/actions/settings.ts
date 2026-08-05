@@ -10,7 +10,16 @@ export type SettingKey = (typeof SETTING_SECTIONS)[number]["settings"][number]["
 
 /** Returns all settings as a key→value record (DB values override defaults). */
 export async function getAllSettings(): Promise<Record<string, string>> {
-  const rows = await prisma.siteSetting.findMany();
+  let rows: { key: string; value: string }[] = [];
+  try {
+    rows = await prisma.siteSetting.findMany();
+  } catch (e) {
+    // DB unreachable (e.g. during a deploy) — serve built-in defaults so the
+    // storefront keeps working instead of crashing on every page. Log it so
+    // outages stay visible in the server logs.
+    console.error("getAllSettings: DB read failed, using defaults", e);
+    rows = [];
+  }
   const db = Object.fromEntries(rows.map((r) => [r.key, r.value]));
   const result: Record<string, string> = {};
   for (const section of SETTING_SECTIONS) {

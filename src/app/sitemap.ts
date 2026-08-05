@@ -1,6 +1,10 @@
 import type { MetadataRoute } from "next";
 import { getPublicProducts } from "@/lib/queries";
 
+// The product list lives in Postgres, so generate the sitemap per request
+// instead of at build time (which would require a reachable database).
+export const dynamic = "force-dynamic";
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base =
     process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
