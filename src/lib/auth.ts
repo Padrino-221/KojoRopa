@@ -6,6 +6,8 @@ import { prisma } from "@/lib/db";
 
 export const SESSION_COOKIE = "kojoropa-session";
 export const SESSION_MAX_AGE_SECONDS = Number(process.env.SESSION_MAX_AGE_SECONDS) || 60 * 60 * 24 * 7; // 7 days default
+const REMEMBER_ME_DAYS = 30;
+const TEMP_TOKEN_SECONDS = 5 * 60; // 5 minutes for password-verified temp token
 
 function getSecret(): Uint8Array {
   const secret = process.env.SESSION_SECRET;
@@ -84,6 +86,37 @@ export function verifyTotp(code: string, window = 1): boolean {
   return false;
 }
 
+/** True when ADMIN_TOTP_SECRET is configured (2FA is active). */
+export function isTotpEnabled(): boolean {
+  return !!process.env.ADMIN_TOTP_SECRET;
+}
+
+/* ————— temp token for two-step login ————— */
+
+interface TempTokenPayload {
+  purpose: "password-verified";
+}
+
+/** Creates a short-lived JWT proving the password was verified (for step 1 → step 2). */
+export async function createTempToken(): Promise<string> {
+  return new SignJWT({ purpose: "password-verified" } satisfies TempTokenPayload)
+    .setProtectedHeader({ alg: "HS256" })
+    .setSubject("admin")
+    .setIssuedAt()
+    .setExpirationTime(`${TEMP_TOKEN_SECONDS}s`)
+    .sign(getSecret());
+}
+
+/** Verifies a temp token. Returns true if valid. */
+export async function verifyTempToken(token: string): Promise<boolean> {
+  try {
+    const { payload } = await jwtVerify(token, getSecret());
+    return payload.purpose === "password-verified";
+  } catch {
+    return false;
+  }
+}
+
 /* ————— sessions ————— */
 
 interface AdminJwtPayload {
@@ -92,15 +125,16 @@ interface AdminJwtPayload {
 }
 
 /** Creates a JWT and stores a matching server-side session row. */
-export async function createAdminSession(): Promise<string> {
+export async function createAdminSession(rememberMe = false): Promise<string> {
   const jti = randomBytes(16).toString("hex");
-  const expiresAt = new Date(Date.now() + SESSION_MAX_AGE_SECONDS * 1000);
+  const maxAge = rememberMe ? REMEMBER_ME_DAYS * 24 * 60 * 60 : SESSION_MAX_AGE_SECONDS;
+  const expiresAt = new Date(Date.now() + maxAge * 1000);
 
   const token = await new SignJWT({ role: "admin", jti } satisfies AdminJwtPayload)
     .setProtectedHeader({ alg: "HS256" })
     .setSubject("admin")
     .setIssuedAt()
-    .setExpirationTime(`${SESSION_MAX_AGE_SECONDS}s`)
+    .setExpirationTime(`${maxAge}s`)
     .sign(getSecret());
 
   await prisma.adminSession.create({ data: { jti, expiresAt } });
