@@ -41,6 +41,17 @@ export async function getOrderByToken(token: string) {
   });
 }
 
+/** Top-selling slugs ranked by total quantity ordered. */
+export async function getBestSellingSlugs(limit = 4) {
+  const rows = await prisma.orderItem.groupBy({
+    by: ["slug"],
+    _sum: { qty: true },
+    orderBy: { _sum: { qty: "desc" } },
+    take: limit,
+  });
+  return rows.map((r) => r.slug);
+}
+
 /** All orders with items, newest first — for the admin dashboard. */
 export async function getAdminOrders() {
   const rows = await prisma.order.findMany({

@@ -25,9 +25,11 @@ const SORT_OPTIONS = [
 export function Storefront({
   initial,
   products,
+  bestSellingSlugs = [],
 }: {
   initial: StorefrontInitial;
   products: Product[];
+  bestSellingSlugs?: string[];
 }) {
   const [q, setQ] = useState(initial.q);
   const [category, setCategory] = useState(initial.category);
@@ -97,9 +99,12 @@ export function Storefront({
     .filter((p) => p.visible !== false && p.featured)
     .slice(0, 4);
 
-  const popularItems = products
-    .filter((p) => p.visible !== false)
-    .slice(0, 4);
+  const popularItems = bestSellingSlugs.length > 0
+    ? (bestSellingSlugs
+        .map((slug) => products.find((p) => p.slug === slug && p.visible !== false))
+        .filter((p): p is Product => Boolean(p))
+        .slice(0, 4))
+    : products.filter((p) => p.visible !== false).slice(0, 4);
 
   const categoryIcons: Record<string, ReactNode> = {
     all: (

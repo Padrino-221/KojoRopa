@@ -36,10 +36,10 @@ export function Navbar() {
           </svg>
         </button>
 
-        {/* logo */}
+        {/* logo — centered on mobile, left-aligned on desktop */}
         <Link
           href="/"
-          className="shrink-0 font-display text-[22px] leading-none tracking-tight text-espresso transition-opacity hover:opacity-70"
+          className="flex-1 text-center font-display text-[22px] leading-none tracking-tight text-espresso transition-opacity hover:opacity-70 md:flex-none md:text-left"
         >
           {siteName}
         </Link>
