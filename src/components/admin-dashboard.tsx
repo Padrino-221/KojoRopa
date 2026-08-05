@@ -40,6 +40,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CustomSelect } from "@/components/ui/custom-select";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 
 /* ————— order types (serialised from Prisma) ————— */
 
@@ -654,7 +655,7 @@ export function AdminDashboard({
   const [tab, setTab] = useState<"products" | "orders" | "settings">("products");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [dateFilter, setDateFilter] = useState("all");
+  const [dateRange, setDateRange] = useState<{ from: string; to: string }>({ from: "", to: "" });
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
   const [editor, setEditor] = useState<
@@ -780,18 +781,15 @@ export function AdminDashboard({
 
   const filteredOrders = orders.filter((o) => {
     if (statusFilter !== "all" && o.status !== statusFilter) return false;
-    if (dateFilter !== "all") {
-      const now = new Date();
+    if (dateRange.from || dateRange.to) {
       const placed = new Date(o.placedAt);
-      if (dateFilter === "today") {
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        if (placed < today) return false;
-      } else if (dateFilter === "week") {
-        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        if (placed < weekAgo) return false;
-      } else if (dateFilter === "month") {
-        const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        if (placed < monthAgo) return false;
+      if (dateRange.from) {
+        const from = new Date(dateRange.from + "T00:00:00");
+        if (placed < from) return false;
+      }
+      if (dateRange.to) {
+        const to = new Date(dateRange.to + "T23:59:59");
+        if (placed > to) return false;
       }
     }
     return true;
@@ -867,22 +865,17 @@ export function AdminDashboard({
               aria-label="Filter by status"
               className="w-auto"
             />
-            <CustomSelect
-              value={dateFilter}
-              onChange={setDateFilter}
-              options={[
-                { value: "all", label: "All time" },
-                { value: "today", label: "Today" },
-                { value: "week", label: "This week" },
-                { value: "month", label: "This month" },
-              ]}
-              aria-label="Filter by date"
+            <DateRangePicker
+              from={dateRange.from}
+              to={dateRange.to}
+              onChange={(from, to) => setDateRange({ from, to })}
+              aria-label="Filter by date range"
               className="w-auto"
             />
-            {(statusFilter !== "all" || dateFilter !== "all") && (
+            {(statusFilter !== "all" || dateRange.from || dateRange.to) && (
               <button
                 type="button"
-                onClick={() => { setStatusFilter("all"); setDateFilter("all"); }}
+                onClick={() => { setStatusFilter("all"); setDateRange({ from: "", to: "" }); }}
                 className="text-xs text-clay hover:text-clay-deep"
               >
                 Clear
