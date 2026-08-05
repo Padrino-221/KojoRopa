@@ -1,0 +1,100 @@
+# KojoRopa 🇬🇭
+
+A production-ready web storefront for **KojoRopa** — a curated secondhand
+shirt shop from Accra, picking one-of-one pieces from the bales at Kantamanto
+Market. Built with Next.js (App Router), React, TypeScript, Tailwind CSS v4 and
+PostgreSQL via Prisma.
+
+## What's inside
+
+- **The rack** — a browsable catalog of secondhand shirts with category, style,
+  size and price filters, plus search and sort.
+- **Product pages** — story, condition, era, fabric specs and honest fit notes
+  for every piece, with a size picker and add-to-bag.
+- **Shopping bag** — a slide-out drawer with quantity controls, a free-shipping
+  progress meter, and persistence (prices in GHS).
+- **Checkout** — a demo checkout flow (contact → shipping → mock payment) that
+  creates a real order server-side. Prices and stock are recomputed from the
+  database — the client can't change what it pays.
+- **Confirmation** — an order receipt fetched from the database by order number.
+- **Admin dashboard** (`/admin`) — password-protected (env var) session auth;
+  add, edit, delete, and hide/show pieces with a live SVG preview. Images are
+  compressed on upload before they hit the database.
+- **PostgreSQL** — products and orders live in Prisma models, with migrations
+  and a seed script for the demo catalog.
+- **Procedural artwork** — every shirt renders as an SVG illustration (stripes,
+  tie-dye, graphic prints, plaid, garment-dye, raglan).
+
+## Prerequisites
+
+- Node.js 20+
+- PostgreSQL (the migration targets PostgreSQL)
+
+## Getting started
+
+```bash
+# 1. Install dependencies
+npm install
+
+# 2. Configure environment
+cp .env.example .env
+#    then fill in DATABASE_URL, ADMIN_PASSWORD, SESSION_SECRET, etc.
+
+# 3. Create the database, apply migrations and generate the client
+npx prisma migrate dev
+
+# 4. Seed the demo catalog (optional, safe to re-run)
+npx prisma db seed
+
+# 5. Run it
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000). The admin dashboard lives
+at [http://localhost:3000/admin](http://localhost:3000/admin) and signs in with
+the `ADMIN_PASSWORD` from your `.env`.
+
+## Environment variables
+
+| Variable                    | Purpose                                            |
+| --------------------------- | -------------------------------------------------- |
+| `DATABASE_URL`              | PostgreSQL connection string                        |
+| `ADMIN_PASSWORD`            | Admin dashboard password                            |
+| `SESSION_SECRET`            | Signs the admin session cookie (min 32 chars)       |
+| `NEXT_PUBLIC_SITE_URL`      | Canonical URL for SEO / sitemap / robots            |
+| `NEXT_PUBLIC_CONTACT_EMAIL` | Contact email shown in the footer                   |
+| `NEXT_PUBLIC_INSTAGRAM_HANDLE` | Instagram handle shown in the footer             |
+
+## Scripts
+
+| Command                     | What it does                      |
+| --------------------------- | --------------------------------- |
+| `npm run dev`               | Start the dev server              |
+| `npm run build`             | Production build                  |
+| `npm run start`             | Serve the build                   |
+| `npm run lint`              | Lint with ESLint                  |
+| `npx prisma migrate dev`    | Apply migrations + regenerate client |
+| `npx prisma db seed`        | Seed the demo catalog             |
+| `npx prisma studio`         | Browse the database in a browser  |
+
+## Deploying
+
+The app runs on any Node.js host. On Vercel: set the environment variables
+above in the project settings, connect your PostgreSQL database, and deploy.
+Server Actions run against `DATABASE_URL` with Prisma's `pg` adapter — no
+serverless-specific shims are needed.
+
+> Note: the in-memory rate limiter and admin session cookie work best on a
+> single instance. For multi-instance deployments consider a shared store.
+
+## Security notes
+
+- Admin auth uses a signed, HttpOnly, SameSite=Lax session cookie (JWT via
+  `jose`); the password lives only in `ADMIN_PASSWORD`.
+- Login is rate-limited; order creation is rate-limited.
+- Server Actions are CSRF-checked by Next.js; security headers are set in
+  `next.config.ts`.
+- Product prices and totals are recomputed from the database on every order —
+  the client-provided values are ignored.
+
+> KojoRopa processes demo payments only — nothing is actually charged.

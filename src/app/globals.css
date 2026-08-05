@@ -1,0 +1,108 @@
+@import "tailwindcss";
+
+@theme {
+  /* ——— Off-white, black, red palette ——— */
+  --color-linen: #f5f3f0;
+  --color-cream: #ebe8e3;
+  --color-sand: #d9d5ce;
+  --color-sand-deep: #c4bfbb;
+  --color-espresso: #111111;
+  --color-mocha: #555555;
+  --color-taupe: #999999;
+  --color-clay: #c8102e;
+  --color-clay-deep: #a80d24;
+  --color-sage: #555555;
+  --color-olive: #16a34a;
+  --color-gold: #c8102e;
+  --color-sale: #c8102e;
+  --color-teal: #c8102e;
+  --color-teal-light: #fef2f2;
+  --color-teal-dark: #a80d24;
+  --color-surface: #ffffff;
+  --color-surface-hover: #f9f9f9;
+  --color-border: #e5e5e5;
+  --color-border-light: #f0f0f0;
+
+  /* ——— Typography ——— */
+  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", sans-serif;
+
+  /* ——— Motion ——— */
+  --animate-fade-up: fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-slide-in: slide-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-fade-in: fade-in 0.25s ease-out both;
+  --animate-pop: pop 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes slide-in {
+    from {
+      transform: translateX(100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes pop {
+    from {
+      opacity: 0;
+      transform: scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+}
+
+html {
+  scroll-padding-top: 72px;
+}
+
+body {
+  @apply bg-linen font-sans text-espresso antialiased;
+}
+
+.thin-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-sand-deep) transparent;
+}
+.thin-scroll::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.thin-scroll::-webkit-scrollbar-thumb {
+  background: var(--color-sand-deep);
+  border-radius: 999px;
+}
+.thin-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::selection {
+  background: var(--color-clay);
+  color: white;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
