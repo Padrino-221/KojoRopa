@@ -60,7 +60,7 @@ export const SETTING_SECTIONS = [
     settings: [
       { key: "receiptGreetingSuffix", label: "Greeting suffix", default: "your pieces are being wrapped in tissue as we speak." },
       { key: "receiptCta", label: "CTA button text", default: "Keep browsing the rack" },
-      { key: "receiptFooter", label: "Footer text", default: "Demo store — nothing was actually charged." },
+      { key: "receiptFooter", label: "Footer text", default: "Thank you for shopping with KojoRopa." },
     ],
   },
   {
@@ -77,7 +77,7 @@ export const SETTING_SECTIONS = [
     settings: [
       { key: "footerDescription", label: "Description", default: "Secondhand shirts, one of one. Picked at Kantamanto Market, Accra — washed, checked and priced to move." },
       { key: "footerAddress", label: "Address", default: "Kantamanto Market, Accra" },
-      { key: "footerCopyright", label: "Copyright (use {year} for year)", default: "© {year} KojoRopa — a demo storefront. No real orders are placed." },
+      { key: "footerCopyright", label: "Copyright (use {year} for year)", default: "© {year} KojoRopa" },
       { key: "footerTagline", label: "Tagline", default: "Made in Accra" },
     ],
   },

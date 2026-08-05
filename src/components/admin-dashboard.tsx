@@ -18,6 +18,7 @@ import {
   deleteProductAction,
   updateProductAction,
 } from "@/lib/actions/products";
+import { uploadProductImageAction } from "@/lib/actions/upload";
 import { updateOrderStatusAction, type OrderStatus } from "@/lib/actions/orders";
 import { ORDER_STATUSES } from "@/lib/order-status";
 import { logoutAction } from "@/lib/actions/auth";
@@ -153,6 +154,8 @@ function ProductForm({
   const [form, setForm] = useState<FormState>(
     initial ? toForm(initial) : emptyForm()
   );
+  const [uploading, setUploading] = useState(0);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
@@ -167,6 +170,7 @@ function ProductForm({
 
   const price = parseFloat(form.price);
   const valid = form.name.trim().length > 0 && price > 0;
+  const saving = uploading > 0;
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -349,6 +353,11 @@ function ProductForm({
               </span>
             </Label>
             <div className="flex flex-wrap gap-3">
+              {uploadError && (
+                <p role="alert" className="w-full text-xs text-sale">
+                  {uploadError}
+                </p>
+              )}
               {form.images.map((src, i) => (
                 <div
                   key={i}
@@ -386,31 +395,46 @@ function ProductForm({
                 </div>
               ))}
               {form.images.length < maxProductImages && (
-                <label className="flex h-28 w-28 shrink-0 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-sand-deep bg-cream/50 transition-colors hover:border-clay/40 hover:bg-cream">
-                  <svg viewBox="0 0 24 24" className="h-8 w-8 text-taupe" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="3" width="18" height="18" rx="2" />
-                    <circle cx="8.5" cy="8.5" r="1.5" />
-                    <path d="M21 15l-5-5L5 21" />
-                  </svg>
+                <label className="flex h-28 w-28 shrink-0 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-sand-deep bg-cream/50 transition-colors hover:border-clay/40 hover:bg-cream disabled:pointer-events-none disabled:opacity-50">
+                  {uploading > 0 ? (
+                    <Spinner className="h-7 w-7 text-taupe" />
+                  ) : (
+                    <svg viewBox="0 0 24 24" className="h-8 w-8 text-taupe" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="3" width="18" height="18" rx="2" />
+                      <circle cx="8.5" cy="8.5" r="1.5" />
+                      <path d="M21 15l-5-5L5 21" />
+                    </svg>
+                  )}
                   <span className="mt-1 text-[10px] font-medium text-taupe">
-                    Add photo
+                    {uploading > 0 ? "Uploading…" : "Add photo"}
                   </span>
                   <input
                     type="file"
                     accept="image/*"
                     multiple
+                    disabled={uploading > 0}
                     className="sr-only"
                     onChange={async (e) => {
                       const files = Array.from(e.target.files ?? []);
                       if (files.length === 0) return;
+                      const remaining = maxProductImages - form.images.length;
+                      const toAdd = files.slice(0, remaining);
+                      setUploading((n) => n + toAdd.length);
+                      setUploadError(null);
                       const fresh: string[] = [];
-                      for (const file of files) {
+                      for (const file of toAdd) {
                         try {
-                          fresh.push(await compressImage(file));
+                          const dataUrl = await compressImage(file);
+                          const res = await uploadProductImageAction(dataUrl);
+                          if (res.ok) {
+                            fresh.push(res.url);
+                          } else {
+                            setUploadError(res.error);
+                          }
                         } catch {
                           /* skip unreadable files */
                         }
-                        if (form.images.length + fresh.length >= maxProductImages) break;
+                        setUploading((n) => n - 1);
                       }
                       if (fresh.length > 0)
                         set("images", [...form.images, ...fresh]);
@@ -431,8 +455,8 @@ function ProductForm({
             <Button type="button" variant="secondary" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={!valid}>
-              {initial ? "Save changes" : "Add to the rack"}
+            <Button type="submit" disabled={!valid || saving}>
+              {saving ? "Uploading photos…" : initial ? "Save changes" : "Add to the rack"}
             </Button>
           </div>
           {!valid && (

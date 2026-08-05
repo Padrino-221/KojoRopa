@@ -13,7 +13,7 @@ PostgreSQL via Prisma.
   for every piece, with a size picker and add-to-bag.
 - **Shopping bag** — a slide-out drawer with quantity controls, a free-shipping
   progress meter, and persistence (prices in GHS).
-- **Checkout** — a demo checkout flow (contact → shipping → mock payment) that
+- **Checkout** — a contact → shipping → Mobile Money (Moolre) flow that
   creates a real order server-side. Prices and stock are recomputed from the
   database — the client can't change what it pays.
 - **Confirmation** — an order receipt fetched from the database by order number.
@@ -21,7 +21,7 @@ PostgreSQL via Prisma.
   add, edit, delete, and hide/show pieces with a live SVG preview. Images are
   compressed on upload before they hit the database.
 - **PostgreSQL** — products and orders live in Prisma models, with migrations
-  and a seed script for the demo catalog.
+  and a seed script for the starter catalog.
 - **Procedural artwork** — every shirt renders as an SVG illustration (stripes,
   tie-dye, graphic prints, plaid, garment-dye, raglan).
 
@@ -43,7 +43,7 @@ cp .env.example .env
 # 3. Create the database, apply migrations and generate the client
 npx prisma migrate dev
 
-# 4. Seed the demo catalog (optional, safe to re-run)
+# 4. Seed the starter catalog (optional, safe to re-run)
 npx prisma db seed
 
 # 5. Run it
@@ -74,7 +74,7 @@ the `ADMIN_PASSWORD` from your `.env`.
 | `npm run start`             | Serve the build                   |
 | `npm run lint`              | Lint with ESLint                  |
 | `npx prisma migrate dev`    | Apply migrations + regenerate client |
-| `npx prisma db seed`        | Seed the demo catalog             |
+| `npx prisma db seed`        | Seed the starter catalog        |
 | `npx prisma studio`         | Browse the database in a browser  |
 
 ## Deploying
@@ -96,5 +96,3 @@ serverless-specific shims are needed.
   `next.config.ts`.
 - Product prices and totals are recomputed from the database on every order —
   the client-provided values are ignored.
-
-> KojoRopa processes demo payments only — nothing is actually charged.

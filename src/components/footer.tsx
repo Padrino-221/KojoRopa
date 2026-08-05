@@ -63,7 +63,7 @@ export async function Footer() {
 
         <div className="mt-8 flex flex-col items-center justify-between gap-2 border-t border-border pt-6 text-xs text-taupe sm:flex-row">
           <p>
-            {(s.footerCopyright || "© {year} KojoRopa — a demo storefront. No real orders are placed.").replace("{year}", String(new Date().getFullYear()))}
+            {(s.footerCopyright || "© {year} KojoRopa").replace("{year}", String(new Date().getFullYear()))}
           </p>
           <p>{s.footerTagline || "Made in Accra"}</p>
         </div>

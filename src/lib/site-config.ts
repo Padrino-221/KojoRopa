@@ -131,7 +131,7 @@ export const RECEIPT_CTA = env(
 );
 export const RECEIPT_FOOTER = env(
   "NEXT_PUBLIC_RECEIPT_FOOTER",
-  "Demo store \u2014 nothing was actually charged."
+  "Thank you for shopping with KojoRopa."
 );
 
 /* ——— about page ——— */
@@ -188,7 +188,7 @@ export const FOOTER_ADDRESS = env(
 );
 export const FOOTER_COPYRIGHT = env(
   "NEXT_PUBLIC_FOOTER_COPYRIGHT",
-  "\u00a9 {year} KojoRopa \u2014 a demo storefront. No real orders are placed."
+  "\u00a9 {year} KojoRopa"
 );
 export const FOOTER_TAGLINE = env(
   "NEXT_PUBLIC_FOOTER_TAGLINE",

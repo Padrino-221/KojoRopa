@@ -273,12 +273,12 @@ export async function checkPaymentAction(
     return { ok: false, error: "Order not found." };
   }
 
-  if (!order.moolreTransactionId) {
+  if (!order.moolreSessionId && !order.moolreTransactionId) {
     return { ok: false, error: "No transaction to check." };
   }
 
   const result = await checkPaymentStatus({
-    transactionId: order.moolreTransactionId,
+    externalRef: order.id,
   });
 
   if (result.success) {

@@ -39,9 +39,9 @@ interface PaymentResult {
 
 function normalizePhone(raw: string): string {
   const digits = raw.replace(/\D/g, "");
-  if (digits.startsWith("233")) return digits;
-  if (digits.startsWith("0")) return "233" + digits.slice(1);
-  return digits;
+  if (digits.startsWith("233")) return "0" + digits.slice(3);
+  if (digits.startsWith("0")) return digits;
+  return "0" + digits;
 }
 
 /**
@@ -55,7 +55,7 @@ export async function initiatePayment(params: PaymentParams): Promise<PaymentRes
 
   const body = {
     type: 1,
-    channel: 13, // MTN Mobile Money
+    channel: "13", // MTN Mobile Money
     currency: "GHS",
     payer: phone,
     amount: params.amount.toFixed(2),
@@ -99,17 +99,17 @@ export async function initiatePayment(params: PaymentParams): Promise<PaymentRes
   }
 
   if (data.status === 1) {
-    const dataObj = typeof data.data === "object" && data.data !== null ? data.data as Record<string, unknown> : null;
-    // sessionId may be in data.sessionid, data.transactionid, or top-level
-    const sessionId = (dataObj?.sessionid || dataObj?.transactionid || (data as unknown as Record<string, unknown>)?.sessionid) as string | undefined;
-    const transactionId = (dataObj?.transactionid || (data as unknown as Record<string, unknown>)?.transactionid) as string | undefined;
-    console.log("[moolre] initiatePayment success:", { code: data.code, sessionId, transactionId, data: dataObj });
+    // data is a plain string transaction reference (UUID), not an object
+    const ref = typeof data.data === "string" ? data.data : "";
+    const requiresOtp = data.code === "TP14";
+    console.log("[moolre] initiatePayment success:", { code: data.code, ref });
     return {
       success: true,
       code: data.code,
       message: typeof data.message === "string" ? data.message : Array.isArray(data.message) ? data.message.join(", ") : "Payment initiated",
-      transactionId,
-      sessionId,
+      transactionId: ref || undefined,
+      sessionId: ref || undefined,
+      requiresOtp,
     };
   }
 
@@ -139,7 +139,7 @@ export async function submitOtp(params: {
 
   const body = {
     type: 1,
-    channel: 13,
+    channel: "13",
     currency: "GHS",
     payer: phone,
     amount: params.amount.toFixed(2),
@@ -182,12 +182,13 @@ export async function submitOtp(params: {
   }
 
   if (data.status === 1) {
-    const dataObj = typeof data.data === "object" && data.data !== null ? data.data as Record<string, unknown> : null;
+    const ref = typeof data.data === "string" ? data.data : "";
+    console.log("[moolre] submitOtp success:", { code: data.code, ref });
     return {
       success: true,
       code: data.code,
       message: typeof data.message === "string" ? data.message : Array.isArray(data.message) ? data.message.join(", ") : "Payment confirmed",
-      transactionId: dataObj?.transactionid as string | undefined,
+      transactionId: ref || undefined,
     };
   }
 
@@ -199,12 +200,12 @@ export async function submitOtp(params: {
 }
 
 /**
- * Check payment status via Moolre.
+ * Check payment status via Moolre using the order's external reference.
  */
 export async function checkPaymentStatus(params: {
-  transactionId: string;
+  externalRef: string;
 }): Promise<PaymentResult> {
-  const { user, pubKey } = getConfig();
+  const { user, pubKey, accountId } = getConfig();
 
   let res: Response;
   try {
@@ -215,7 +216,12 @@ export async function checkPaymentStatus(params: {
         "X-API-PUBKEY": pubKey,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ transactionid: params.transactionId }),
+      body: JSON.stringify({
+        type: 1,
+        idtype: "1", // 1 = unique externalref, 2 = Moolre generated ID
+        id: params.externalRef,
+        accountnumber: accountId,
+      }),
     });
   } catch (err) {
     console.error("[moolre] checkStatus fetch error:", err);
@@ -231,10 +237,14 @@ export async function checkPaymentStatus(params: {
   }
 
   if (data.status === 1) {
+    const obj = typeof data.data === "object" && data.data !== null ? data.data as Record<string, unknown> : null;
+    const paid = String(obj?.txstatus) === "1";
+    console.log("[moolre] checkPaymentStatus:", { code: data.code, paid, data: data.data });
     return {
-      success: true,
+      success: paid,
       code: data.code,
-      message: typeof data.message === "string" ? data.message : "Payment successful",
+      message: typeof data.message === "string" ? data.message : paid ? "Payment successful" : "Payment not yet confirmed",
+      transactionId: typeof obj?.transactionid === "string" ? obj.transactionid : undefined,
     };
   }
 
