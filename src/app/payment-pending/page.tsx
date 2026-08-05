@@ -35,6 +35,9 @@ export default async function PaymentPendingPage(
     redirect(`/confirmation?token=${token}`);
   }
 
+  // Payment initiation failed if we never got a session or transaction id
+  const paymentInitiated = Boolean(order.moolreSessionId || order.moolreTransactionId);
+
   return (
     <PaymentPendingClient
       orderId={order.id}
@@ -42,6 +45,7 @@ export default async function PaymentPendingPage(
       amount={order.total}
       phone={order.phone}
       paymentMessage="A USSD prompt has been sent to your phone. Enter the OTP code to confirm payment."
+      paymentInitiated={paymentInitiated}
       initialStatus={order.status}
     />
   );

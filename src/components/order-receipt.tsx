@@ -84,16 +84,12 @@ export async function OrderReceipt({ order }: { order: ReceiptOrder }) {
             <dt>Subtotal</dt>
             <dd className="tabular-nums">{formatPrice(order.subtotal)}</dd>
           </div>
-          <div className="flex justify-between text-mocha">
-            <dt>Shipping</dt>
-            <dd className="tabular-nums">
-              {order.shipping === 0 ? (
-                <span className="font-medium text-olive">Free</span>
-              ) : (
-                formatPrice(order.shipping)
-              )}
-            </dd>
-          </div>
+          {order.shipping > 0 && (
+            <div className="flex justify-between text-mocha">
+              <dt>Shipping</dt>
+              <dd className="tabular-nums">{formatPrice(order.shipping)}</dd>
+            </div>
+          )}
           <div className="flex justify-between border-t border-border pt-3 text-base font-semibold text-espresso">
             <dt>Total paid</dt>
             <dd className="font-display text-xl tabular-nums sm:text-2xl">

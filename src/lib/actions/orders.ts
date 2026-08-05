@@ -224,6 +224,45 @@ export type CheckPaymentResult =
   | { ok: false; error: string };
 
 /**
+ * Re-initiate a Moolre payment for an existing pending order.
+ * Used when the initial payment initiation failed or the USSD prompt expired.
+ */
+export async function retryPaymentAction(
+  orderId: string
+): Promise<CheckPaymentResult> {
+  const ip = await getClientIp();
+  const order = await prisma.order.findUnique({ where: { id: orderId } });
+  if (!order) {
+    return { ok: false, error: "Order not found." };
+  }
+  if (!order.phone) {
+    return { ok: false, error: "No phone number on this order." };
+  }
+
+  const payment = await initiatePayment({
+    phone: order.phone,
+    amount: order.total,
+    externalRef: order.id,
+    reference: `Order ${order.id}`,
+  });
+
+  if (!payment.success) {
+    return { ok: false, error: payment.message || "Payment could not be initiated." };
+  }
+
+  await prisma.order.update({
+    where: { id: orderId },
+    data: {
+      moolreSessionId: payment.sessionId || null,
+      moolreTransactionId: payment.transactionId || null,
+    },
+  });
+
+  await logAudit("order.payment", `order ${orderId} payment re-initiated`, ip);
+  return { ok: true, status: "pending" };
+}
+
+/**
  * Check the payment status for an order via Moolre.
  */
 export async function checkPaymentAction(

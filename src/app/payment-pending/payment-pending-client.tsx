@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useCallback } from "react";
 import { formatPrice } from "@/lib/format";
-import { submitOtpAction, checkPaymentAction } from "@/lib/actions/orders";
+import { submitOtpAction, checkPaymentAction, retryPaymentAction } from "@/lib/actions/orders";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -15,6 +15,7 @@ interface PaymentPendingClientProps {
   amount: number;
   phone: string;
   paymentMessage: string;
+  paymentInitiated: boolean;
   initialStatus: string;
 }
 
@@ -24,15 +25,18 @@ export function PaymentPendingClient({
   amount,
   phone,
   paymentMessage,
+  paymentInitiated,
   initialStatus,
 }: PaymentPendingClientProps) {
   const router = useRouter();
   const [otp, setOtp] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [checking, setChecking] = useState(false);
+  const [retrying, setRetrying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [status, setStatus] = useState(initialStatus);
+  const [initiated, setInitiated] = useState(paymentInitiated);
 
   const handleCheckStatus = useCallback(async () => {
     setChecking(true);
@@ -44,12 +48,12 @@ export function PaymentPendingClient({
     setChecking(false);
   }, [orderId]);
 
-  // Auto-check status every 10 seconds if still pending
+  // Auto-check status every 10 seconds if still pending and initiated
   useEffect(() => {
-    if (status !== "pending") return;
+    if (status !== "pending" || !initiated) return;
     const interval = setInterval(handleCheckStatus, 10_000);
     return () => clearInterval(interval);
-  }, [status, handleCheckStatus]);
+  }, [status, initiated, handleCheckStatus]);
 
   // Redirect to confirmation once payment is confirmed
   useEffect(() => {
@@ -60,6 +64,20 @@ export function PaymentPendingClient({
       return () => clearTimeout(timer);
     }
   }, [status, token, router]);
+
+  const handleRetry = async () => {
+    if (retrying) return;
+    setRetrying(true);
+    setError(null);
+    const res = await retryPaymentAction(orderId);
+    setRetrying(false);
+    if (res.ok) {
+      setInitiated(true);
+      setSuccess("A new USSD prompt has been sent to your phone.");
+    } else {
+      setError(res.error);
+    }
+  };
 
   const handleSubmitOtp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,10 +129,16 @@ export function PaymentPendingClient({
           <h1 className="mt-4 font-display text-2xl text-espresso">
             Complete Payment
           </h1>
-          <p className="mt-2 text-sm text-mocha">
-            A USSD prompt has been sent to <strong>{phone}</strong>.
-            Enter the OTP code you received below.
-          </p>
+          {initiated ? (
+            <p className="mt-2 text-sm text-mocha">
+              A USSD prompt has been sent to <strong>{phone}</strong>.
+              Enter the OTP code you received below.
+            </p>
+          ) : (
+            <p className="mt-2 text-sm text-sale">
+              Your payment could not be initiated. Try sending the prompt again.
+            </p>
+          )}
         </div>
 
         <div className="mt-6 rounded-xl bg-surface p-4 ring-1 ring-border/50">
@@ -130,54 +154,73 @@ export function PaymentPendingClient({
           </div>
         </div>
 
-        <form onSubmit={handleSubmitOtp} className="mt-6 space-y-4">
-          <div>
-            <label htmlFor="otp" className="block text-sm font-medium text-espresso">
-              OTP Code
-            </label>
-            <Input
-              id="otp"
-              type="text"
-              inputMode="numeric"
-              required
-              value={otp}
-              onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-              placeholder="Enter 6-digit code"
-              className="mt-1 text-center text-lg tracking-[0.3em]"
-              maxLength={6}
-              autoFocus
-            />
-            <p className="mt-1.5 text-xs text-taupe">
-              Check your phone for the code sent via SMS.
-            </p>
-          </div>
+        {success && !error && (
+          <p className="mt-4 text-center text-xs font-medium text-olive">
+            {success}
+          </p>
+        )}
+        {error && (
+          <p role="alert" className="mt-4 text-center text-xs text-sale">
+            {error}
+          </p>
+        )}
 
-          {error && (
-            <p role="alert" className="text-center text-xs text-sale">
-              {error}
-            </p>
-          )}
+        {initiated ? (
+          <form onSubmit={handleSubmitOtp} className="mt-6 space-y-4">
+            <div>
+              <label htmlFor="otp" className="block text-sm font-medium text-espresso">
+                OTP Code
+              </label>
+              <Input
+                id="otp"
+                type="text"
+                inputMode="numeric"
+                required
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                placeholder="Enter 6-digit code"
+                className="mt-1 text-center text-lg tracking-[0.3em]"
+                maxLength={6}
+                autoFocus
+              />
+              <p className="mt-1.5 text-xs text-taupe">
+                Check your phone for the code sent via SMS.
+              </p>
+            </div>
 
+            <Button
+              type="submit"
+              disabled={submitting || otp.length < 4}
+              loading={submitting}
+              className="w-full py-3.5"
+            >
+              {submitting ? "Verifying…" : "Confirm Payment"}
+            </Button>
+          </form>
+        ) : (
           <Button
-            type="submit"
-            disabled={submitting || otp.length < 4}
-            loading={submitting}
-            className="w-full py-3.5"
-          >
-            {submitting ? "Verifying…" : "Confirm Payment"}
-          </Button>
-        </form>
-
-        <div className="mt-4 text-center">
-          <button
             type="button"
-            onClick={handleCheckStatus}
-            disabled={checking}
-            className="text-xs text-taupe underline-offset-2 hover:underline disabled:opacity-50"
+            onClick={handleRetry}
+            disabled={retrying}
+            loading={retrying}
+            className="mt-6 w-full py-3.5"
           >
-            {checking ? "Checking…" : "Payment already went through? Check status"}
-          </button>
-        </div>
+            {retrying ? "Sending prompt…" : "Retry Payment"}
+          </Button>
+        )}
+
+        {initiated && (
+          <div className="mt-4 text-center">
+            <button
+              type="button"
+              onClick={handleCheckStatus}
+              disabled={checking}
+              className="text-xs text-taupe underline-offset-2 hover:underline disabled:opacity-50"
+            >
+              {checking ? "Checking…" : "Payment already went through? Check status"}
+            </button>
+          </div>
+        )}
 
         <p className="mt-6 text-center text-xs text-taupe">
           Didn&apos;t receive the code?{" "}

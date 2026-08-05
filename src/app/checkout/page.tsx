@@ -310,10 +310,12 @@ export default function CheckoutPage() {
               <dt>Subtotal</dt>
               <dd className="tabular-nums">{formatPrice(subtotal)}</dd>
             </div>
-            <div className="flex justify-between text-mocha">
-              <dt>Delivery charge</dt>
-              <dd className="tabular-nums">{formatPrice(shipping)}</dd>
-            </div>
+            {shipping > 0 && (
+              <div className="flex justify-between text-mocha">
+                <dt>Delivery charge</dt>
+                <dd className="tabular-nums">{formatPrice(shipping)}</dd>
+              </div>
+            )}
             <div className="flex justify-between border-t border-border pt-3 text-base font-semibold text-espresso">
               <dt>Total</dt>
               <dd className="font-display text-2xl tabular-nums">

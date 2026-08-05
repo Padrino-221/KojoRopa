@@ -37,6 +37,13 @@ interface PaymentResult {
   requiresOtp?: boolean;
 }
 
+function normalizePhone(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  if (digits.startsWith("233")) return digits;
+  if (digits.startsWith("0")) return "233" + digits.slice(1);
+  return digits;
+}
+
 /**
  * Initiate a Mobile Money payment via Moolre.
  * Sends a USSD prompt to the customer's phone.
@@ -44,7 +51,7 @@ interface PaymentResult {
 export async function initiatePayment(params: PaymentParams): Promise<PaymentResult> {
   const { user, pubKey, accountId } = getConfig();
 
-  const phone = params.phone.replace(/\s/g, "").replace(/^0/, "233");
+  const phone = normalizePhone(params.phone);
 
   const body = {
     type: 1,
@@ -127,7 +134,7 @@ export async function submitOtp(params: {
 }): Promise<PaymentResult> {
   const { user, pubKey, accountId } = getConfig();
 
-  const phone = params.phone.replace(/\s/g, "").replace(/^0/, "233");
+  const phone = normalizePhone(params.phone);
 
   const body = {
     type: 1,
