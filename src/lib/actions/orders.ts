@@ -6,7 +6,7 @@ import { rateLimit, rateLimitGlobal } from "@/lib/rate-limit";
 import { getClientIp } from "@/lib/request";
 import { logAudit } from "@/lib/audit";
 import { createOrderNumber } from "@/lib/order";
-import { FREE_SHIPPING_THRESHOLD, SHIPPING_FEE } from "@/lib/products";
+import { SHIPPING_FEE } from "@/lib/products";
 import { orderSchema } from "@/lib/validators";
 import type { OrderInput } from "@/lib/validators";
 import { ORDER_STATUSES, type OrderStatus } from "@/lib/order-status";
@@ -58,7 +58,6 @@ export async function createOrderAction(
   const bySlug = new Map(dbProducts.map((p) => [p.slug, p]));
 
   const items = [...normalizedItems.values()];
-  const qtyBySlug = new Map<string, number>();
   let subtotal = 0;
 
   for (const line of items) {
@@ -70,13 +69,10 @@ export async function createOrderAction(
       return { ok: false, error: `We don't have that size for ${product.name}.` };
     }
 
-    const nextQty = (qtyBySlug.get(line.slug) ?? 0) + line.qty;
-    qtyBySlug.set(line.slug, nextQty);
-
     subtotal += product.price * line.qty;
   }
 
-  const shipping = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE;
+  const shipping = SHIPPING_FEE;
   const total = subtotal + shipping;
   const orderId = createOrderNumber();
   const token = randomUUID();

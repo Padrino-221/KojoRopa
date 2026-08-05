@@ -653,6 +653,9 @@ export function AdminDashboard({
   const [orders, setOrders] = useState<AdminOrder[]>(initialOrders);
   const [tab, setTab] = useState<"products" | "orders" | "settings">("products");
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState("all");
+  const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
   const [editor, setEditor] = useState<
     { mode: "new" } | { mode: "edit"; product: Product } | null
@@ -724,6 +727,15 @@ export function AdminDashboard({
     }
   };
 
+  const toggleOrder = (id: string) => {
+    setExpandedOrders((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   const handleStatusChange = async (orderId: string, status: OrderStatus) => {
     setBusy(true);
     try {
@@ -766,6 +778,25 @@ export function AdminDashboard({
     );
   }, [products, search]);
 
+  const filteredOrders = orders.filter((o) => {
+    if (statusFilter !== "all" && o.status !== statusFilter) return false;
+    if (dateFilter !== "all") {
+      const now = new Date();
+      const placed = new Date(o.placedAt);
+      if (dateFilter === "today") {
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        if (placed < today) return false;
+      } else if (dateFilter === "week") {
+        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        if (placed < weekAgo) return false;
+      } else if (dateFilter === "month") {
+        const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        if (placed < monthAgo) return false;
+      }
+    }
+    return true;
+  });
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
       {/* header */}
@@ -783,7 +814,40 @@ export function AdminDashboard({
               : `${orders.length} order${orders.length === 1 ? "" : "s"} placed so far.`}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {tab === "orders" && orders.length > 0 && (
+            <>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs text-espresso focus:outline-none focus:ring-1 focus:ring-clay"
+              >
+                <option value="all">All statuses</option>
+                <option value="pending">Pending</option>
+                <option value="delivered">Delivered</option>
+                <option value="failed">Failed</option>
+              </select>
+              <select
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+                className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs text-espresso focus:outline-none focus:ring-1 focus:ring-clay"
+              >
+                <option value="all">All time</option>
+                <option value="today">Today</option>
+                <option value="week">This week</option>
+                <option value="month">This month</option>
+              </select>
+              {(statusFilter !== "all" || dateFilter !== "all") && (
+                <button
+                  type="button"
+                  onClick={() => { setStatusFilter("all"); setDateFilter("all"); }}
+                  className="text-xs text-clay hover:text-clay-deep"
+                >
+                  Clear
+                </button>
+              )}
+            </>
+          )}
           <form action={logoutAction}>
             <Button type="submit" variant="secondary" size="sm">
               Sign out
@@ -988,81 +1052,93 @@ export function AdminDashboard({
             </div>
           ) : (
             <ul className="mt-6 space-y-3">
-              {orders.map((order) => (
-                <li
-                  key={order.id}
-                  className="rounded-2xl bg-surface ring-1 ring-border/50 p-4 sm:p-5"
-                >
-                  {/* order header */}
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium text-espresso">
-                          {order.name}
-                        </p>
-                        <Badge variant={statusBadgeVariant[order.status]} size="sm">
-                          {statusLabel[order.status]}
-                        </Badge>
+                  {filteredOrders.map((order) => (
+                    <li
+                      key={order.id}
+                      className="rounded-2xl bg-surface ring-1 ring-border/50 p-4 sm:p-5"
+                    >
+                      {/* order header */}
+                      <div
+                        className="flex flex-wrap items-start justify-between gap-3 cursor-pointer select-none"
+                        onClick={() => toggleOrder(order.id)}
+                      >
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-medium text-espresso">
+                              {order.name}
+                            </p>
+                            <Badge variant={statusBadgeVariant[order.status]} size="sm">
+                              {statusLabel[order.status]}
+                            </Badge>
+                          </div>
+                          <p className="mt-0.5 text-xs text-mocha">{order.email}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="text-right">
+                            <p className="text-sm font-semibold tabular-nums text-espresso">
+                              {formatPrice(order.total)}
+                            </p>
+                            <p className="mt-0.5 text-[11px] text-taupe">
+                              {formatOrderDate(order.placedAt)}
+                            </p>
+                          </div>
+                          <svg viewBox="0 0 24 24" className={`h-4 w-4 text-taupe transition-transform ${expandedOrders.has(order.id) ? "rotate-180" : ""}`} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                            <path d="M6 9l6 6 6-6" />
+                          </svg>
+                        </div>
                       </div>
-                      <p className="mt-0.5 text-xs text-mocha">{order.email}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-semibold tabular-nums text-espresso">
-                        {formatPrice(order.total)}
-                      </p>
-                      <p className="mt-0.5 text-[11px] text-taupe">
-                        {formatOrderDate(order.placedAt)}
-                      </p>
-                    </div>
-                  </div>
 
-                  {/* items */}
-                  <ul className="mt-3 divide-y divide-border/50 border-t border-border/50 pt-3">
-                    {order.items.map((item) => (
-                      <li
-                        key={item.id}
-                        className="flex items-center justify-between py-2 text-xs"
-                      >
-                        <span className="text-mocha">
-                          {item.name}{" "}
-                          <span className="text-taupe">×{item.qty}</span>
-                          {item.size && (
-                            <span className="text-taupe"> · {item.size}</span>
-                          )}
-                        </span>
-                        <span className="tabular-nums text-espresso">
-                          {formatPrice(item.price * item.qty)}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
+                      {expandedOrders.has(order.id) && (
+                        <>
+                          {/* items */}
+                          <ul className="mt-3 divide-y divide-border/50 border-t border-border/50 pt-3">
+                            {order.items.map((item) => (
+                              <li
+                                key={item.id}
+                                className="flex items-center justify-between py-2 text-xs"
+                              >
+                                <span className="text-mocha">
+                                  {item.name}{" "}
+                                  <span className="text-taupe">×{item.qty}</span>
+                                  {item.size && (
+                                    <span className="text-taupe"> · {item.size}</span>
+                                  )}
+                                </span>
+                                <span className="tabular-nums text-espresso">
+                                  {formatPrice(item.price * item.qty)}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
 
-                  {/* shipping address */}
-                  <div className="mt-3 border-t border-border/50 pt-3 text-[11px] text-taupe">
-                    {order.street}, {order.city} {order.postal}, {order.country}
-                  </div>
+                          {/* shipping address */}
+                          <div className="mt-3 border-t border-border/50 pt-3 text-[11px] text-taupe">
+                            {order.street}, {order.city} {order.postal}, {order.country}
+                          </div>
 
-                  {/* status controls */}
-                  <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border/50 pt-3">
-                    <span className="text-[11px] font-medium text-mocha">Status:</span>
-                    {ORDER_STATUSES.map((s) => (
-                      <Button
-                        key={s}
-                        variant={order.status === s ? "primary" : "secondary"}
-                        size="sm"
-                        onClick={() => handleStatusChange(order.id, s)}
-                        disabled={busy || order.status === s}
-                        className="text-[11px] px-3 py-1"
-                      >
-                        {statusLabel[s]}
-                      </Button>
-                    ))}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </>
+                          {/* status controls */}
+                          <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border/50 pt-3">
+                            <span className="text-[11px] font-medium text-mocha">Status:</span>
+                            {ORDER_STATUSES.map((s) => (
+                              <Button
+                                key={s}
+                                variant={order.status === s ? "primary" : "secondary"}
+                                size="sm"
+                                onClick={() => handleStatusChange(order.id, s)}
+                                disabled={busy || order.status === s}
+                                className="text-[11px] px-3 py-1"
+                              >
+                                {statusLabel[s]}
+                              </Button>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+          </>
       )}
 
       {editor && (

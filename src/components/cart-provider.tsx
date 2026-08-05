@@ -9,9 +9,8 @@ import {
   useState,
 } from "react";
 import type { ReactNode } from "react";
-import { FREE_SHIPPING_THRESHOLD, SHIPPING_FEE } from "@/lib/products";
+import { SHIPPING_FEE } from "@/lib/products";
 import type { Product, ShirtArt } from "@/lib/products";
-import { MAX_QTY } from "@/lib/site-config";
 
 export interface CartLine {
   productId: string;
@@ -33,9 +32,8 @@ interface CartContextValue {
   shipping: number;
   openCart: () => void;
   closeCart: () => void;
-  addItem: (product: Product, size: string, qty?: number) => void;
+  addItem: (product: Product, size: string) => void;
   removeItem: (productId: string, size: string) => void;
-  setQty: (productId: string, size: string, qty: number) => void;
   clearCart: () => void;
 }
 
@@ -91,17 +89,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [isOpen]);
 
   const addItem = useCallback(
-    (product: Product, size: string, qty = 1) => {
+    (product: Product, size: string) => {
       setItems((prev) => {
         const existing = prev.find(
           (l) => l.productId === product.id && l.size === size
         );
         if (existing) {
-          return prev.map((l) =>
-            l.productId === product.id && l.size === size
-              ? { ...l, qty: Math.min(l.qty + qty, MAX_QTY) }
-              : l
-          );
+          // Already in cart — one-of-a-kind, don't add again
+          return prev;
         }
         return [
           ...prev,
@@ -111,7 +106,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
             name: product.name,
             size,
             price: product.price,
-            qty,
+            qty: 1,
             art: { ...product.art },
             image: product.image,
           },
@@ -128,21 +123,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
-  const setQty = useCallback(
-    (productId: string, size: string, qty: number) => {
-      setItems((prev) =>
-        qty <= 0
-          ? prev.filter((l) => !(l.productId === productId && l.size === size))
-          : prev.map((l) =>
-              l.productId === productId && l.size === size
-                ? { ...l, qty: Math.min(qty, MAX_QTY) }
-                : l
-            )
-      );
-    },
-    []
-  );
-
   const clearCart = useCallback(() => setItems([]), []);
 
   const openCart = useCallback(() => setIsOpen(true), []);
@@ -158,8 +138,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     );
   }, [items]);
 
-  const shipping =
-    subtotal >= FREE_SHIPPING_THRESHOLD || items.length === 0 ? 0 : SHIPPING_FEE;
+  const shipping = items.length === 0 ? 0 : SHIPPING_FEE;
 
   const value = useMemo(
     () => ({
@@ -173,7 +152,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
       closeCart,
       addItem,
       removeItem,
-      setQty,
       clearCart,
     }),
     [
@@ -187,7 +165,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
       closeCart,
       addItem,
       removeItem,
-      setQty,
       clearCart,
     ]
   );

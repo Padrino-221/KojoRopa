@@ -8,7 +8,6 @@ import { useCart } from "@/components/cart-provider";
 import { ShirtArt } from "@/components/shirt-art";
 import { formatPrice } from "@/lib/format";
 import {
-  FREE_SHIPPING_THRESHOLD,
   SHIPPING_COUNTRIES,
 } from "@/lib/products";
 import { useSiteSetting } from "@/components/site-settings-provider";
@@ -395,12 +394,6 @@ export default function CheckoutPage() {
                 )}
               </dd>
             </div>
-            {shipping > 0 && (
-              <p className="text-xs text-taupe">
-                Add {formatPrice(FREE_SHIPPING_THRESHOLD - subtotal)} more for
-                free shipping
-              </p>
-            )}
             <div className="flex justify-between border-t border-border pt-3 text-base font-semibold text-espresso">
               <dt>Total</dt>
               <dd className="font-display text-2xl tabular-nums">

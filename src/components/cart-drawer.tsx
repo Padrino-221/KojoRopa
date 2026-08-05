@@ -5,7 +5,6 @@ import { useEffect, useRef } from "react";
 import { useCart } from "@/components/cart-provider";
 import { ShirtArt } from "@/components/shirt-art";
 import { formatPrice } from "@/lib/format";
-import { FREE_SHIPPING_THRESHOLD } from "@/lib/products";
 import { useSiteSetting } from "@/components/site-settings-provider";
 import { Button } from "@/components/ui/button";
 
@@ -16,17 +15,12 @@ export function CartDrawer() {
     shipping,
     isOpen,
     closeCart,
-    setQty,
     removeItem,
   } = useCart();
   const panelRef = useRef<HTMLElement>(null);
 
-  const freeShippingText = useSiteSetting("freeShippingText", "You've unlocked free shipping");
   const cartEmptyHeading = useSiteSetting("cartEmptyHeading", "Your bag is empty");
   const cartEmptyBody = useSiteSetting("cartEmptyBody", "Every piece is one of one — when it's gone, it's gone.");
-
-  const remaining = Math.max(0, FREE_SHIPPING_THRESHOLD - subtotal);
-  const progress = Math.min(100, (subtotal / FREE_SHIPPING_THRESHOLD) * 100);
 
   useEffect(() => {
     if (isOpen) panelRef.current?.focus();
@@ -68,27 +62,6 @@ export function CartDrawer() {
               <path d="M6 6l12 12M18 6L6 18" />
             </svg>
           </Button>
-        </div>
-
-        {/* free shipping meter */}
-        <div className="border-b border-border px-6 py-3">
-          {remaining > 0 ? (
-            <p className="text-[13px] text-mocha">
-              You&rsquo;re{" "}
-              <span className="font-semibold text-espresso">{formatPrice(remaining)}</span>{" "}
-              away from free shipping
-            </p>
-          ) : (
-            <p className="text-[13px] font-medium text-olive">
-              {freeShippingText}
-            </p>
-          )}
-          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-sand">
-            <div
-              className="h-full rounded-full bg-clay transition-all duration-500"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
         </div>
 
         {/* lines */}
@@ -151,28 +124,7 @@ export function CartDrawer() {
                     </div>
 
                     <div className="flex items-center justify-between">
-                      {/* qty stepper */}
-                      <div className="flex items-center rounded-full bg-cream">
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          onClick={() => setQty(line.productId, line.size, line.qty - 1)}
-                          aria-label="Decrease quantity"
-                          className="h-7 w-7"
-                        >
-                          −
-                        </Button>
-                        <span className="w-6 text-center text-sm tabular-nums">{line.qty}</span>
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          onClick={() => setQty(line.productId, line.size, line.qty + 1)}
-                          aria-label="Increase quantity"
-                          className="h-7 w-7"
-                        >
-                          +
-                        </Button>
-                      </div>
+                      <p className="text-xs text-taupe">Qty: {line.qty}</p>
                       <p className="text-sm font-semibold tabular-nums text-espresso">
                         {formatPrice(line.price * line.qty)}
                       </p>

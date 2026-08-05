@@ -4,15 +4,12 @@ import { useEffect, useState } from "react";
 import { useCart } from "@/components/cart-provider";
 import { formatPrice } from "@/lib/format";
 import type { Product } from "@/lib/products";
-import { useSiteSetting } from "@/components/site-settings-provider";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 export function ProductActions({ product }: { product: Product }) {
   const { addItem } = useCart();
-  const maxQty = parseInt(useSiteSetting("maxQty", "99"), 10) || 99;
   const [size, setSize] = useState<string | null>(product.sizes[0] ?? null);
-  const [qty, setQty] = useState(1);
   const [justAdded, setJustAdded] = useState(false);
 
   useEffect(() => {
@@ -23,7 +20,7 @@ export function ProductActions({ product }: { product: Product }) {
 
   const handleAdd = () => {
     if (!size) return;
-    addItem(product, size, qty);
+    addItem(product, size);
     setJustAdded(true);
   };
 
@@ -50,36 +47,12 @@ export function ProductActions({ product }: { product: Product }) {
         ))}
       </div>
 
-      {/* qty + add */}
-      <div className="mt-5 flex items-center gap-3">
-        <div className="flex items-center shrink-0 rounded-full bg-cream">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setQty((q) => Math.max(1, q - 1))}
-            aria-label="Decrease quantity"
-            className="text-lg text-mocha hover:text-clay"
-          >
-            −
-          </Button>
-          <span className="w-8 text-center text-sm font-semibold tabular-nums">
-            {qty}
-          </span>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setQty((q) => Math.min(maxQty, q + 1))}
-            aria-label="Increase quantity"
-            className="text-lg text-mocha hover:text-clay"
-          >
-            +
-          </Button>
-        </div>
-
+      {/* add to cart */}
+      <div className="mt-5">
         <Button
           onClick={handleAdd}
           disabled={!size}
-          className={`relative flex h-12 flex-1 overflow-hidden px-4 sm:px-6 text-xs sm:text-sm tracking-wide ${
+          className={`relative flex h-12 w-full overflow-hidden px-4 sm:px-6 text-xs sm:text-sm tracking-wide ${
             justAdded ? "bg-olive hover:bg-olive" : ""
           }`}
         >
@@ -92,7 +65,7 @@ export function ProductActions({ product }: { product: Product }) {
             </span>
           ) : (
             <>
-              Add to Cart · {formatPrice(product.price * qty)}
+              Add to Cart · {formatPrice(product.price)}
             </>
           )}
         </Button>
