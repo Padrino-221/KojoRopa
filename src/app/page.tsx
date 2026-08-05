@@ -3,7 +3,7 @@ import { Hero } from "@/components/hero";
 import { Storefront } from "@/components/storefront";
 import type { StorefrontInitial } from "@/components/storefront";
 import { getPublicProducts } from "@/lib/queries";
-import { CATEGORIES, SIZES, STYLE_FILTERS } from "@/lib/products";
+import { CATEGORIES, SIZES } from "@/lib/products";
 import { getAllSettings } from "@/lib/actions/settings";
 
 export default async function HomePage(props: PageProps<"/">) {
@@ -16,13 +16,11 @@ export default async function HomePage(props: PageProps<"/">) {
   ): string => (typeof value === "string" ? value : fallback);
 
   const category = pickString(qp.category, "");
-  const style = pickString(qp.style, "");
   const size = pickString(qp.size, "");
 
   const initial: StorefrontInitial = {
     q: pickString(qp.q, ""),
     category: CATEGORIES.some((c) => c.value === category) ? category : "all",
-    style: STYLE_FILTERS.some((s) => s.value === style) ? style : "all",
     size: SIZES.includes(size) ? size : "all",
     sort: pickString(qp.sort, "featured"),
   };

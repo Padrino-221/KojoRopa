@@ -310,16 +310,6 @@ export const CATEGORIES: { value: string; label: string }[] = [
   { value: "overshirt", label: "Overshirts" },
 ];
 
-export const STYLE_FILTERS: { value: string; label: string }[] = [
-  { value: "all", label: "All styles" },
-  { value: "graphic", label: "Graphic" },
-  { value: "stripes", label: "Stripes" },
-  { value: "tie-dye", label: "Tie-dye" },
-  { value: "plain", label: "Plain" },
-  { value: "pocket", label: "Pocket" },
-  { value: "deadstock", label: "Deadstock" },
-];
-
 export const SIZES = ["XS", "S", "M", "L", "XL", "XXL"];
 
 /** every tag the admin form offers, so the filters keep working */

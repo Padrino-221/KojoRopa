@@ -2,7 +2,7 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import { ProductCard } from "@/components/product-card";
-import { CATEGORIES, SIZES, STYLE_FILTERS } from "@/lib/products";
+import { CATEGORIES, SIZES } from "@/lib/products";
 import type { Product } from "@/lib/products";
 import { useSiteSetting } from "@/components/site-settings-provider";
 import { CustomSelect } from "@/components/ui/custom-select";
@@ -10,7 +10,6 @@ import { CustomSelect } from "@/components/ui/custom-select";
 export interface StorefrontInitial {
   q: string;
   category: string;
-  style: string;
   size: string;
   sort: string;
 }
@@ -31,7 +30,6 @@ export function Storefront({
 }) {
   const [q, setQ] = useState(initial.q);
   const [category, setCategory] = useState(initial.category);
-  const [style, setStyle] = useState(initial.style);
   const [size, setSize] = useState(initial.size);
   const [sort, setSort] = useState(initial.sort);
 
@@ -45,7 +43,6 @@ export function Storefront({
       .filter((p) => p.visible !== false)
       .filter((p) => {
       if (category !== "all" && p.category !== category) return false;
-      if (style !== "all" && !p.tags.includes(style)) return false;
       if (size !== "all" && !p.sizes.includes(size)) return false;
       if (query) {
         const haystack = [
@@ -79,15 +76,14 @@ export function Storefront({
         );
     }
     return list;
-  }, [q, category, style, size, sort, products]);
+  }, [q, category, size, sort, products]);
 
   const hasFilters =
-    q.trim() !== "" || category !== "all" || style !== "all" || size !== "all";
+    q.trim() !== "" || category !== "all" || size !== "all";
 
   const clearAll = () => {
     setQ("");
     setCategory("all");
-    setStyle("all");
     setSize("all");
   };
 
@@ -181,25 +177,6 @@ export function Storefront({
             className="w-full rounded-full bg-surface py-2.5 pr-4 pl-11 text-sm text-espresso ring-1 ring-border placeholder:text-taupe focus:border-clay focus:ring-2 focus:ring-clay/20 focus:outline-none"
           />
         </div>
-      </div>
-
-      {/* style pills */}
-      <div className="mt-4 flex flex-wrap gap-2">
-        {STYLE_FILTERS.map((s) => (
-          <button
-            key={s.value}
-            type="button"
-            onClick={() => setStyle(s.value)}
-            aria-pressed={style === s.value}
-            className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-medium transition-all ${
-              style === s.value
-                ? "bg-clay text-white"
-                : "bg-surface text-mocha ring-1 ring-border hover:ring-clay/30 hover:text-clay"
-            }`}
-          >
-            {s.label}
-          </button>
-        ))}
       </div>
 
       {/* size + sort + clear */}
