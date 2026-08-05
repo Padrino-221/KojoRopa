@@ -1,4 +1,4 @@
-const MOOLRE_BASE = "https://api.moolre.com";
+const MOOLRE_BASE = process.env.MOOLRE_BASE_URL || "https://sandbox.moolre.com";
 
 function getConfig() {
   const user = process.env.MOOLRE_API_USER;
@@ -58,17 +58,36 @@ export async function initiatePayment(params: PaymentParams): Promise<PaymentRes
     accountnumber: accountId,
   };
 
-  const res = await fetch(`${MOOLRE_BASE}/open/transact/payment`, {
-    method: "POST",
-    headers: {
-      "X-API-USER": user,
-      "X-API-PUBKEY": pubKey,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${MOOLRE_BASE}/open/transact/payment`, {
+      method: "POST",
+      headers: {
+        "X-API-USER": user,
+        "X-API-PUBKEY": pubKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+  } catch (err) {
+    console.error("[moolre] fetch error:", err);
+    return {
+      success: false,
+      message: `Network error: ${String(err)}`,
+    };
+  }
 
-  const data: MoolreResponse = await res.json();
+  const text = await res.text();
+  let data: MoolreResponse;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    console.error("[moolre] non-JSON response:", text);
+    return {
+      success: false,
+      message: `Unexpected response from Moolre: ${text.slice(0, 200)}`,
+    };
+  }
 
   if (data.status === 1) {
     return {
