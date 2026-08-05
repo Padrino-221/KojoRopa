@@ -86,6 +86,7 @@ export async function initiatePayment(params: PaymentParams): Promise<PaymentRes
   }
 
   const text = await res.text();
+  console.log(`[moolre] initiatePayment raw response (HTTP ${res.status}): ${text}`);
   let data: MoolreResponse;
   try {
     data = JSON.parse(text);
@@ -112,7 +113,7 @@ export async function initiatePayment(params: PaymentParams): Promise<PaymentRes
     };
   }
 
-  console.log("[moolre] initiatePayment failed:", { status: data.status, code: data.code, message: data.message });
+  console.log("[moolre] initiatePayment failed:", { status: data.status, code: data.code, message: data.message, fullData: data });
   return {
     success: false,
     code: data.code,
