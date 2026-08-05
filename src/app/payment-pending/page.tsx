@@ -30,6 +30,11 @@ export default async function PaymentPendingPage(
     redirect(`/confirmation?token=${token}`);
   }
 
+  // If no Moolre session (sandbox or failed initiation), skip OTP and go to confirmation
+  if (!order.moolreSessionId) {
+    redirect(`/confirmation?token=${token}`);
+  }
+
   return (
     <PaymentPendingClient
       orderId={order.id}
