@@ -92,15 +92,20 @@ export async function initiatePayment(params: PaymentParams): Promise<PaymentRes
 
   if (data.status === 1) {
     const dataObj = typeof data.data === "object" && data.data !== null ? data.data as Record<string, unknown> : null;
+    // sessionId may be in data.sessionid, data.transactionid, or top-level
+    const sessionId = (dataObj?.sessionid || dataObj?.transactionid || (data as unknown as Record<string, unknown>)?.sessionid) as string | undefined;
+    const transactionId = (dataObj?.transactionid || (data as unknown as Record<string, unknown>)?.transactionid) as string | undefined;
+    console.log("[moolre] initiatePayment success:", { code: data.code, sessionId, transactionId, data: dataObj });
     return {
       success: true,
       code: data.code,
       message: typeof data.message === "string" ? data.message : Array.isArray(data.message) ? data.message.join(", ") : "Payment initiated",
-      transactionId: dataObj?.transactionid as string | undefined,
-      sessionId: dataObj?.sessionid as string | undefined,
+      transactionId,
+      sessionId,
     };
   }
 
+  console.log("[moolre] initiatePayment failed:", { status: data.status, code: data.code, message: data.message });
   return {
     success: false,
     code: data.code,

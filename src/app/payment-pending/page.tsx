@@ -30,8 +30,8 @@ export default async function PaymentPendingPage(
     redirect(`/confirmation?token=${token}`);
   }
 
-  // If no Moolre session (sandbox or failed initiation), skip OTP and go to confirmation
-  if (!order.moolreSessionId) {
+  // If order has no phone number, something went wrong — skip to confirmation
+  if (!order.phone) {
     redirect(`/confirmation?token=${token}`);
   }
 
@@ -40,7 +40,7 @@ export default async function PaymentPendingPage(
       orderId={order.id}
       token={token}
       amount={order.total}
-      phone={order.phone || ""}
+      phone={order.phone}
       paymentMessage="A USSD prompt has been sent to your phone. Enter the OTP code to confirm payment."
       initialStatus={order.status}
     />

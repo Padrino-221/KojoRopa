@@ -190,17 +190,15 @@ export async function submitOtpAction(
 
   console.log(`[submitOtp] order found: sessionId=${order.moolreSessionId}, transactionId=${order.moolreTransactionId}, phone=${order.phone}`);
 
-  if (!order.moolreSessionId) {
-    console.log("[submitOtp] no moolreSessionId — cannot submit OTP");
-    return { ok: false, error: "No pending payment for this order. The initial payment may not have been initiated." };
-  }
+  // Use sessionId if available, otherwise fall back to transactionId
+  const sessionId = order.moolreSessionId || order.moolreTransactionId || "";
 
   const result = await submitOtp({
     phone: order.phone || "",
     amount: order.total,
     externalRef: order.id,
     otpCode,
-    sessionId: order.moolreSessionId,
+    sessionId,
     transactionId: order.moolreTransactionId || undefined,
   });
 
