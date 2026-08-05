@@ -175,17 +175,24 @@ export async function submitOtpAction(
   otpCode: string
 ): Promise<SubmitOtpResult> {
   const ip = await getClientIp();
+  console.log(`[submitOtp] orderId=${orderId}, ip=${ip}`);
+
   if (!rateLimit(`otp:${orderId}`, 5, 60_000)) {
+    console.log("[submitOtp] rate limited");
     return { ok: false, error: "Too many attempts. Please wait a moment." };
   }
 
   const order = await prisma.order.findUnique({ where: { id: orderId } });
   if (!order) {
+    console.log("[submitOtp] order not found");
     return { ok: false, error: "Order not found." };
   }
 
+  console.log(`[submitOtp] order found: sessionId=${order.moolreSessionId}, transactionId=${order.moolreTransactionId}, phone=${order.phone}`);
+
   if (!order.moolreSessionId) {
-    return { ok: false, error: "No pending payment for this order." };
+    console.log("[submitOtp] no moolreSessionId — cannot submit OTP");
+    return { ok: false, error: "No pending payment for this order. The initial payment may not have been initiated." };
   }
 
   const result = await submitOtp({
@@ -196,6 +203,8 @@ export async function submitOtpAction(
     sessionId: order.moolreSessionId,
     transactionId: order.moolreTransactionId || undefined,
   });
+
+  console.log("[submitOtp] moolre result:", result);
 
   if (result.success) {
     await prisma.order.update({

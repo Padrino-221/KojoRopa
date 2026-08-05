@@ -67,14 +67,21 @@ export function PaymentPendingClient({
     setSubmitting(true);
     setError(null);
 
-    const res = await submitOtpAction(orderId, otp.trim());
-    setSubmitting(false);
+    try {
+      const res = await submitOtpAction(orderId, otp.trim());
+      console.log("[payment-pending] submitOtp result:", res);
+      setSubmitting(false);
 
-    if (res.ok) {
-      setSuccess(res.message);
-      setStatus("delivered");
-    } else {
-      setError(res.error);
+      if (res.ok) {
+        setSuccess(res.message);
+        setStatus("delivered");
+      } else {
+        setError(res.error);
+      }
+    } catch (err) {
+      console.error("[payment-pending] submitOtp error:", err);
+      setSubmitting(false);
+      setError("Something went wrong. Please try again.");
     }
   };
 
