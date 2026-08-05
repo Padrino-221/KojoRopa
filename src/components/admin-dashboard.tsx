@@ -814,40 +814,7 @@ export function AdminDashboard({
               : `${orders.length} order${orders.length === 1 ? "" : "s"} placed so far.`}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {tab === "orders" && orders.length > 0 && (
-            <>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs text-espresso focus:outline-none focus:ring-1 focus:ring-clay"
-              >
-                <option value="all">All statuses</option>
-                <option value="pending">Pending</option>
-                <option value="delivered">Delivered</option>
-                <option value="failed">Failed</option>
-              </select>
-              <select
-                value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value)}
-                className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs text-espresso focus:outline-none focus:ring-1 focus:ring-clay"
-              >
-                <option value="all">All time</option>
-                <option value="today">Today</option>
-                <option value="week">This week</option>
-                <option value="month">This month</option>
-              </select>
-              {(statusFilter !== "all" || dateFilter !== "all") && (
-                <button
-                  type="button"
-                  onClick={() => { setStatusFilter("all"); setDateFilter("all"); }}
-                  className="text-xs text-clay hover:text-clay-deep"
-                >
-                  Clear
-                </button>
-              )}
-            </>
-          )}
+        <div className="flex flex-wrap gap-2">
           <form action={logoutAction}>
             <Button type="submit" variant="secondary" size="sm">
               Sign out
@@ -865,8 +832,9 @@ export function AdminDashboard({
         </div>
       </div>
 
-      {/* tabs */}
-      <div className="mt-6 flex gap-1 rounded-full bg-surface p-1 ring-1 ring-border/50 w-fit">
+      {/* tabs + filters */}
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex gap-1 rounded-full bg-surface p-1 ring-1 ring-border/50 w-fit">
         {(["products", "orders", "settings"] as const).map((t) => (
           <button
             key={t}
@@ -884,6 +852,40 @@ export function AdminDashboard({
             {t === "products" ? "Products" : t === "orders" ? "Orders" : "Settings"}
           </button>
         ))}
+        </div>
+        {tab === "orders" && orders.length > 0 && (
+          <div className="flex items-center gap-2">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs text-espresso focus:outline-none focus:ring-1 focus:ring-clay"
+            >
+              <option value="all">All statuses</option>
+              <option value="pending">Pending</option>
+              <option value="delivered">Delivered</option>
+              <option value="failed">Failed</option>
+            </select>
+            <select
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs text-espresso focus:outline-none focus:ring-1 focus:ring-clay"
+            >
+              <option value="all">All time</option>
+              <option value="today">Today</option>
+              <option value="week">This week</option>
+              <option value="month">This month</option>
+            </select>
+            {(statusFilter !== "all" || dateFilter !== "all") && (
+              <button
+                type="button"
+                onClick={() => { setStatusFilter("all"); setDateFilter("all"); }}
+                className="text-xs text-clay hover:text-clay-deep"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {tab === "products" && (
