@@ -3,19 +3,18 @@ import { ShirtArt } from "@/components/shirt-art";
 import { getPublicProducts } from "@/lib/queries";
 import { products } from "@/lib/products";
 import type { Product } from "@/lib/products";
+import { getAllSettings } from "@/lib/actions/settings";
 
-/** how often the hero shirt changes (6 hours) */
-const HERO_ROTATION_MS = 6 * 60 * 60 * 1000;
-
-function pickHeroShirt(rack: Product[], now = Date.now()): Product {
+function pickHeroShirt(rack: Product[], rotationMs: number, now = Date.now()): Product {
   if (rack.length === 0) return products[0];
-  const index = Math.floor(now / HERO_ROTATION_MS) % rack.length;
+  const index = Math.floor(now / rotationMs) % rack.length;
   return rack[index];
 }
 
 export async function Hero() {
-  const rack = await getPublicProducts();
-  const main = pickHeroShirt(rack);
+  const [rack, settings] = await Promise.all([getPublicProducts(), getAllSettings()]);
+  const rotationMs = parseInt(settings.heroRotationMs || "21600000", 10) || 21600000;
+  const main = pickHeroShirt(rack, rotationMs);
 
   return (
     <section className="mx-auto max-w-7xl px-4 pt-8 sm:px-6 lg:px-8 lg:pt-12">
@@ -24,15 +23,13 @@ export async function Hero() {
           {/* copy */}
           <div className="animate-fade-up">
             <p className="text-xs font-semibold tracking-[0.2em] uppercase text-clay">
-              Curated secondhand · Accra
+              {settings.heroEyebrow || "Curated secondhand · Accra"}
             </p>
             <h1 className="mt-4 font-display text-4xl leading-[1.08] tracking-tight text-espresso sm:text-5xl lg:text-6xl">
-              Transform Your Style with{" "}
-              <em className="text-clay italic">Confidence</em>.
+              {settings.heroHeadline || "Transform Your Style with Confidence."}
             </h1>
             <p className="mt-5 max-w-lg text-base leading-relaxed text-mocha">
-              KojoRopa picks one-of-one secondhand shirts from the bales at
-              Kantamanto Market — washed, checked and priced to move.
+              {settings.heroDescription || "KojoRopa picks one-of-one secondhand shirts from the bales at Kantamanto Market — washed, checked and priced to move."}
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
               <Link
@@ -70,7 +67,7 @@ export async function Hero() {
               )}
             </Link>
             <p className="mt-3 text-center text-xs tracking-wide text-taupe">
-              The pick of the rack — one of one, no restocks
+              {settings.heroCaption || "The pick of the rack — one of one, no restocks"}
             </p>
           </div>
         </div>

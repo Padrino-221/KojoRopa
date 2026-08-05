@@ -7,6 +7,7 @@ import { ProductActions } from "@/components/product-actions";
 import { ProductCard } from "@/components/product-card";
 import { formatPrice, formatSavings } from "@/lib/format";
 import type { Product } from "@/lib/products";
+import { useSiteSetting } from "@/components/site-settings-provider";
 
 function ProductGallery({
   product,
@@ -126,6 +127,8 @@ export function ProductDetail({
   product: Product;
   related: Product[];
 }) {
+  const productDetailNote = useSiteSetting("productDetailNote", "Every piece is washed, checked and one of one. When it's gone, it's gone.");
+  const relatedHeading = useSiteSetting("relatedHeading", "You might also like");
   const images =
     product.images && product.images.length > 0
       ? product.images
@@ -214,8 +217,7 @@ export function ProductDetail({
           </div>
 
           <p className="mt-5 flex items-center gap-2 text-[13px] text-mocha">
-            Every piece is washed, checked and one of one. When it&rsquo;s gone,
-            it&rsquo;s gone.
+            {productDetailNote}
           </p>
         </div>
       </div>
@@ -224,7 +226,7 @@ export function ProductDetail({
       <section className="mt-16">
         <div className="flex items-end justify-between">
           <h2 className="font-display text-2xl tracking-tight text-espresso sm:text-3xl">
-            You might also like
+            {relatedHeading}
           </h2>
           <Link
             href="/#shop"

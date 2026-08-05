@@ -6,6 +6,14 @@ import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { CartDrawer } from "@/components/cart-drawer";
 import { BottomNav } from "@/components/bottom-nav";
+import { SiteSettingsProvider } from "@/components/site-settings-provider";
+import { ToastProvider } from "@/components/ui/toast";
+import { getAllSettings } from "@/lib/actions/settings";
+import {
+  SITE_NAME,
+  SITE_DESCRIPTION,
+  SITE_KEYWORDS,
+} from "@/lib/site-config";
 
 const fraunces = Fraunces({
   variable: "--font-fraunces",
@@ -24,36 +32,33 @@ export const metadata: Metadata = {
     process.env.NEXT_PUBLIC_SITE_URL ?? "https://kojoropa.example"
   ),
   title: {
-    default: "KojoRopa — Secondhand Shirts, One of One",
-    template: "%s · KojoRopa",
+    default: `${SITE_NAME} — Secondhand Shirts, One of One`,
+    template: `%s · ${SITE_NAME}`,
   },
-  description:
-    "KojoRopa is a curated secondhand shirt shop from Accra. Graphic tees, deadstock blanks and soft-washed classics — one of one, picked at Kantamanto Market.",
-  keywords: [
-    "thrift store",
-    "secondhand",
-    "vintage shirts",
-    "graphic tees",
-    "Kantamanto",
-    "Accra",
-    "Ghana",
-  ],
+  description: SITE_DESCRIPTION,
+  keywords: SITE_KEYWORDS,
 };
 
-export default function RootLayout(props: LayoutProps<"/">) {
+export default async function RootLayout(props: LayoutProps<"/">) {
+  const settings = await getAllSettings();
+
   return (
     <html
       lang="en"
       className={`${fraunces.variable} ${inter.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col bg-linen">
-        <CartProvider>
-          <Navbar />
-          <main className="flex-1 pb-20 lg:pb-0">{props.children}</main>
-          <Footer />
-          <BottomNav />
-          <CartDrawer />
-        </CartProvider>
+        <SiteSettingsProvider settings={settings}>
+          <ToastProvider>
+            <CartProvider>
+              <Navbar />
+              <main className="flex-1 pb-20 lg:pb-0">{props.children}</main>
+              <Footer />
+              <BottomNav />
+              <CartDrawer />
+            </CartProvider>
+          </ToastProvider>
+        </SiteSettingsProvider>
       </body>
     </html>
   );

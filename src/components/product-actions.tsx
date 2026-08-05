@@ -4,9 +4,13 @@ import { useEffect, useState } from "react";
 import { useCart } from "@/components/cart-provider";
 import { formatPrice } from "@/lib/format";
 import type { Product } from "@/lib/products";
+import { useSiteSetting } from "@/components/site-settings-provider";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 export function ProductActions({ product }: { product: Product }) {
   const { addItem } = useCart();
+  const maxQty = parseInt(useSiteSetting("maxQty", "99"), 10) || 99;
   const [size, setSize] = useState<string | null>(product.sizes[0] ?? null);
   const [qty, setQty] = useState(1);
   const [justAdded, setJustAdded] = useState(false);
@@ -32,19 +36,17 @@ export function ProductActions({ product }: { product: Product }) {
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
         {product.sizes.map((s) => (
-          <button
+          <Badge
             key={s}
-            type="button"
+            variant={size === s ? "primary" : "default"}
+            size="md"
+            className="min-w-12 cursor-pointer select-none"
             onClick={() => setSize(s)}
+            role="button"
             aria-pressed={size === s}
-            className={`min-w-12 rounded-full px-4 py-2.5 text-sm font-medium transition-all ${
-              size === s
-                ? "bg-clay text-white shadow-sm shadow-clay/20"
-                : "bg-surface text-espresso ring-1 ring-border hover:ring-clay/40"
-            }`}
           >
             {s}
-          </button>
+          </Badge>
         ))}
       </div>
       {product.fitNote && (
@@ -54,36 +56,35 @@ export function ProductActions({ product }: { product: Product }) {
       {/* qty + add */}
       <div className="mt-5 flex items-center gap-3">
         <div className="flex items-center shrink-0 rounded-full bg-cream">
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => setQty((q) => Math.max(1, q - 1))}
             aria-label="Decrease quantity"
-            className="flex h-12 w-12 items-center justify-center rounded-full text-lg text-mocha transition-colors hover:text-clay"
+            className="text-lg text-mocha hover:text-clay"
           >
             −
-          </button>
+          </Button>
           <span className="w-8 text-center text-sm font-semibold tabular-nums">
             {qty}
           </span>
-          <button
-            type="button"
-            onClick={() => setQty((q) => Math.min(99, q + 1))}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setQty((q) => Math.min(maxQty, q + 1))}
             aria-label="Increase quantity"
-            className="flex h-12 w-12 items-center justify-center rounded-full text-lg text-mocha transition-colors hover:text-clay"
+            className="text-lg text-mocha hover:text-clay"
           >
             +
-          </button>
+          </Button>
         </div>
 
-        <button
-          type="button"
+        <Button
           onClick={handleAdd}
           disabled={!size}
-          className={`relative flex h-12 flex-1 items-center justify-center gap-2 overflow-hidden rounded-full px-4 sm:px-6 text-xs sm:text-sm font-medium tracking-wide transition-all ${
-            justAdded
-              ? "bg-olive text-white"
-              : "bg-clay text-white hover:bg-clay-deep"
-          } disabled:cursor-not-allowed disabled:opacity-40`}
+          className={`relative flex h-12 flex-1 overflow-hidden px-4 sm:px-6 text-xs sm:text-sm tracking-wide ${
+            justAdded ? "bg-olive hover:bg-olive" : ""
+          }`}
         >
           {justAdded ? (
             <span className="flex animate-pop items-center gap-2">
@@ -97,7 +98,7 @@ export function ProductActions({ product }: { product: Product }) {
               Add to Cart · {formatPrice(product.price * qty)}
             </>
           )}
-        </button>
+        </Button>
       </div>
 
       <p className="mt-4 text-[13px] text-mocha">

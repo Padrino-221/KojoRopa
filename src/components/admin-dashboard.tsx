@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { FormEvent, ReactNode } from "react";
+import type { FormEvent } from "react";
 
 import { ShirtArt } from "@/components/shirt-art";
 import { compressImage } from "@/lib/image";
@@ -19,7 +19,28 @@ import {
   deleteProductAction,
   updateProductAction,
 } from "@/lib/actions/products";
+import { updateOrderStatusAction, type OrderStatus } from "@/lib/actions/orders";
+import { ORDER_STATUSES } from "@/lib/order-status";
 import { logoutAction } from "@/lib/actions/auth";
+import { useSiteSetting } from "@/components/site-settings-provider";
+import {
+  getDbSettings,
+  saveSettingsAction,
+  resetSettingAction,
+} from "@/lib/actions/settings";
+import { SETTING_SECTIONS } from "@/lib/settings-defs";
+import { useToast } from "@/components/ui/toast";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { Modal } from "@/components/ui/modal";
+import { Spinner } from "@/components/ui/spinner";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Checkbox } from "@/components/ui/checkbox";
+import { CustomSelect } from "@/components/ui/custom-select";
 
 /* ————— order types (serialised from Prisma) ————— */
 
@@ -44,13 +65,9 @@ interface AdminOrder {
   city: string;
   postal: string;
   country: string;
+  status: OrderStatus;
   items: AdminOrderItem[];
 }
-
-const inputClass =
-  "w-full rounded-xl bg-surface px-3.5 py-2.5 text-sm text-espresso ring-1 ring-border placeholder:text-taupe focus:border-clay focus:ring-2 focus:ring-clay/20 focus:outline-none";
-const labelClass =
-  "mb-1.5 block text-[11px] font-semibold tracking-wide uppercase text-mocha";
 
 /* ————— add / edit form ————— */
 
@@ -138,31 +155,6 @@ function emptyForm(): FormState {
   };
 }
 
-function Chip({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
-        active
-          ? "bg-clay text-white"
-          : "bg-surface text-mocha ring-1 ring-border hover:ring-clay/40"
-      }`}
-    >
-      {children}
-    </button>
-  );
-}
-
 function ProductForm({
   initial,
   onSave,
@@ -172,17 +164,10 @@ function ProductForm({
   onSave: (input: ProductInput) => void;
   onClose: () => void;
 }) {
+  const maxProductImages = parseInt(useSiteSetting("maxProductImages", "8"), 10) || 8;
   const [form, setForm] = useState<FormState>(
     initial ? toForm(initial) : emptyForm()
   );
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
@@ -237,193 +222,210 @@ function ProductForm({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div
-        className="fixed inset-0 animate-fade-in bg-espresso/40 backdrop-blur-sm"
-        onClick={onClose}
-      />
-      <div className="relative mx-auto my-8 w-full max-w-2xl animate-pop rounded-3xl bg-linen p-6 shadow-2xl sm:p-8">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h2 className="font-display text-2xl tracking-tight text-espresso">
-              {initial ? "Edit piece" : "Add a piece"}
-            </h2>
-            <p className="mt-1 text-sm text-mocha">
-              Changes update the rack immediately.
-            </p>
-          </div>
-          <div className="h-24 w-20 shrink-0 overflow-hidden rounded-xl bg-cream">
-            <ShirtArt art={previewArt} className="h-full w-full" />
+    <Modal open onClose={onClose}>
+      <form onSubmit={submit} className="flex flex-col max-h-[inherit]">
+        {/* ——— Fixed header ——— */}
+        <div className="relative z-10 shrink-0 px-6 pt-6 sm:px-8 sm:pt-8">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="font-display text-2xl tracking-tight text-espresso">
+                {initial ? "Edit piece" : "Add a piece"}
+              </h2>
+              <p className="mt-1 text-sm text-mocha">
+                Changes update the rack immediately.
+              </p>
+            </div>
+            <div className="h-24 w-20 shrink-0 overflow-hidden rounded-xl bg-cream">
+              <ShirtArt art={previewArt} className="h-full w-full" />
+            </div>
           </div>
         </div>
 
-        <form onSubmit={submit} className="mt-6 space-y-6">
-          <div className="grid gap-4 sm:grid-cols-2">
+        {/* ——— Scrollable body ——— */}
+        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-6 sm:px-8">
+          <div className="grid grid-cols-1 gap-x-8 gap-y-5 lg:grid-cols-2">
+          {/* ——— Left column: identity & classification ——— */}
+          <div className="space-y-4">
             <div>
-              <label htmlFor="f-name" className={labelClass}>
-                Name *
-              </label>
-              <input
+              <Label htmlFor="f-name" required>Name</Label>
+              <Input
                 id="f-name"
                 value={form.name}
                 onChange={(e) => set("name", e.target.value)}
                 placeholder="e.g. Vintage Tour Tee"
-                className={inputClass}
               />
             </div>
             <div>
-              <label htmlFor="f-price" className={labelClass}>
-                Price (GH₵) *
-              </label>
-              <input
-                id="f-price"
-                type="number"
-                min="1"
-                step="any"
-                value={form.price}
-                onChange={(e) => set("price", e.target.value)}
-                placeholder="e.g. 85"
-                className={inputClass}
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <label htmlFor="f-tagline" className={labelClass}>
-                Tagline
-              </label>
-              <input
+              <Label htmlFor="f-tagline">Tagline</Label>
+              <Input
                 id="f-tagline"
                 value={form.tagline}
                 onChange={(e) => set("tagline", e.target.value)}
                 placeholder="One honest line that sells the story"
-                className={inputClass}
               />
             </div>
-            <div>
-              <label htmlFor="f-compare" className={labelClass}>
-                Compare-at price (GH₵)
-              </label>
-              <input
-                id="f-compare"
-                type="number"
-                min="0"
-                step="any"
-                value={form.compareAt}
-                onChange={(e) => set("compareAt", e.target.value)}
-                placeholder="Original retail, optional"
-                className={inputClass}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Category</Label>
+                <CustomSelect
+                  value={form.category}
+                  onChange={(v) => set("category", v)}
+                  options={CATEGORIES.filter((c) => c.value !== "all").map((c) => ({
+                    value: c.value,
+                    label: c.label,
+                  }))}
+                />
+              </div>
+              <div>
+                <Label>Condition</Label>
+                <CustomSelect
+                  value={form.condition}
+                  onChange={(v) => set("condition", v)}
+                  options={CONDITIONS.map((c) => ({
+                    value: c,
+                    label: c,
+                  }))}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="f-era">Era</Label>
+                <Input
+                  id="f-era"
+                  value={form.era}
+                  onChange={(e) => set("era", e.target.value)}
+                  placeholder="e.g. 90s"
+                />
+              </div>
+              <div>
+                <Label htmlFor="f-year">Year</Label>
+                <Input
+                  id="f-year"
+                  type="number"
+                  value={form.year}
+                  onChange={(e) => set("year", e.target.value)}
+                />
+              </div>
             </div>
             <div>
-              <label htmlFor="f-inventory" className={labelClass}>
-                Inventory
-              </label>
-              <input
+              <Label htmlFor="f-inventory">Inventory</Label>
+              <Input
                 id="f-inventory"
                 type="number"
                 min="0"
                 value={form.inventory}
                 onChange={(e) => set("inventory", e.target.value)}
                 placeholder='Leave blank for "one of one"'
-                className={inputClass}
               />
             </div>
             <div>
-              <label htmlFor="f-category" className={labelClass}>
-                Category
-              </label>
-              <select
-                id="f-category"
-                value={form.category}
-                onChange={(e) => set("category", e.target.value)}
-                className={inputClass}
-              >
-                {CATEGORIES.filter((c) => c.value !== "all").map((c) => (
-                  <option key={c.value} value={c.value}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="f-condition" className={labelClass}>
-                Condition
-              </label>
-              <select
-                id="f-condition"
-                value={form.condition}
-                onChange={(e) => set("condition", e.target.value)}
-                className={inputClass}
-              >
-                {CONDITIONS.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="f-era" className={labelClass}>
-                Era
-              </label>
-              <input
-                id="f-era"
-                value={form.era}
-                onChange={(e) => set("era", e.target.value)}
-                placeholder="e.g. 90s"
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label htmlFor="f-year" className={labelClass}>
-                Year
-              </label>
-              <input
-                id="f-year"
-                type="number"
-                value={form.year}
-                onChange={(e) => set("year", e.target.value)}
-                className={inputClass}
+              <Label htmlFor="f-fit">Fit note</Label>
+              <Input
+                id="f-fit"
+                value={form.fitNote}
+                onChange={(e) => set("fitNote", e.target.value)}
+                placeholder="e.g. Runs small, tag says L fits M"
               />
             </div>
           </div>
 
-          <div>
-            <p className={labelClass}>Sizes</p>
-            <div className="flex flex-wrap gap-2">
-              {SIZES.map((s) => (
-                <Chip
-                  key={s}
-                  active={form.sizes.includes(s)}
-                  onClick={() => toggle("sizes", s)}
-                >
-                  {s}
-                </Chip>
-              ))}
+          {/* ——— Right column: pricing, story & options ——— */}
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="f-price" required>Price</Label>
+                <Input
+                  id="f-price"
+                  type="number"
+                  min="1"
+                  step="any"
+                  value={form.price}
+                  onChange={(e) => set("price", e.target.value)}
+                  placeholder="e.g. 85"
+                />
+              </div>
+              <div>
+                <Label htmlFor="f-compare">Compare-at</Label>
+                <Input
+                  id="f-compare"
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={form.compareAt}
+                  onChange={(e) => set("compareAt", e.target.value)}
+                  placeholder="Optional"
+                />
+              </div>
             </div>
-          </div>
-          <div>
-            <p className={labelClass}>Tags (power the style filters)</p>
-            <div className="flex flex-wrap gap-2">
-              {TAG_OPTIONS.map((t) => (
-                <Chip
-                  key={t}
-                  active={form.tags.includes(t)}
-                  onClick={() => toggle("tags", t)}
-                >
-                  {t}
-                </Chip>
-              ))}
+            <div>
+              <Label htmlFor="f-story">Story</Label>
+              <Textarea
+                id="f-story"
+                rows={3}
+                value={form.story}
+                onChange={(e) => set("story", e.target.value)}
+                placeholder="Where it came from, what it's been through"
+              />
+            </div>
+            <div>
+              <Label>Tags</Label>
+              <div className="flex flex-wrap gap-2">
+                {TAG_OPTIONS.map((t) => (
+                  <Badge
+                    key={t}
+                    variant={form.tags.includes(t) ? "primary" : "default"}
+                    size="md"
+                    className="cursor-pointer select-none"
+                    onClick={() => toggle("tags", t)}
+                    role="button"
+                    aria-pressed={form.tags.includes(t)}
+                  >
+                    {t}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+            <div>
+              <Label>Sizes</Label>
+              <div className="flex flex-wrap gap-2">
+                {SIZES.map((s) => (
+                  <Badge
+                    key={s}
+                    variant={form.sizes.includes(s) ? "primary" : "default"}
+                    size="md"
+                    className="cursor-pointer select-none"
+                    onClick={() => toggle("sizes", s)}
+                    role="button"
+                    aria-pressed={form.sizes.includes(s)}
+                  >
+                    {s}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-6">
+              <Checkbox
+                label="Featured"
+                checked={form.featured}
+                onChange={(e) => set("featured", e.target.checked)}
+              />
+              <Checkbox
+                label="Visible on the rack"
+                checked={form.visible}
+                onChange={(e) => set("visible", e.target.checked)}
+              />
             </div>
           </div>
 
-          {/* image upload */}
-          <div>
-            <p className={labelClass}>
+          {/* ——— Full width: photos ——— */}
+          <div className="lg:col-span-2">
+            <Label>
               Product Photos{" "}
               <span className="font-normal normal-case text-taupe">
                 (first photo is the cover)
               </span>
-            </p>
+            </Label>
             <div className="flex flex-wrap gap-3">
               {form.images.map((src, i) => (
                 <div
@@ -436,9 +438,13 @@ function ProductForm({
                     className="h-full w-full object-cover"
                   />
                   {i === 0 && (
-                    <span className="absolute bottom-1 left-1 rounded-full bg-espresso/70 px-2 py-0.5 text-[9px] font-semibold tracking-wide uppercase text-white">
+                    <Badge
+                      variant="primary"
+                      size="sm"
+                      className="absolute bottom-1 left-1 bg-espresso/70 normal-case"
+                    >
                       Cover
-                    </span>
+                    </Badge>
                   )}
                   <button
                     type="button"
@@ -457,7 +463,7 @@ function ProductForm({
                   </button>
                 </div>
               ))}
-              {form.images.length < 8 && (
+              {form.images.length < maxProductImages && (
                 <label className="flex h-28 w-28 shrink-0 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-sand-deep bg-cream/50 transition-colors hover:border-clay/40 hover:bg-cream">
                   <svg viewBox="0 0 24 24" className="h-8 w-8 text-taupe" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="3" y="3" width="18" height="18" rx="2" />
@@ -482,7 +488,7 @@ function ProductForm({
                         } catch {
                           /* skip unreadable files */
                         }
-                        if (form.images.length + fresh.length >= 8) break;
+                        if (form.images.length + fresh.length >= maxProductImages) break;
                       }
                       if (fresh.length > 0)
                         set("images", [...form.images, ...fresh]);
@@ -494,171 +500,27 @@ function ProductForm({
             </div>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label htmlFor="f-fit" className={labelClass}>
-                Fit note
-              </label>
-              <input
-                id="f-fit"
-                value={form.fitNote}
-                onChange={(e) => set("fitNote", e.target.value)}
-                placeholder="e.g. Runs small, tag says L fits M"
-                className={inputClass}
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <label htmlFor="f-story" className={labelClass}>
-                Story
-              </label>
-              <textarea
-                id="f-story"
-                rows={3}
-                value={form.story}
-                onChange={(e) => set("story", e.target.value)}
-                placeholder="Where it came from, what it's been through"
-                className={inputClass}
-              />
-            </div>
           </div>
+        </div>
 
-          <div className="rounded-2xl bg-cream/50 p-4">
-            <p className={labelClass}>Artwork</p>
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div>
-                <label htmlFor="f-pattern" className={labelClass}>
-                  Pattern
-                </label>
-                <select
-                  id="f-pattern"
-                  value={form.artPattern}
-                  onChange={(e) => set("artPattern", e.target.value)}
-                  className={inputClass}
-                >
-                  <option value="solid">Solid</option>
-                  <option value="stripe">Stripes</option>
-                  <option value="tie">Tie-dye</option>
-                  <option value="graphic">Graphic</option>
-                  <option value="check">Plaid</option>
-                  <option value="fade">Garment-dye</option>
-                  <option value="raglan">Raglan</option>
-                </select>
-              </div>
-              <div>
-                <label htmlFor="f-base" className={labelClass}>
-                  Base colour
-                </label>
-                <input
-                  id="f-base"
-                  type="color"
-                  value={form.artBase}
-                  onChange={(e) => set("artBase", e.target.value)}
-                  className="h-10 w-full cursor-pointer rounded-xl bg-surface ring-1 ring-border p-1"
-                />
-              </div>
-              <div>
-                <label htmlFor="f-accent" className={labelClass}>
-                  Accent
-                </label>
-                <input
-                  id="f-accent"
-                  type="color"
-                  value={form.artAccent}
-                  onChange={(e) => set("artAccent", e.target.value)}
-                  className="h-10 w-full cursor-pointer rounded-xl bg-surface ring-1 ring-border p-1"
-                />
-              </div>
-              <div>
-                <label htmlFor="f-accent2" className={labelClass}>
-                  Second accent
-                </label>
-                <input
-                  id="f-accent2"
-                  type="color"
-                  value={form.artAccent2}
-                  onChange={(e) => set("artAccent2", e.target.value)}
-                  className="h-10 w-full cursor-pointer rounded-xl bg-surface ring-1 ring-border p-1"
-                />
-              </div>
-              <div>
-                <label htmlFor="f-graphic" className={labelClass}>
-                  Graphic badge
-                </label>
-                <input
-                  id="f-graphic"
-                  type="color"
-                  value={form.artGraphic}
-                  onChange={(e) => set("artGraphic", e.target.value)}
-                  className="h-10 w-full cursor-pointer rounded-xl bg-surface ring-1 ring-border p-1"
-                />
-              </div>
-              <div>
-                <label htmlFor="f-rib" className={labelClass}>
-                  Rib
-                </label>
-                <input
-                  id="f-rib"
-                  type="color"
-                  value={form.artRib || "#000000"}
-                  onChange={(e) => set("artRib", e.target.value)}
-                  className="h-10 w-full cursor-pointer rounded-xl bg-surface ring-1 ring-border p-1"
-                />
-                <button
-                  type="button"
-                  onClick={() => set("artRib", "")}
-                  className="mt-1 text-[11px] font-medium text-clay hover:underline"
-                >
-                  {form.artRib ? "Auto rib" : "Auto (darkened base)"}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-6">
-            <label className="flex cursor-pointer items-center gap-2 text-sm text-espresso">
-              <input
-                type="checkbox"
-                checked={form.featured}
-                onChange={(e) => set("featured", e.target.checked)}
-                className="h-4 w-4 accent-clay"
-              />
-              Featured
-            </label>
-            <label className="flex cursor-pointer items-center gap-2 text-sm text-espresso">
-              <input
-                type="checkbox"
-                checked={form.visible}
-                onChange={(e) => set("visible", e.target.checked)}
-                className="h-4 w-4 accent-clay"
-              />
-              Visible on the rack
-            </label>
-          </div>
-
-          <div className="flex items-center justify-between gap-3 border-t border-border pt-5">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-full bg-surface px-5 py-2.5 text-sm font-medium text-mocha ring-1 ring-border transition-colors hover:text-espresso"
-            >
+        {/* ——— Fixed footer ——— */}
+        <div className="relative z-10 shrink-0 border-t border-border px-6 py-4 sm:px-8">
+          <div className="flex items-center justify-between gap-3">
+            <Button type="button" variant="secondary" onClick={onClose}>
               Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={!valid}
-              className="rounded-full bg-clay px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-clay-deep disabled:cursor-not-allowed disabled:opacity-40"
-            >
+            </Button>
+            <Button type="submit" disabled={!valid}>
               {initial ? "Save changes" : "Add to the rack"}
-            </button>
+            </Button>
           </div>
           {!valid && (
-            <p className="text-xs text-sale">
+            <p className="mt-2 text-xs text-sale">
               A name and a price above 0 are required.
             </p>
           )}
-        </form>
-      </div>
-    </div>
+        </div>
+      </form>
+    </Modal>
   );
 }
 
@@ -696,7 +558,170 @@ function productToInput(p: Product): ProductInput {
   };
 }
 
-type Notice = { kind: "error" | "success"; text: string } | null;
+/* ————— settings panel ————— */
+
+function SettingsPanel() {
+  const { toast } = useToast();
+  const [settings, setSettings] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [dirty, setDirty] = useState(false);
+
+  useEffect(() => {
+    getDbSettings().then((db) => {
+      setSettings(db);
+      setLoading(false);
+    });
+  }, []);
+
+  const getSettingValue = (key: string, defaultValue: string) =>
+    settings[key] ?? defaultValue;
+
+  const setSettingValue = (key: string, value: string) => {
+    setSettings((prev) => ({ ...prev, [key]: value }));
+    setDirty(true);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const res = await saveSettingsAction(settings);
+      if (res.ok) {
+        toast("success", "Settings saved.");
+        setDirty(false);
+        window.location.reload();
+      } else {
+        toast("error", res.error ?? "Failed to save");
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleReset = async (key: string) => {
+    const res = await resetSettingAction(key);
+    if (res.ok) {
+      setSettings((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+      toast("success", `Reset "${key}" to default.`);
+    } else {
+      toast("error", res.error ?? "Failed to reset");
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="mt-8 flex items-center gap-3 text-sm text-mocha">
+        <Spinner size="sm" />
+        Loading settings…
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-8 space-y-8">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="font-display text-2xl tracking-tight text-espresso">
+            Site settings
+          </h2>
+          <p className="mt-1 text-sm text-mocha">
+            Changes take effect after saving. Some changes reload the page.
+          </p>
+        </div>
+        <Button
+          onClick={handleSave}
+          disabled={!dirty || saving}
+          loading={saving}
+        >
+          {saving ? "Saving…" : "Save all"}
+        </Button>
+      </div>
+
+      {SETTING_SECTIONS.map((section) => (
+        <Card key={section.title}>
+          <CardHeader>
+            <CardTitle>{section.title}</CardTitle>
+          </CardHeader>
+          <div className="space-y-4">
+            {section.settings.map((s) => (
+              <div key={s.key}>
+                <Label htmlFor={`setting-${s.key}`}>{s.label}</Label>
+                <div className="flex items-center gap-2">
+                  {"type" in s && s.type === "number" ? (
+                    <Input
+                      id={`setting-${s.key}`}
+                      type="number"
+                      value={getSettingValue(s.key, s.default)}
+                      onChange={(e) =>
+                        setSettingValue(s.key, e.target.value)
+                      }
+                      className="flex-1 bg-linen"
+                    />
+                  ) : s.key.includes("Body") || s.key.includes("Description") || s.key.includes("Copy") ? (
+                    <Textarea
+                      id={`setting-${s.key}`}
+                      rows={3}
+                      value={getSettingValue(s.key, s.default)}
+                      onChange={(e) =>
+                        setSettingValue(s.key, e.target.value)
+                      }
+                      className="flex-1 bg-linen"
+                    />
+                  ) : (
+                    <Input
+                      id={`setting-${s.key}`}
+                      type="text"
+                      value={getSettingValue(s.key, s.default)}
+                      onChange={(e) =>
+                        setSettingValue(s.key, e.target.value)
+                      }
+                      className="flex-1 bg-linen"
+                    />
+                  )}
+                  {settings[s.key] !== undefined && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => handleReset(s.key)}
+                      title="Reset to default"
+                    >
+                      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                        <path d="M3 3v5h5" />
+                      </svg>
+                    </Button>
+                  )}
+                </div>
+                {settings[s.key] === undefined && (
+                  <p className="mt-1 text-[11px] text-taupe">
+                    Using default: {s.default.length > 60 ? s.default.slice(0, 60) + "…" : s.default}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+const statusBadgeVariant: Record<OrderStatus, "muted" | "success" | "danger"> = {
+  pending: "muted",
+  delivered: "success",
+  failed: "danger",
+};
+
+const statusLabel: Record<OrderStatus, string> = {
+  pending: "Pending",
+  delivered: "Delivered",
+  failed: "Failed",
+};
 
 export function AdminDashboard({
   initialProducts,
@@ -705,20 +730,17 @@ export function AdminDashboard({
   initialProducts: Product[];
   initialOrders: AdminOrder[];
 }) {
+  const adminHeading = useSiteSetting("adminHeading", "Manage the rack");
+  const adminDescription = useSiteSetting("adminDescription", "Changes are saved to the database and update the shop instantly.");
+  const { toast } = useToast();
   const [products, setProducts] = useState<Product[]>(initialProducts);
-  const [orders] = useState<AdminOrder[]>(initialOrders);
-  const [tab, setTab] = useState<"products" | "orders">("products");
+  const [orders, setOrders] = useState<AdminOrder[]>(initialOrders);
+  const [tab, setTab] = useState<"products" | "orders" | "settings">("products");
   const [search, setSearch] = useState("");
-  const [notice, setNotice] = useState<Notice>(null);
   const [busy, setBusy] = useState(false);
   const [editor, setEditor] = useState<
     { mode: "new" } | { mode: "edit"; product: Product } | null
   >(null);
-
-  const flash = (kind: "error" | "success", text: string) => {
-    setNotice({ kind, text });
-    window.setTimeout(() => setNotice(null), 4000);
-  };
 
   const handleSave = async (input: ProductInput) => {
     if (busy) return;
@@ -730,19 +752,19 @@ export function AdminDashboard({
           setProducts((prev) =>
             prev.map((p) => (p.slug === editor.product.slug ? res.product : p))
           );
-          flash("success", `"${res.product.name}" updated.`);
+          toast("success", `"${res.product.name}" updated.`);
           setEditor(null);
         } else {
-          flash("error", res.error);
+          toast("error", res.error);
         }
       } else {
         const res = await createProductAction(input);
         if (res.ok) {
           setProducts((prev) => [res.product, ...prev]);
-          flash("success", `"${res.product.name}" added to the rack.`);
+          toast("success", `"${res.product.name}" added to the rack.`);
           setEditor(null);
         } else {
-          flash("error", res.error);
+          toast("error", res.error);
         }
       }
     } finally {
@@ -763,7 +785,7 @@ export function AdminDashboard({
           prev.map((x) => (x.slug === p.slug ? res.product : x))
         );
       } else {
-        flash("error", res.error);
+        toast("error", res.error);
       }
     } finally {
       setBusy(false);
@@ -777,9 +799,26 @@ export function AdminDashboard({
       const res = await deleteProductAction(p.slug);
       if (res.ok) {
         setProducts((prev) => prev.filter((x) => x.slug !== p.slug));
-        flash("success", `"${p.name}" removed.`);
+        toast("success", `"${p.name}" removed.`);
       } else {
-        flash("error", res.error);
+        toast("error", res.error);
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleStatusChange = async (orderId: string, status: OrderStatus) => {
+    setBusy(true);
+    try {
+      const res = await updateOrderStatusAction(orderId, status);
+      if (res.ok) {
+        setOrders((prev) =>
+          prev.map((o) => (o.id === orderId ? { ...o, status } : o))
+        );
+        toast("success", `Order ${orderId} marked as ${statusLabel[status]}.`);
+      } else {
+        toast("error", res.error);
       }
     } finally {
       setBusy(false);
@@ -818,42 +857,38 @@ export function AdminDashboard({
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs font-semibold tracking-wide uppercase text-clay">
-            KojoRopa admin
+            {useSiteSetting("siteName", "KojoRopa")} admin
           </p>
           <h1 className="mt-2 font-display text-3xl tracking-tight text-espresso sm:text-4xl">
-            {tab === "products" ? "Manage the rack" : "Orders"}
+            {tab === "products" ? adminHeading : "Orders"}
           </h1>
           <p className="mt-1 text-sm text-mocha">
             {tab === "products"
-              ? "Changes are saved to the database and update the shop instantly."
+              ? adminDescription
               : `${orders.length} order${orders.length === 1 ? "" : "s"} placed so far.`}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <form action={logoutAction}>
-            <button
-              type="submit"
-              className="rounded-full bg-surface px-4 py-2.5 text-sm font-medium text-mocha ring-1 ring-border transition-colors hover:text-espresso"
-            >
+            <Button type="submit" variant="secondary" size="sm">
               Sign out
-            </button>
+            </Button>
           </form>
           {tab === "products" && (
-            <button
-              type="button"
+            <Button
               onClick={() => setEditor({ mode: "new" })}
               disabled={busy}
-              className="rounded-full bg-clay px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-clay-deep disabled:cursor-not-allowed disabled:opacity-60"
+              size="sm"
             >
               + Add item
-            </button>
+            </Button>
           )}
         </div>
       </div>
 
       {/* tabs */}
       <div className="mt-6 flex gap-1 rounded-full bg-surface p-1 ring-1 ring-border/50 w-fit">
-        {(["products", "orders"] as const).map((t) => (
+        {(["products", "orders", "settings"] as const).map((t) => (
           <button
             key={t}
             type="button"
@@ -867,26 +902,13 @@ export function AdminDashboard({
                 : "text-mocha hover:text-espresso"
             }`}
           >
-            {t === "products" ? "Products" : "Orders"}
+            {t === "products" ? "Products" : t === "orders" ? "Orders" : "Settings"}
           </button>
         ))}
       </div>
 
       {tab === "products" && (
         <>
-          {notice && (
-            <p
-              role="status"
-              className={`mt-4 rounded-xl px-4 py-3 text-sm ${
-                notice.kind === "error"
-                  ? "bg-sale/10 text-sale"
-                  : "bg-olive/10 text-olive"
-              }`}
-            >
-              {notice.text}
-            </p>
-          )}
-
           {/* stats */}
           <div className="mt-8 grid grid-cols-3 gap-2 sm:gap-3">
             {[
@@ -894,13 +916,10 @@ export function AdminDashboard({
               { label: "Visible", value: stats.visible },
               { label: "Hidden", value: stats.hidden },
             ].map((s) => (
-              <div
-                key={s.label}
-                className="rounded-2xl bg-surface p-3 sm:p-5 text-center ring-1 ring-border/50"
-              >
+              <Card key={s.label} padding="sm" className="text-center sm:p-5">
                 <p className="font-display text-2xl sm:text-3xl text-espresso">{s.value}</p>
                 <p className="mt-1 text-[10px] sm:text-xs tracking-wide text-mocha">{s.label}</p>
-              </div>
+              </Card>
             ))}
           </div>
 
@@ -917,35 +936,33 @@ export function AdminDashboard({
               <circle cx="11" cy="11" r="7" />
               <path d="m20 20-3.5-3.5" />
             </svg>
-            <input
+            <Input
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search items"
               aria-label="Search admin items"
-              className="w-full rounded-full bg-surface py-2.5 pr-4 pl-10 text-sm text-espresso ring-1 ring-border placeholder:text-taupe focus:border-clay focus:outline-none"
+              className="rounded-full bg-surface py-2.5 pr-4 pl-10"
             />
           </div>
 
           {/* list */}
           {list.length === 0 ? (
-            <div className="mt-10 flex flex-col items-center gap-3 rounded-2xl border border-dashed border-sand-deep bg-cream/50 px-6 py-16 text-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-sand text-3xl">
-                🔍
-              </div>
-              <p className="font-display text-2xl text-espresso">
-                The rack is empty
-              </p>
-              <p className="max-w-sm text-sm text-mocha">
-                Add your first piece and it will appear on the shop immediately.
-              </p>
-              <button
-                type="button"
-                onClick={() => setEditor({ mode: "new" })}
-                className="mt-2 rounded-full bg-clay px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-clay-deep"
-              >
-                + Add item
-              </button>
+            <div className="mt-10">
+              <EmptyState
+                icon="🔍"
+                title="The rack is empty"
+                description="Add your first piece and it will appear on the shop immediately."
+                action={
+                  <Button
+                    onClick={() => setEditor({ mode: "new" })}
+                    size="sm"
+                    className="mt-2"
+                  >
+                    + Add item
+                  </Button>
+                }
+              />
             </div>
           ) : (
             <ul className="mt-6 space-y-2 rounded-2xl bg-surface ring-1 ring-border/50">
@@ -964,14 +981,10 @@ export function AdminDashboard({
                         {p.name}
                       </p>
                       {p.visible === false && (
-                        <span className="shrink-0 rounded-full bg-sand px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase text-mocha">
-                          Hidden
-                        </span>
+                        <Badge variant="muted" size="sm">Hidden</Badge>
                       )}
                       {p.featured && (
-                        <span className="shrink-0 rounded-full bg-gold/15 px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase text-gold">
-                          Featured
-                        </span>
+                        <Badge variant="warning" size="sm">Featured</Badge>
                       )}
                     </div>
                     <p className="mt-0.5 truncate text-xs text-mocha">
@@ -992,24 +1005,25 @@ export function AdminDashboard({
                     )}
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
-                    <button
-                      type="button"
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
                       onClick={() => setEditor({ mode: "edit", product: p })}
                       aria-label={`Edit ${p.name}`}
                       title="Edit"
-                      className="flex h-9 w-9 items-center justify-center rounded-full text-mocha transition-colors hover:bg-cream hover:text-espresso"
                     >
                       <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M12 20h9" />
                         <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
                       </svg>
-                    </button>
-                    <button
-                      type="button"
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
                       onClick={() => toggleVisible(p)}
                       aria-label={p.visible === false ? "Show on rack" : "Hide from rack"}
                       title={p.visible === false ? "Show" : "Hide"}
-                      className="hidden sm:flex h-9 w-9 items-center justify-center rounded-full text-mocha transition-colors hover:bg-cream hover:text-espresso"
+                      className="hidden sm:flex"
                     >
                       {p.visible === false ? (
                         <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="1.7">
@@ -1022,18 +1036,19 @@ export function AdminDashboard({
                           <circle cx="12" cy="12" r="3" />
                         </svg>
                       )}
-                    </button>
-                    <button
-                      type="button"
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
                       onClick={() => handleDelete(p)}
                       aria-label={`Delete ${p.name}`}
                       title="Delete"
-                      className="hidden sm:flex h-9 w-9 items-center justify-center rounded-full text-mocha transition-colors hover:bg-sale/10 hover:text-sale"
+                      className="hidden sm:flex text-mocha hover:bg-sale/10 hover:text-sale"
                     >
                       <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
                         <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />
                       </svg>
-                    </button>
+                    </Button>
                   </div>
                 </li>
               ))}
@@ -1049,16 +1064,12 @@ export function AdminDashboard({
       {tab === "orders" && (
         <>
           {orders.length === 0 ? (
-            <div className="mt-10 flex flex-col items-center gap-3 rounded-2xl border border-dashed border-sand-deep bg-cream/50 px-6 py-16 text-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-sand text-3xl">
-                📦
-              </div>
-              <p className="font-display text-2xl text-espresso">
-                No orders yet
-              </p>
-              <p className="max-w-sm text-sm text-mocha">
-                Orders will appear here as customers check out.
-              </p>
+            <div className="mt-10">
+              <EmptyState
+                icon="📦"
+                title="No orders yet"
+                description="Orders will appear here as customers check out."
+              />
             </div>
           ) : (
             <ul className="mt-6 space-y-3">
@@ -1070,9 +1081,14 @@ export function AdminDashboard({
                   {/* order header */}
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <p className="text-sm font-medium text-espresso">
-                        {order.name}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-espresso">
+                          {order.name}
+                        </p>
+                        <Badge variant={statusBadgeVariant[order.status]} size="sm">
+                          {statusLabel[order.status]}
+                        </Badge>
+                      </div>
                       <p className="mt-0.5 text-xs text-mocha">{order.email}</p>
                     </div>
                     <div className="text-right">
@@ -1110,6 +1126,23 @@ export function AdminDashboard({
                   <div className="mt-3 border-t border-border/50 pt-3 text-[11px] text-taupe">
                     {order.street}, {order.city} {order.postal}, {order.country}
                   </div>
+
+                  {/* status controls */}
+                  <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border/50 pt-3">
+                    <span className="text-[11px] font-medium text-mocha">Status:</span>
+                    {ORDER_STATUSES.map((s) => (
+                      <Button
+                        key={s}
+                        variant={order.status === s ? "primary" : "secondary"}
+                        size="sm"
+                        onClick={() => handleStatusChange(order.id, s)}
+                        disabled={busy || order.status === s}
+                        className="text-[11px] px-3 py-1"
+                      >
+                        {statusLabel[s]}
+                      </Button>
+                    ))}
+                  </div>
                 </li>
               ))}
             </ul>
@@ -1123,6 +1156,10 @@ export function AdminDashboard({
           onSave={handleSave}
           onClose={() => setEditor(null)}
         />
+      )}
+
+      {tab === "settings" && (
+        <SettingsPanel />
       )}
     </div>
   );

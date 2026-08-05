@@ -11,6 +11,7 @@ import {
 import type { ReactNode } from "react";
 import { FREE_SHIPPING_THRESHOLD, SHIPPING_FEE } from "@/lib/products";
 import type { Product, ShirtArt } from "@/lib/products";
+import { MAX_QTY } from "@/lib/site-config";
 
 export interface CartLine {
   productId: string;
@@ -98,7 +99,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         if (existing) {
           return prev.map((l) =>
             l.productId === product.id && l.size === size
-              ? { ...l, qty: Math.min(l.qty + qty, 99) }
+              ? { ...l, qty: Math.min(l.qty + qty, MAX_QTY) }
               : l
           );
         }
@@ -134,7 +135,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           ? prev.filter((l) => !(l.productId === productId && l.size === size))
           : prev.map((l) =>
               l.productId === productId && l.size === size
-                ? { ...l, qty: Math.min(qty, 99) }
+                ? { ...l, qty: Math.min(qty, MAX_QTY) }
                 : l
             )
       );

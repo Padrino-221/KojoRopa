@@ -3,30 +3,18 @@ import Link from "next/link";
 import { ShirtArt } from "@/components/shirt-art";
 import { products } from "@/lib/products";
 import { getPublicProducts } from "@/lib/queries";
+import { getAllSettings } from "@/lib/actions/settings";
 
-export const metadata: Metadata = {
-  title: "Our story",
-  description:
-    "How KojoRopa became a curated secondhand shirt shop in Accra — and why we'll never restock a single piece.",
-};
-
-const VALUES = [
-  {
-    title: "Curated, not dumped",
-    copy: "We buy the way we would thrift ourselves — slowly, suspiciously, and only for the good stuff. Less than one shirt in ten makes it onto the rack.",
-  },
-  {
-    title: "Honest labels",
-    copy: "Condition, era, fit and every honest flaw are written on the page. A limp collar is a feature when we tell you about it first.",
-  },
-  {
-    title: "No restocks, ever",
-    copy: "One of one is the whole point. When a piece sells, its story ends on someone's shoulders — not in a warehouse.",
-  },
-];
+export async function generateMetadata(): Promise<Metadata> {
+  const s = await getAllSettings();
+  return {
+    title: "Our story",
+    description: s.aboutMetaDescription || "How KojoRopa became a curated secondhand shirt shop in Accra — and why we'll never restock a single piece.",
+  };
+}
 
 export default async function AboutPage() {
-  const allProducts = await getPublicProducts();
+  const [allProducts, s] = await Promise.all([getPublicProducts(), getAllSettings()]);
   const tee = allProducts[0] ?? products[0];
 
   return (
@@ -38,15 +26,11 @@ export default async function AboutPage() {
               Our story
             </p>
             <h1 className="mt-4 font-display text-4xl leading-[1.06] tracking-tight text-espresso sm:text-5xl">
-              Started with one bale at{" "}
-              <em className="text-clay italic">Kantamanto</em>
+              {s.aboutHeading || "Started with one bale at Kantamanto"}
             </h1>
             <div className="mt-6 space-y-4 text-[15px] leading-relaxed text-mocha sm:text-base">
               <p>
-                KojoRopa began at Kantamanto Market in Accra — the world&rsquo;s
-                largest secondhand clothing market — with a single bale of
-                imported tees and a stubborn belief: the best shirts are the ones
-                that already lived a little.
+                {s.aboutBody || "KojoRopa began at Kantamanto Market in Accra — the world's largest secondhand clothing market — with a single bale of imported tees and a stubborn belief: the best shirts are the ones that already lived a little."}
               </p>
               <p>
                 Every week we dig through the bales so you don&rsquo;t have to.
@@ -65,14 +49,18 @@ export default async function AboutPage() {
           <div className="relative overflow-hidden rounded-3xl bg-surface p-6 sm:p-10 shadow-lg ring-1 ring-border/50">
             {tee && <ShirtArt art={tee.art} className="h-auto w-full" />}
             <p className="mt-2 text-center text-xs tracking-wide text-taupe">
-              The heavyweight blank we&rsquo;re quietly obsessed with
+              {s.aboutCaption || "The heavyweight blank we're quietly obsessed with"}
             </p>
           </div>
         </div>
 
         {/* values */}
         <div className="mt-14 grid gap-6 md:grid-cols-3">
-          {VALUES.map((v, i) => (
+          {[
+            { title: s.value1Title || "Curated, not dumped", copy: s.value1Copy || "We buy the way we would thrift ourselves — slowly, suspiciously, and only for the good stuff. Less than one shirt in ten makes it onto the rack." },
+            { title: s.value2Title || "Honest labels", copy: s.value2Copy || "Condition, era, fit and every honest flaw are written on the page. A limp collar is a feature when we tell you about it first." },
+            { title: s.value3Title || "No restocks, ever", copy: s.value3Copy || "One of one is the whole point. When a piece sells, its story ends on someone's shoulders — not in a warehouse." },
+          ].map((v, i) => (
             <div
               key={v.title}
               className="rounded-2xl bg-surface p-5 sm:p-7 ring-1 ring-border/50 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:ring-clay/20"

@@ -346,8 +346,7 @@ export const CONDITIONS = [
   "Light wear",
 ];
 
-export const FREE_SHIPPING_THRESHOLD = 300; // GHS
-export const SHIPPING_FEE = 30; // GHS
+export { FREE_SHIPPING_THRESHOLD, SHIPPING_FEE } from "@/lib/site-config";
 
 export const SHIPPING_COUNTRIES = [
   "Ghana",

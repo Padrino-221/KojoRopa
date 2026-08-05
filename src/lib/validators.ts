@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MAX_QTY } from "@/lib/site-config";
 
 const hexColor = z
   .string()
@@ -45,7 +46,7 @@ export const orderSchema = z.object({
       z.object({
         slug: z.string().trim().min(1).max(120),
         size: z.string().trim().min(1).max(10),
-        qty: z.number().int().min(1).max(99),
+        qty: z.number().int().min(1).max(MAX_QTY),
       })
     )
     .min(1, "Your bag is empty")

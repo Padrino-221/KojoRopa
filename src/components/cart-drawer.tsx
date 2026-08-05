@@ -6,6 +6,8 @@ import { useCart } from "@/components/cart-provider";
 import { ShirtArt } from "@/components/shirt-art";
 import { formatPrice } from "@/lib/format";
 import { FREE_SHIPPING_THRESHOLD } from "@/lib/products";
+import { useSiteSetting } from "@/components/site-settings-provider";
+import { Button } from "@/components/ui/button";
 
 export function CartDrawer() {
   const {
@@ -18,6 +20,10 @@ export function CartDrawer() {
     removeItem,
   } = useCart();
   const panelRef = useRef<HTMLElement>(null);
+
+  const freeShippingText = useSiteSetting("freeShippingText", "You've unlocked free shipping");
+  const cartEmptyHeading = useSiteSetting("cartEmptyHeading", "Your bag is empty");
+  const cartEmptyBody = useSiteSetting("cartEmptyBody", "Every piece is one of one — when it's gone, it's gone.");
 
   const remaining = Math.max(0, FREE_SHIPPING_THRESHOLD - subtotal);
   const progress = Math.min(100, (subtotal / FREE_SHIPPING_THRESHOLD) * 100);
@@ -52,16 +58,16 @@ export function CartDrawer() {
               ({items.reduce((n, l) => n + l.qty, 0)})
             </span>
           </h2>
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="icon-sm"
             onClick={closeCart}
             aria-label="Close"
-            className="flex h-9 w-9 items-center justify-center rounded-full text-mocha transition-colors hover:bg-cream hover:text-espresso"
           >
             <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
               <path d="M6 6l12 12M18 6L6 18" />
             </svg>
-          </button>
+          </Button>
         </div>
 
         {/* free shipping meter */}
@@ -74,7 +80,7 @@ export function CartDrawer() {
             </p>
           ) : (
             <p className="text-[13px] font-medium text-olive">
-              You&rsquo;ve unlocked free shipping
+              {freeShippingText}
             </p>
           )}
           <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-sand">
@@ -91,9 +97,9 @@ export function CartDrawer() {
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-cream text-2xl">
               🧺
             </div>
-            <p className="font-display text-xl text-espresso">Your bag is empty</p>
+            <p className="font-display text-xl text-espresso">{cartEmptyHeading}</p>
             <p className="text-sm text-mocha">
-              Every piece is one of one — when it&rsquo;s gone, it&rsquo;s gone.
+              {cartEmptyBody}
             </p>
             <Link
               href="/#shop"
@@ -147,23 +153,25 @@ export function CartDrawer() {
                     <div className="flex items-center justify-between">
                       {/* qty stepper */}
                       <div className="flex items-center rounded-full bg-cream">
-                        <button
-                          type="button"
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
                           onClick={() => setQty(line.productId, line.size, line.qty - 1)}
-                          className="flex h-7 w-7 items-center justify-center rounded-full text-mocha transition-colors hover:text-espresso"
                           aria-label="Decrease quantity"
+                          className="h-7 w-7"
                         >
                           −
-                        </button>
+                        </Button>
                         <span className="w-6 text-center text-sm tabular-nums">{line.qty}</span>
-                        <button
-                          type="button"
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
                           onClick={() => setQty(line.productId, line.size, line.qty + 1)}
-                          className="flex h-7 w-7 items-center justify-center rounded-full text-mocha transition-colors hover:text-espresso"
                           aria-label="Increase quantity"
+                          className="h-7 w-7"
                         >
                           +
-                        </button>
+                        </Button>
                       </div>
                       <p className="text-sm font-semibold tabular-nums text-espresso">
                         {formatPrice(line.price * line.qty)}
@@ -207,13 +215,13 @@ export function CartDrawer() {
             >
               Checkout · {formatPrice(subtotal + shipping)}
             </Link>
-            <button
-              type="button"
+            <Button
+              variant="ghost"
               onClick={closeCart}
-              className="mt-2 w-full py-2 text-center text-sm text-mocha transition-colors hover:text-espresso"
+              className="mt-2 w-full py-2"
             >
               or keep browsing
-            </button>
+            </Button>
           </div>
         )}
       </aside>

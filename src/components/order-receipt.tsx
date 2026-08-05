@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { formatPrice, formatOrderDate } from "@/lib/format";
 import type { OrderItemModel } from "@/generated/prisma/models";
+import { getAllSettings } from "@/lib/actions/settings";
 
 export interface ReceiptOrder {
   id: string;
@@ -17,7 +18,8 @@ export interface ReceiptOrder {
   items: OrderItemModel[];
 }
 
-export function OrderReceipt({ order }: { order: ReceiptOrder }) {
+export async function OrderReceipt({ order }: { order: ReceiptOrder }) {
+  const s = await getAllSettings();
   return (
     <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6 sm:py-12 lg:py-16">
       <div className="animate-pop text-center">
@@ -38,8 +40,8 @@ export function OrderReceipt({ order }: { order: ReceiptOrder }) {
           Order confirmed
         </h1>
         <p className="mt-3 text-sm text-mocha sm:text-base">
-          Thanks, {order.name.split(" ")[0] || "friend"} — your pieces are being
-          wrapped in tissue as we speak.
+          Thanks, {order.name.split(" ")[0] || "friend"} —{" "}
+          {s.receiptGreetingSuffix || "your pieces are being wrapped in tissue as we speak."}
         </p>
         <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-cream px-4 py-2 text-xs sm:gap-3 sm:px-5 sm:py-2.5 sm:text-sm">
           <span className="tracking-wide uppercase text-taupe">
@@ -117,10 +119,10 @@ export function OrderReceipt({ order }: { order: ReceiptOrder }) {
           href="/#shop"
           className="w-full sm:w-auto rounded-full bg-clay px-6 py-3 text-sm font-medium text-white text-center transition-colors hover:bg-clay-deep sm:px-7 sm:py-3.5"
         >
-          Keep browsing the rack
+          {s.receiptCta || "Keep browsing the rack"}
         </Link>
         <p className="text-xs text-taupe">
-          Demo store — nothing was actually charged.
+          {s.receiptFooter || "Demo store — nothing was actually charged."}
         </p>
       </div>
     </div>

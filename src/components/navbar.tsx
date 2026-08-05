@@ -1,25 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useCart } from "@/components/cart-provider";
+import { useSiteSetting } from "@/components/site-settings-provider";
 
 export function Navbar() {
   const { count, isHydrated, openCart } = useCart();
+  const siteName = useSiteSetting("siteName", "KojoRopa");
   const [menuOpen, setMenuOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const router = useRouter();
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    const q = query.trim();
-    if (q) {
-      router.push(`/?q=${encodeURIComponent(q)}#shop`);
-    } else {
-      router.push("/#shop");
-    }
-  };
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-surface/95 backdrop-blur-md">
@@ -52,39 +41,11 @@ export function Navbar() {
           href="/"
           className="shrink-0 font-display text-[22px] leading-none tracking-tight text-espresso transition-opacity hover:opacity-70"
         >
-          Kojo<span className="text-clay">Ropa</span>
+          {siteName}
         </Link>
 
-        {/* search bar — desktop */}
-        <form
-          onSubmit={handleSearch}
-          className="hidden max-w-xs flex-1 md:block lg:max-w-sm"
-        >
-          <div className="relative">
-            <svg
-              viewBox="0 0 24 24"
-              className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-taupe"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-            >
-              <circle cx="11" cy="11" r="7" />
-              <path d="m20 20-3.5-3.5" />
-            </svg>
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search shirts, styles, eras..."
-              aria-label="Search products"
-              className="w-full rounded-full bg-white py-2.5 pr-4 pl-10 text-sm text-espresso ring-1 ring-border placeholder:text-taupe focus:border-clay focus:ring-2 focus:ring-clay/20 focus:outline-none"
-            />
-          </div>
-        </form>
-
         {/* desktop nav */}
-        <nav className="hidden items-center gap-1 md:flex">
+        <nav className="ml-auto hidden items-center gap-1 md:flex">
           <Link
             href="/#shop"
             className="rounded-full px-4 py-2 text-[13px] font-medium text-mocha transition-colors hover:bg-cream hover:text-espresso"
@@ -145,36 +106,6 @@ export function Navbar() {
               About
             </Link>
           </div>
-          {/* mobile search */}
-          <form
-            onSubmit={(e) => {
-              handleSearch(e);
-              setMenuOpen(false);
-            }}
-            className="mt-3"
-          >
-            <div className="relative">
-              <svg
-                viewBox="0 0 24 24"
-                className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-taupe"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-              >
-                <circle cx="11" cy="11" r="7" />
-                <path d="m20 20-3.5-3.5" />
-              </svg>
-              <input
-                type="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search shirts, styles, eras..."
-                aria-label="Search products"
-                className="w-full rounded-full bg-white py-2.5 pr-4 pl-10 text-sm text-espresso ring-1 ring-border placeholder:text-taupe focus:border-clay focus:ring-2 focus:ring-clay/20 focus:outline-none"
-              />
-            </div>
-          </form>
         </nav>
       )}
     </header>

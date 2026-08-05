@@ -43,8 +43,12 @@ export async function getOrderByToken(token: string) {
 
 /** All orders with items, newest first — for the admin dashboard. */
 export async function getAdminOrders() {
-  return prisma.order.findMany({
+  const rows = await prisma.order.findMany({
     include: { items: true },
     orderBy: { placedAt: "desc" },
   });
+  return rows.map((row) => ({
+    ...row,
+    status: row.status as "pending" | "delivered" | "failed",
+  }));
 }

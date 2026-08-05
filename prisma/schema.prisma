@@ -53,10 +53,14 @@ model Order {
   city      String
   postal    String
   country   String
+  token     String?
+  status    String      @default("pending")
   createdAt DateTime    @default(now())
   items     OrderItem[]
 
+  @@unique([token])
   @@index([createdAt])
+  @@index([status])
 }
 
 model OrderItem {
@@ -70,4 +74,29 @@ model OrderItem {
   qty     Int
 
   @@index([orderId])
+}
+
+model SiteSetting {
+  key       String   @id
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt
+}
+
+model AdminSession {
+  jti       String   @id
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt])
+}
+
+model AdminLog {
+  id        String   @id @default(cuid())
+  event     String
+  detail    String   @db.Text
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([event])
 }

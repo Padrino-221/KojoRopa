@@ -4,10 +4,11 @@ import { Storefront } from "@/components/storefront";
 import type { StorefrontInitial } from "@/components/storefront";
 import { getPublicProducts } from "@/lib/queries";
 import { CATEGORIES, SIZES, STYLE_FILTERS } from "@/lib/products";
+import { getAllSettings } from "@/lib/actions/settings";
 
 export default async function HomePage(props: PageProps<"/">) {
   const qp = await props.searchParams;
-  const products = await getPublicProducts();
+  const [products, s] = await Promise.all([getPublicProducts(), getAllSettings()]);
 
   const pickString = (
     value: string | string[] | undefined,
@@ -36,15 +37,13 @@ export default async function HomePage(props: PageProps<"/">) {
       <section className="border-t border-border">
         <div className="mx-auto flex max-w-7xl flex-col items-center gap-2 px-4 py-12 text-center sm:px-6 lg:px-8">
           <p className="text-xs font-semibold tracking-wide uppercase text-clay">
-            Kantamanto-picked, Accra-worn
+            {s.storyEyebrow || "Kantamanto-picked, Accra-worn"}
           </p>
           <h2 className="mt-3 max-w-2xl font-display text-2xl leading-tight tracking-tight text-espresso sm:text-3xl">
-            Less than one shirt in ten makes it onto the rack
+            {s.storyHeading || "Less than one shirt in ten makes it onto the rack"}
           </h2>
           <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-mocha">
-            We dig through the secondhand bales at Kantamanto Market so you
-            don&rsquo;t have to — washing, checking and pricing every piece
-            honestly.
+            {s.storyBody || "We dig through the secondhand bales at Kantamanto Market so you don't have to — washing, checking and pricing every piece honestly."}
           </p>
           <Link
             href="/about"

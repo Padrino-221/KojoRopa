@@ -9,6 +9,9 @@ import { createOrderNumber } from "@/lib/order";
 import { FREE_SHIPPING_THRESHOLD, SHIPPING_FEE } from "@/lib/products";
 import { orderSchema } from "@/lib/validators";
 import type { OrderInput } from "@/lib/validators";
+import { ORDER_STATUSES, type OrderStatus } from "@/lib/order-status";
+
+export type { OrderStatus };
 
 export type CreateOrderResult =
   | { ok: true; id: string; token: string }
@@ -165,6 +168,28 @@ export async function deleteOrderAction(id: string): Promise<OrderActionResult> 
   return { ok: true };
 }
 
+/** Admin-only: update an order's status. */
+export async function updateOrderStatusAction(
+  id: string,
+  status: OrderStatus
+): Promise<OrderActionResult> {
+  const ip = await getClientIp();
+  const { isAdmin } = await import("@/lib/auth");
+  if (!(await isAdmin())) {
+    return { ok: false, error: "You need to sign in again." };
+  }
+  if (!ORDER_STATUSES.includes(status)) {
+    return { ok: false, error: "Invalid status." };
+  }
+  const existing = await prisma.order.findUnique({ where: { id } });
+  if (!existing) {
+    return { ok: false, error: "That order no longer exists." };
+  }
+  await prisma.order.update({ where: { id }, data: { status } });
+  await logAudit("order.status", `order ${id} → ${status}`, ip);
+  return { ok: true };
+}
+
 /** Admin-only: latest orders for the dashboard (supports manual refresh). */
 export async function getOrdersAction() {
   const { isAdmin } = await import("@/lib/auth");
@@ -178,5 +203,6 @@ export async function getOrdersAction() {
   return rows.map((row) => ({
     ...row,
     placedAt: row.placedAt.toISOString(),
+    status: row.status as OrderStatus,
   }));
 }

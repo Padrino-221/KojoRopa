@@ -4,6 +4,8 @@ import { useMemo, useState, type ReactNode } from "react";
 import { ProductCard } from "@/components/product-card";
 import { CATEGORIES, SIZES, STYLE_FILTERS } from "@/lib/products";
 import type { Product } from "@/lib/products";
+import { useSiteSetting } from "@/components/site-settings-provider";
+import { CustomSelect } from "@/components/ui/custom-select";
 
 export interface StorefrontInitial {
   q: string;
@@ -32,6 +34,12 @@ export function Storefront({
   const [style, setStyle] = useState(initial.style);
   const [size, setSize] = useState(initial.size);
   const [sort, setSort] = useState(initial.sort);
+
+  const storeHeading = useSiteSetting("storeHeading", "Popular of the week");
+  const bestSellerHeading = useSiteSetting("bestSellerHeading", "Best Seller");
+  const popularHeading = useSiteSetting("popularHeading", "Popular Items");
+  const emptyHeading = useSiteSetting("emptyHeading", "Nothing on this hanger");
+  const emptyBody = useSiteSetting("emptyBody", "No pieces match those filters right now. Loosen a filter or two — the rack turns over every week.");
 
   const result = useMemo(() => {
     const query = q.trim().toLowerCase();
@@ -102,25 +110,24 @@ export function Storefront({
         <rect x="14" y="14" width="7" height="7" rx="1" />
       </svg>
     ),
-    tees: (
+    tee: (
       <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
         <path d="M20.38 3.46L16 2a4 4 0 01-8 0L3.62 3.46a2 2 0 00-1.34 2.23l.58 3.47a1 1 0 00.99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 002-2V10h2.15a1 1 0 00.99-.84l.58-3.47a2 2 0 00-1.34-2.23z" />
       </svg>
     ),
-    tops: (
+    "button-up": (
       <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
         <path d="M20.38 3.46L16 2a4 4 0 01-8 0L3.62 3.46a2 2 0 00-1.34 2.23l.58 3.47a1 1 0 00.99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 002-2V10h2.15a1 1 0 00.99-.84l.58-3.47a2 2 0 00-1.34-2.23z" />
       </svg>
     ),
-    bottoms: (
+    polo: (
       <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
-        <path d="M6 4v16M18 4v16M6 4h12l-2 16H8L6 4z" />
+        <path d="M20.38 3.46L16 2a4 4 0 01-8 0L3.62 3.46a2 2 0 00-1.34 2.23l.58 3.47a1 1 0 00.99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 002-2V10h2.15a1 1 0 00.99-.84l.58-3.47a2 2 0 00-1.34-2.23z" />
       </svg>
     ),
-    accessories: (
+    overshirt: (
       <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
-        <circle cx="12" cy="12" r="10" />
-        <path d="M12 6v6l4 2" />
+        <path d="M20.38 3.46L16 2a4 4 0 01-8 0L3.62 3.46a2 2 0 00-1.34 2.23l.58 3.47a1 1 0 00.99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 002-2V10h2.15a1 1 0 00.99-.84l.58-3.47a2 2 0 00-1.34-2.23z" />
       </svg>
     ),
   };
@@ -134,7 +141,7 @@ export function Storefront({
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h2 className="font-display text-3xl tracking-tight text-espresso sm:text-4xl">
-            Popular of the week
+            {storeHeading}
           </h2>
         </div>
         <p className="text-sm text-mocha">
@@ -191,7 +198,7 @@ export function Storefront({
         <div className="mt-10">
           <div className="flex items-end justify-between">
             <h3 className="font-display text-2xl tracking-tight text-espresso">
-              Best Seller
+              {bestSellerHeading}
             </h3>
             <button
               type="button"
@@ -218,7 +225,7 @@ export function Storefront({
       <div className="mt-10">
         <div className="flex items-end justify-between">
           <h3 className="font-display text-2xl tracking-tight text-espresso">
-            Popular Items
+            {popularHeading}
           </h3>
           <button
             type="button"
@@ -261,32 +268,24 @@ export function Storefront({
 
       {/* size + sort + clear */}
       <div className="mt-4 flex flex-wrap items-center gap-3">
-        <select
+        <CustomSelect
           value={size}
-          onChange={(e) => setSize(e.target.value)}
+          onChange={setSize}
           aria-label="Filter by size"
-          className="h-9 rounded-full bg-surface px-3 pr-8 text-[13px] text-espresso ring-1 ring-border focus:border-clay focus:outline-none"
-        >
-          <option value="all">All sizes</option>
-          {SIZES.map((s) => (
-            <option key={s} value={s}>
-              Size {s}
-            </option>
-          ))}
-        </select>
+          className="h-9 rounded-full text-[13px]"
+          options={[
+            { value: "all", label: "All sizes" },
+            ...SIZES.map((s) => ({ value: s, label: `Size ${s}` })),
+          ]}
+        />
 
-        <select
+        <CustomSelect
           value={sort}
-          onChange={(e) => setSort(e.target.value)}
+          onChange={setSort}
           aria-label="Sort pieces"
-          className="h-9 rounded-full bg-surface px-3 pr-8 text-[13px] text-espresso ring-1 ring-border focus:border-clay focus:outline-none"
-        >
-          {SORT_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
+          className="h-9 rounded-full text-[13px]"
+          options={SORT_OPTIONS}
+        />
 
         {hasFilters && (
           <button
@@ -318,11 +317,10 @@ export function Storefront({
             🔍
           </div>
           <p className="font-display text-2xl text-espresso">
-            Nothing on this hanger
+            {emptyHeading}
           </p>
           <p className="max-w-sm text-sm text-mocha">
-            No pieces match those filters right now. Loosen a filter or two —
-            the rack turns over every week.
+            {emptyBody}
           </p>
           <button
             type="button"
