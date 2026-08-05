@@ -25,11 +25,9 @@ const SORT_OPTIONS = [
 export function Storefront({
   initial,
   products,
-  bestSellingSlugs = [],
 }: {
   initial: StorefrontInitial;
   products: Product[];
-  bestSellingSlugs?: string[];
 }) {
   const [q, setQ] = useState(initial.q);
   const [category, setCategory] = useState(initial.category);
@@ -38,8 +36,6 @@ export function Storefront({
   const [sort, setSort] = useState(initial.sort);
 
   const storeHeading = useSiteSetting("storeHeading", "Popular of the week");
-  const bestSellerHeading = useSiteSetting("bestSellerHeading", "Best Seller");
-  const popularHeading = useSiteSetting("popularHeading", "Popular Items");
   const emptyHeading = useSiteSetting("emptyHeading", "Nothing on this hanger");
   const emptyBody = useSiteSetting("emptyBody", "No pieces match those filters right now. Loosen a filter or two — the rack turns over every week.");
 
@@ -94,17 +90,6 @@ export function Storefront({
     setStyle("all");
     setSize("all");
   };
-
-  const bestSellers = products
-    .filter((p) => p.visible !== false && p.featured)
-    .slice(0, 4);
-
-  const popularItems = bestSellingSlugs.length > 0
-    ? (bestSellingSlugs
-        .map((slug) => products.find((p) => p.slug === slug && p.visible !== false))
-        .filter((p): p is Product => Boolean(p))
-        .slice(0, 4))
-    : products.filter((p) => p.visible !== false).slice(0, 4);
 
   const categoryIcons: Record<string, ReactNode> = {
     all: (
@@ -195,60 +180,6 @@ export function Storefront({
             aria-label="Search pieces"
             className="w-full rounded-full bg-surface py-2.5 pr-4 pl-11 text-sm text-espresso ring-1 ring-border placeholder:text-taupe focus:border-clay focus:ring-2 focus:ring-clay/20 focus:outline-none"
           />
-        </div>
-      </div>
-
-      {/* Best Seller section */}
-      {bestSellers.length > 0 && (
-        <div className="mt-10">
-          <div className="flex items-end justify-between">
-            <h3 className="font-display text-2xl tracking-tight text-espresso">
-              {bestSellerHeading}
-            </h3>
-            <button
-              type="button"
-              className="text-sm text-clay transition-colors hover:text-clay-deep"
-            >
-              See all
-            </button>
-          </div>
-          <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-            {bestSellers.map((product: Product, i) => (
-              <div
-                key={product.id}
-                className="animate-fade-up"
-                style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}
-              >
-                <ProductCard product={product} />
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Popular Items section */}
-      <div className="mt-10">
-        <div className="flex items-end justify-between">
-          <h3 className="font-display text-2xl tracking-tight text-espresso">
-            {popularHeading}
-          </h3>
-          <button
-            type="button"
-            className="text-sm text-clay transition-colors hover:text-clay-deep"
-          >
-            See all
-          </button>
-        </div>
-        <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-          {popularItems.map((product: Product, i) => (
-            <div
-              key={product.id}
-              className="animate-fade-up"
-              style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}
-            >
-              <ProductCard product={product} />
-            </div>
-          ))}
         </div>
       </div>
 

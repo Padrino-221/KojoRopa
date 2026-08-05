@@ -2,13 +2,13 @@ import Link from "next/link";
 import { Hero } from "@/components/hero";
 import { Storefront } from "@/components/storefront";
 import type { StorefrontInitial } from "@/components/storefront";
-import { getPublicProducts, getBestSellingSlugs } from "@/lib/queries";
+import { getPublicProducts } from "@/lib/queries";
 import { CATEGORIES, SIZES, STYLE_FILTERS } from "@/lib/products";
 import { getAllSettings } from "@/lib/actions/settings";
 
 export default async function HomePage(props: PageProps<"/">) {
   const qp = await props.searchParams;
-  const [products, bestSellingSlugs, s] = await Promise.all([getPublicProducts(), getBestSellingSlugs(), getAllSettings()]);
+  const [products, s] = await Promise.all([getPublicProducts(), getAllSettings()]);
 
   const pickString = (
     value: string | string[] | undefined,
@@ -31,7 +31,7 @@ export default async function HomePage(props: PageProps<"/">) {
     <>
       <Hero />
 
-      <Storefront initial={initial} products={products} bestSellingSlugs={bestSellingSlugs} />
+      <Storefront initial={initial} products={products} />
 
       {/* story band */}
       <section className="border-t border-border">
