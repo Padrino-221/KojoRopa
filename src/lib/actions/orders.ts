@@ -10,12 +10,20 @@ import { SHIPPING_FEE } from "@/lib/products";
 import { orderSchema } from "@/lib/validators";
 import type { OrderInput } from "@/lib/validators";
 import { ORDER_STATUSES, type OrderStatus } from "@/lib/order-status";
-import { initiatePayment } from "@/lib/moolre";
+import { initiatePayment, submitOtp, checkPaymentStatus } from "@/lib/moolre";
 
 export type { OrderStatus };
 
 export type CreateOrderResult =
-  | { ok: true; id: string; token: string; paymentMessage: string }
+  | {
+      ok: true;
+      id: string;
+      token: string;
+      paymentMessage: string;
+      sessionId: string | null;
+      amount: number;
+      phone: string;
+    }
   | { ok: false; error: string };
 
 /**
@@ -87,6 +95,7 @@ export async function createOrderAction(
           token,
           email: input.email,
           name: input.name,
+          phone: input.phone,
           subtotal,
           shipping,
           total,
@@ -121,18 +130,121 @@ export async function createOrderAction(
     reference: `Order ${orderId}`,
   });
 
+  // Save Moolre session info to the order
+  if (payment.sessionId || payment.transactionId) {
+    await prisma.order.update({
+      where: { id: orderId },
+      data: {
+        moolreSessionId: payment.sessionId || null,
+        moolreTransactionId: payment.transactionId || null,
+      },
+    });
+  }
+
   const paymentMessage = payment.success
     ? (payment.message || "Check your phone for the payment prompt.")
     : `Order placed but payment could not be initiated: ${payment.message || "Unknown error"}. You can retry payment from your order confirmation.`;
 
   await logAudit("order.create", `order ${orderId} placed (payment: ${payment.success ? "initiated" : "failed"})`, ip);
 
-  return { ok: true, id: orderId, token, paymentMessage };
+  return {
+    ok: true,
+    id: orderId,
+    token,
+    paymentMessage,
+    sessionId: payment.sessionId || null,
+    amount: total,
+    phone: input.phone,
+  };
 }
 
 export type OrderActionResult =
   | { ok: true }
   | { ok: false; error: string };
+
+export type SubmitOtpResult =
+  | { ok: true; message: string }
+  | { ok: false; error: string };
+
+/**
+ * Submit OTP code for a pending Moolre payment.
+ * Updates the order status based on payment result.
+ */
+export async function submitOtpAction(
+  orderId: string,
+  otpCode: string
+): Promise<SubmitOtpResult> {
+  const ip = await getClientIp();
+  if (!rateLimit(`otp:${orderId}`, 5, 60_000)) {
+    return { ok: false, error: "Too many attempts. Please wait a moment." };
+  }
+
+  const order = await prisma.order.findUnique({ where: { id: orderId } });
+  if (!order) {
+    return { ok: false, error: "Order not found." };
+  }
+
+  if (!order.moolreSessionId) {
+    return { ok: false, error: "No pending payment for this order." };
+  }
+
+  const result = await submitOtp({
+    phone: order.phone || "",
+    amount: order.total,
+    externalRef: order.id,
+    otpCode,
+    sessionId: order.moolreSessionId,
+    transactionId: order.moolreTransactionId || undefined,
+  });
+
+  if (result.success) {
+    await prisma.order.update({
+      where: { id: orderId },
+      data: {
+        status: "delivered",
+        moolreTransactionId: result.transactionId || order.moolreTransactionId,
+      },
+    });
+    await logAudit("order.payment", `order ${orderId} payment confirmed`, ip);
+    return { ok: true, message: result.message || "Payment confirmed!" };
+  }
+
+  return { ok: false, error: result.message || "OTP verification failed. Please try again." };
+}
+
+export type CheckPaymentResult =
+  | { ok: true; status: string }
+  | { ok: false; error: string };
+
+/**
+ * Check the payment status for an order via Moolre.
+ */
+export async function checkPaymentAction(
+  orderId: string
+): Promise<CheckPaymentResult> {
+  const order = await prisma.order.findUnique({ where: { id: orderId } });
+  if (!order) {
+    return { ok: false, error: "Order not found." };
+  }
+
+  if (!order.moolreTransactionId) {
+    return { ok: false, error: "No transaction to check." };
+  }
+
+  const result = await checkPaymentStatus({
+    transactionId: order.moolreTransactionId,
+  });
+
+  if (result.success) {
+    await prisma.order.update({
+      where: { id: orderId },
+      data: { status: "delivered" },
+    });
+    return { ok: true, status: "delivered" };
+  }
+
+  return { ok: false, error: result.message || "Payment not yet confirmed." };
+}
 
 /** Admin-only: permanently deletes an order and its items (PII erasure). */
 export async function deleteOrderAction(id: string): Promise<OrderActionResult> {

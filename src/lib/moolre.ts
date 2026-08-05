@@ -33,6 +33,7 @@ interface PaymentResult {
   code?: string;
   message?: string;
   transactionId?: string;
+  sessionId?: string;
   requiresOtp?: boolean;
 }
 
@@ -90,11 +91,13 @@ export async function initiatePayment(params: PaymentParams): Promise<PaymentRes
   }
 
   if (data.status === 1) {
+    const dataObj = typeof data.data === "object" && data.data !== null ? data.data as Record<string, unknown> : null;
     return {
       success: true,
       code: data.code,
       message: typeof data.message === "string" ? data.message : Array.isArray(data.message) ? data.message.join(", ") : "Payment initiated",
-      transactionId: typeof data.data === "object" && data.data !== null ? (data.data as Record<string, unknown>).transactionid as string : undefined,
+      transactionId: dataObj?.transactionid as string | undefined,
+      sessionId: dataObj?.sessionid as string | undefined,
     };
   }
 
@@ -103,6 +106,129 @@ export async function initiatePayment(params: PaymentParams): Promise<PaymentRes
     code: data.code,
     message: typeof data.message === "string" ? data.message : Array.isArray(data.message) ? data.message.join(", ") : "Payment failed",
     requiresOtp: data.code === "TP14",
+  };
+}
+
+/**
+ * Submit OTP code for a Moolre payment.
+ */
+export async function submitOtp(params: {
+  phone: string;
+  amount: number;
+  externalRef: string;
+  otpCode: string;
+  sessionId: string;
+  transactionId?: string;
+}): Promise<PaymentResult> {
+  const { user, pubKey, accountId } = getConfig();
+
+  const phone = params.phone.replace(/\s/g, "").replace(/^0/, "233");
+
+  const body = {
+    type: 1,
+    channel: 13,
+    currency: "GHS",
+    payer: phone,
+    amount: params.amount.toFixed(2),
+    externalref: params.externalRef,
+    reference: `Order ${params.externalRef}`,
+    otpcode: params.otpCode,
+    sessionid: params.sessionId,
+    accountnumber: accountId,
+  };
+
+  let res: Response;
+  try {
+    res = await fetch(`${MOOLRE_BASE}/open/transact/payment`, {
+      method: "POST",
+      headers: {
+        "X-API-USER": user,
+        "X-API-PUBKEY": pubKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+  } catch (err) {
+    console.error("[moolre] submitOtp fetch error:", err);
+    return {
+      success: false,
+      message: `Network error: ${String(err)}`,
+    };
+  }
+
+  const text = await res.text();
+  let data: MoolreResponse;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    console.error("[moolre] submitOtp non-JSON response:", text);
+    return {
+      success: false,
+      message: `Unexpected response: ${text.slice(0, 200)}`,
+    };
+  }
+
+  if (data.status === 1) {
+    const dataObj = typeof data.data === "object" && data.data !== null ? data.data as Record<string, unknown> : null;
+    return {
+      success: true,
+      code: data.code,
+      message: typeof data.message === "string" ? data.message : Array.isArray(data.message) ? data.message.join(", ") : "Payment confirmed",
+      transactionId: dataObj?.transactionid as string | undefined,
+    };
+  }
+
+  return {
+    success: false,
+    code: data.code,
+    message: typeof data.message === "string" ? data.message : Array.isArray(data.message) ? data.message.join(", ") : "OTP verification failed",
+  };
+}
+
+/**
+ * Check payment status via Moolre.
+ */
+export async function checkPaymentStatus(params: {
+  transactionId: string;
+}): Promise<PaymentResult> {
+  const { user, pubKey } = getConfig();
+
+  let res: Response;
+  try {
+    res = await fetch(`${MOOLRE_BASE}/open/transact/status`, {
+      method: "POST",
+      headers: {
+        "X-API-USER": user,
+        "X-API-PUBKEY": pubKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ transactionid: params.transactionId }),
+    });
+  } catch (err) {
+    console.error("[moolre] checkStatus fetch error:", err);
+    return { success: false, message: `Network error: ${String(err)}` };
+  }
+
+  const text = await res.text();
+  let data: MoolreResponse;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    return { success: false, message: "Invalid response" };
+  }
+
+  if (data.status === 1) {
+    return {
+      success: true,
+      code: data.code,
+      message: typeof data.message === "string" ? data.message : "Payment successful",
+    };
+  }
+
+  return {
+    success: false,
+    code: data.code,
+    message: typeof data.message === "string" ? data.message : "Payment not confirmed",
   };
 }
 

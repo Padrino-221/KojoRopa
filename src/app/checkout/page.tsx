@@ -71,7 +71,7 @@ export default function CheckoutPage() {
       return;
     }
     clearCart();
-    router.push(`/confirmation?token=${res.token}`);
+    router.push(`/payment-pending?token=${res.token}`);
   };
 
   if (!isHydrated) {
