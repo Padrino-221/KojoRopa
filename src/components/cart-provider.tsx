@@ -9,7 +9,7 @@ import {
   useState,
 } from "react";
 import type { ReactNode } from "react";
-import { SHIPPING_FEE } from "@/lib/products";
+import { useSiteSetting } from "@/components/site-settings-provider";
 import type { Product, ShirtArt } from "@/lib/products";
 
 export interface CartLine {
@@ -42,6 +42,8 @@ const STORAGE_KEY = "kojoropa-cart-v2";
 const CartContext = createContext<CartContextValue | null>(null);
 
 export function CartProvider({ children }: { children: ReactNode }) {
+  const shippingFeeSetting = useSiteSetting("shippingFee", "0");
+  const shippingFee = parseInt(shippingFeeSetting, 10) || 0;
   const [items, setItems] = useState<CartLine[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
@@ -138,7 +140,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     );
   }, [items]);
 
-  const shipping = items.length === 0 ? 0 : SHIPPING_FEE;
+  const shipping = items.length === 0 ? 0 : shippingFee;
 
   const value = useMemo(
     () => ({

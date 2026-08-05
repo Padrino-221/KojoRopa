@@ -6,7 +6,6 @@ import { rateLimit, rateLimitGlobal } from "@/lib/rate-limit";
 import { getClientIp } from "@/lib/request";
 import { logAudit } from "@/lib/audit";
 import { createOrderNumber } from "@/lib/order";
-import { SHIPPING_FEE } from "@/lib/products";
 import { orderSchema } from "@/lib/validators";
 import type { OrderInput } from "@/lib/validators";
 import { ORDER_STATUSES, type OrderStatus } from "@/lib/order-status";
@@ -82,7 +81,8 @@ export async function createOrderAction(
     subtotal += product.price * line.qty;
   }
 
-  const shipping = SHIPPING_FEE;
+  const shippingSetting = await prisma.siteSetting.findUnique({ where: { key: "shippingFee" } });
+  const shipping = parseInt(shippingSetting?.value || "0", 10) || 0;
   const total = subtotal + shipping;
   const orderId = createOrderNumber();
   const token = randomUUID();
