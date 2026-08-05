@@ -10,11 +10,12 @@ import { SHIPPING_FEE } from "@/lib/products";
 import { orderSchema } from "@/lib/validators";
 import type { OrderInput } from "@/lib/validators";
 import { ORDER_STATUSES, type OrderStatus } from "@/lib/order-status";
+import { initiatePayment } from "@/lib/moolre";
 
 export type { OrderStatus };
 
 export type CreateOrderResult =
-  | { ok: true; id: string; token: string }
+  | { ok: true; id: string; token: string; paymentMessage: string }
   | { ok: false; error: string };
 
 /**
@@ -22,6 +23,7 @@ export type CreateOrderResult =
  * (never trusts the client) and stores it together with its line items.
  * Each order gets a high-entropy access token so receipts can only be viewed
  * by the person who just placed the order.
+ * After creating the order, initiates a Moolre Mobile Money payment.
  */
 export async function createOrderAction(
   raw: OrderInput
@@ -111,8 +113,21 @@ export async function createOrderAction(
     return { ok: false, error: "We couldn't place your order — try again." };
   }
 
-  await logAudit("order.create", `order ${orderId} placed`, ip);
-  return { ok: true, id: orderId, token };
+  // Initiate Moolre Mobile Money payment
+  const payment = await initiatePayment({
+    phone: input.phone,
+    amount: total,
+    externalRef: orderId,
+    reference: `Order ${orderId}`,
+  });
+
+  const paymentMessage = payment.success
+    ? (payment.message || "Check your phone for the payment prompt.")
+    : `Order placed but payment could not be initiated: ${payment.message || "Unknown error"}. You can retry payment from your order confirmation.`;
+
+  await logAudit("order.create", `order ${orderId} placed (payment: ${payment.success ? "initiated" : "failed"})`, ip);
+
+  return { ok: true, id: orderId, token, paymentMessage };
 }
 
 export type OrderActionResult =

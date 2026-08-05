@@ -19,17 +19,6 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 
-function formatCardNumber(value: string): string {
-  const digits = value.replace(/\D/g, "").slice(0, 16);
-  return digits.replace(/(.{4})/g, "$1 ").trim();
-}
-
-function formatExpiry(value: string): string {
-  const digits = value.replace(/\D/g, "").slice(0, 4);
-  if (digits.length <= 2) return digits;
-  return `${digits.slice(0, 2)}/${digits.slice(2)}`;
-}
-
 export default function CheckoutPage() {
   const { items, subtotal, shipping, clearCart, isHydrated } = useCart();
   const router = useRouter();
@@ -45,9 +34,7 @@ export default function CheckoutPage() {
     city: "",
     postal: "",
     country: defaultCountry,
-    card: "",
-    expiry: "",
-    cvc: "",
+    phone: "",
   });
 
   const set = (key: keyof typeof form) => (e: { target: { value: string } }) =>
@@ -60,11 +47,11 @@ export default function CheckoutPage() {
     if (placing || items.length === 0) return;
     setPlacing(true);
     setError(null);
-    await new Promise((r) => setTimeout(r, 1500));
 
     const res = await createOrderAction({
       email: form.email,
       name: `${form.firstName} ${form.lastName}`.trim(),
+      phone: form.phone,
       items: items.map((l) => ({
         slug: l.slug,
         size: l.size,
@@ -131,9 +118,6 @@ export default function CheckoutPage() {
           Checkout
         </h1>
       </div>
-      <p className="mt-2 text-sm text-mocha">
-        This is a demo store — no real payment is processed.
-      </p>
 
       <form
         onSubmit={handleSubmit}
@@ -165,30 +149,9 @@ export default function CheckoutPage() {
                       {line.size} · {formatPrice(line.price)} each
                     </p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={() => {
-                        /* Would decrement quantity */
-                      }}
-                    >
-                      -
-                    </Button>
-                    <span className="w-8 text-center text-sm font-medium text-espresso">
-                      {line.qty}
-                    </span>
-                    <Button
-                      type="button"
-                      size="icon-sm"
-                      onClick={() => {
-                        /* Would increment quantity */
-                      }}
-                    >
-                      +
-                    </Button>
-                  </div>
+                  <p className="text-sm tabular-nums text-espresso">
+                    {formatPrice(line.price * line.qty)}
+                  </p>
                 </div>
               ))}
             </div>
@@ -295,59 +258,22 @@ export default function CheckoutPage() {
               </span>
               Payment
             </h2>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <div className="sm:col-span-2">
-                <Label htmlFor="card" required>Card number</Label>
-                <Input
-                  id="card"
-                  inputMode="numeric"
-                  required
-                  value={form.card}
-                  onChange={(e) =>
-                    setForm((f) => ({
-                      ...f,
-                      card: formatCardNumber(e.target.value),
-                    }))
-                  }
-                  placeholder="4242 4242 4242 4242"
-                />
-              </div>
+            <div className="mt-4 space-y-4">
               <div>
-                <Label htmlFor="expiry" required>Expiry</Label>
+                <Label htmlFor="phone" required>Mobile Money number</Label>
                 <Input
-                  id="expiry"
-                  inputMode="numeric"
+                  id="phone"
+                  type="tel"
                   required
-                  value={form.expiry}
-                  onChange={(e) =>
-                    setForm((f) => ({
-                      ...f,
-                      expiry: formatExpiry(e.target.value),
-                    }))
-                  }
-                  placeholder="MM/YY"
+                  value={form.phone}
+                  onChange={set("phone")}
+                  placeholder="e.g. 0244 000 001"
                 />
-              </div>
-              <div>
-                <Label htmlFor="cvc" required>CVC</Label>
-                <Input
-                  id="cvc"
-                  inputMode="numeric"
-                  required
-                  value={form.cvc}
-                  onChange={set("cvc")}
-                  placeholder="123"
-                  maxLength={4}
-                />
+                <p className="mt-1.5 text-xs text-taupe">
+                  You&apos;ll receive a USSD prompt on your phone to confirm payment.
+                </p>
               </div>
             </div>
-            <p className="mt-3 flex items-center gap-2 text-xs text-taupe">
-              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
-                <rect x="4" y="10" width="16" height="10" rx="2" />
-                <path d="M8 10V7a4 4 0 0 1 8 0v3" />
-              </svg>
-              Demo checkout — any format-valid card will do. Nothing is charged.
-            </p>
           </section>
         </div>
 
@@ -386,13 +312,7 @@ export default function CheckoutPage() {
             </div>
             <div className="flex justify-between text-mocha">
               <dt>Delivery charge</dt>
-              <dd className="tabular-nums">
-                {shipping === 0 ? (
-                  <span className="font-medium text-olive">Free</span>
-                ) : (
-                  formatPrice(shipping)
-                )}
-              </dd>
+              <dd className="tabular-nums">{formatPrice(shipping)}</dd>
             </div>
             <div className="flex justify-between border-t border-border pt-3 text-base font-semibold text-espresso">
               <dt>Total</dt>
@@ -408,7 +328,7 @@ export default function CheckoutPage() {
             loading={placing}
             className="mt-6 w-full py-4 text-sm tracking-wide"
           >
-            {placing ? "Processing payment…" : `Pay Now · ${formatPrice(total)}`}
+            {placing ? "Placing order…" : `Place Order · ${formatPrice(total)}`}
           </Button>
 
           {error && (

@@ -36,6 +36,7 @@ export type ProductInput = z.infer<typeof productSchema>;
 export const orderSchema = z.object({
   email: z.email("Enter a valid email").max(200),
   name: z.string().trim().min(1).max(120),
+  phone: z.string().trim().min(10, "Enter a valid phone number").max(20),
   items: z
     .array(
       z.object({
