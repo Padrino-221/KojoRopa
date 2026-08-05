@@ -12,7 +12,6 @@ export function CartDrawer() {
   const {
     items,
     subtotal,
-    shipping,
     isOpen,
     closeCart,
     removeItem,
@@ -143,20 +142,10 @@ export function CartDrawer() {
               <span>Subtotal</span>
               <span className="tabular-nums">{formatPrice(subtotal)}</span>
             </div>
-            <div className="mt-1.5 flex items-center justify-between text-sm text-mocha">
-              <span>Shipping</span>
-              <span className="tabular-nums">
-                {shipping === 0 ? (
-                  <span className="font-medium text-olive">Free</span>
-                ) : (
-                  formatPrice(shipping)
-                )}
-              </span>
-            </div>
             <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
               <span className="font-medium text-espresso">Total</span>
               <span className="font-display text-xl tabular-nums text-espresso">
-                {formatPrice(subtotal + shipping)}
+                {formatPrice(subtotal)}
               </span>
             </div>
 
@@ -165,7 +154,7 @@ export function CartDrawer() {
               onClick={closeCart}
               className="mt-4 flex w-full items-center justify-center rounded-full bg-clay py-3.5 text-sm font-medium tracking-wide text-white transition-colors hover:bg-clay-deep"
             >
-              Checkout · {formatPrice(subtotal + shipping)}
+              Checkout · {formatPrice(subtotal)}
             </Link>
             <Button
               variant="ghost"
