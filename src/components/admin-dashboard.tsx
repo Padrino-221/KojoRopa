@@ -9,7 +9,6 @@ import {
   CATEGORIES,
   CONDITIONS,
   SIZES,
-  TAG_OPTIONS,
 } from "@/lib/products";
 import type { Product, ProductCategory, ShirtPattern } from "@/lib/products";
 import { formatPrice, formatOrderDate } from "@/lib/format";
@@ -78,14 +77,9 @@ interface FormState {
   compareAt: string;
   category: string;
   condition: string;
-  era: string;
-  year: string;
   sizes: string[];
-  tags: string[];
-  fitNote: string;
   images: string[];
   story: string;
-  inventory: string;
   featured: boolean;
   visible: boolean;
   artBase: string;
@@ -104,11 +98,7 @@ function toForm(product: Product): FormState {
     compareAt: product.compareAt ? String(product.compareAt) : "",
     category: product.category,
     condition: product.condition,
-    era: product.era,
-    year: String(product.year),
     sizes: product.sizes,
-    tags: product.tags,
-    fitNote: product.fitNote ?? "",
     images:
       product.images && product.images.length > 0
         ? product.images
@@ -116,7 +106,6 @@ function toForm(product: Product): FormState {
           ? [product.image]
           : [],
     story: product.story,
-    inventory: product.inventory ? String(product.inventory) : "",
     featured: !!product.featured,
     visible: product.visible !== false,
     artBase: product.art.base,
@@ -136,14 +125,9 @@ function emptyForm(): FormState {
     compareAt: "",
     category: "tee",
     condition: "Excellent",
-    era: "00s",
-    year: String(new Date().getFullYear()),
     sizes: [],
-    tags: [],
-    fitNote: "",
     images: [],
     story: "",
-    inventory: "",
     featured: false,
     visible: true,
     artBase: "#F1E9DC",
@@ -172,7 +156,7 @@ function ProductForm({
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
 
-  const toggle = (key: "sizes" | "tags", value: string) =>
+  const toggle = (key: "sizes", value: string) =>
     setForm((f) => ({
       ...f,
       [key]: f[key].includes(value)
@@ -193,14 +177,9 @@ function ProductForm({
       compareAt: form.compareAt ? Math.round(parseFloat(form.compareAt)) : null,
       category: form.category as ProductCategory,
       condition: form.condition,
-      era: form.era.trim() || "New",
-      year: parseInt(form.year, 10) || new Date().getFullYear(),
       sizes: form.sizes,
-      tags: form.tags,
-      fitNote: form.fitNote.trim() || null,
       images: form.images,
       story: form.story.trim(),
-      inventory: form.inventory ? parseInt(form.inventory, 10) : null,
       featured: form.featured,
       visible: form.visible,
       artBase: form.artBase,
@@ -288,46 +267,6 @@ function ProductForm({
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="f-era">Era</Label>
-                <Input
-                  id="f-era"
-                  value={form.era}
-                  onChange={(e) => set("era", e.target.value)}
-                  placeholder="e.g. 90s"
-                />
-              </div>
-              <div>
-                <Label htmlFor="f-year">Year</Label>
-                <Input
-                  id="f-year"
-                  type="number"
-                  value={form.year}
-                  onChange={(e) => set("year", e.target.value)}
-                />
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="f-inventory">Inventory</Label>
-              <Input
-                id="f-inventory"
-                type="number"
-                min="0"
-                value={form.inventory}
-                onChange={(e) => set("inventory", e.target.value)}
-                placeholder='Leave blank for "one of one"'
-              />
-            </div>
-            <div>
-              <Label htmlFor="f-fit">Fit note</Label>
-              <Input
-                id="f-fit"
-                value={form.fitNote}
-                onChange={(e) => set("fitNote", e.target.value)}
-                placeholder="e.g. Runs small, tag says L fits M"
-              />
-            </div>
           </div>
 
           {/* ——— Right column: pricing, story & options ——— */}
@@ -367,24 +306,6 @@ function ProductForm({
                 onChange={(e) => set("story", e.target.value)}
                 placeholder="Where it came from, what it's been through"
               />
-            </div>
-            <div>
-              <Label>Tags</Label>
-              <div className="flex flex-wrap gap-2">
-                {TAG_OPTIONS.map((t) => (
-                  <Badge
-                    key={t}
-                    variant={form.tags.includes(t) ? "primary" : "default"}
-                    size="md"
-                    className="cursor-pointer select-none"
-                    onClick={() => toggle("tags", t)}
-                    role="button"
-                    aria-pressed={form.tags.includes(t)}
-                  >
-                    {t}
-                  </Badge>
-                ))}
-              </div>
             </div>
             <div>
               <Label>Sizes</Label>
@@ -534,11 +455,7 @@ function productToInput(p: Product): ProductInput {
     compareAt: p.compareAt ?? null,
     category: p.category,
     condition: p.condition,
-    era: p.era,
-    year: p.year,
     sizes: p.sizes,
-    tags: p.tags,
-    fitNote: p.fitNote ?? null,
     images:
       p.images && p.images.length > 0
         ? p.images
@@ -546,7 +463,6 @@ function productToInput(p: Product): ProductInput {
           ? [p.image]
           : [],
     story: p.story,
-    inventory: p.inventory ?? null,
     featured: p.featured ?? false,
     visible: p.visible !== false,
     artBase: p.art.base,
@@ -838,7 +754,7 @@ export function AdminDashboard({
     const query = search.trim().toLowerCase();
     const base = query
       ? products.filter((p) =>
-          [p.name, p.tagline, p.era, p.category, ...p.tags]
+          [p.name, p.tagline, p.category]
             .join(" ")
             .toLowerCase()
             .includes(query)
@@ -846,8 +762,7 @@ export function AdminDashboard({
       : products;
     return [...base].sort(
       (a, b) =>
-        Number(b.visible !== false) - Number(a.visible !== false) ||
-        b.year - a.year
+        Number(b.visible !== false) - Number(a.visible !== false)
     );
   }, [products, search]);
 
@@ -991,7 +906,7 @@ export function AdminDashboard({
                       {p.tagline}
                     </p>
                     <p className="mt-1 text-xs text-taupe">
-                      {p.era} · {p.category} · {p.sizes.join("/") || "no sizes"}
+                      {p.category} · {p.sizes.join("/") || "no sizes"}
                     </p>
                   </div>
                   <div className="shrink-0 text-right">

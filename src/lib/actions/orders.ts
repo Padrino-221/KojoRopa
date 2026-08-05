@@ -73,14 +73,6 @@ export async function createOrderAction(
     const nextQty = (qtyBySlug.get(line.slug) ?? 0) + line.qty;
     qtyBySlug.set(line.slug, nextQty);
 
-    if (product.inventory !== null && nextQty > product.inventory) {
-      // Deliberately vague — exact stock figures are not public information.
-      return {
-        ok: false,
-        error: `Only a few ${product.name} left — try a smaller quantity.`,
-      };
-    }
-
     subtotal += product.price * line.qty;
   }
 
@@ -118,27 +110,6 @@ export async function createOrderAction(
           },
         },
       });
-
-      for (const [slug, totalQty] of qtyBySlug.entries()) {
-        const product = bySlug.get(slug)!;
-        if (product.inventory !== null) {
-          const updateResult = await tx.product.updateMany({
-            where: {
-              slug,
-              inventory: { gte: totalQty },
-            },
-            data: {
-              inventory: {
-                decrement: totalQty,
-              },
-            },
-          });
-
-          if (updateResult.count !== 1) {
-            throw new Error("Inventory changed during checkout");
-          }
-        }
-      }
     });
   } catch {
     return { ok: false, error: "We couldn't place your order — try again." };

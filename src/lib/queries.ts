@@ -2,11 +2,11 @@ import "server-only";
 import { prisma } from "@/lib/db";
 import { dbToProduct } from "@/lib/product-mapper";
 
-/** Visible products, featured first, newest year first — the public rack. */
+/** Visible products, featured first, newest first — the public rack. */
 export async function getPublicProducts() {
   const rows = await prisma.product.findMany({
     where: { visible: true },
-    orderBy: [{ featured: "desc" }, { year: "desc" }],
+    orderBy: [{ featured: "desc" }, { createdAt: "desc" }],
   });
   return rows.map(dbToProduct);
 }

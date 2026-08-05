@@ -31,13 +31,8 @@ export interface Product {
   price: number; // GHS
   compareAt?: number; // original retail, for "savings" chips
   category: ProductCategory;
-  tags: string[];
   sizes: string[];
-  fitNote?: string;
   condition: string;
-  era: string;
-  /** numeric year for reliable "newest" sorting (era is for display) */
-  year: number;
   /** uploaded product photo as base64 data URL */
   image?: string;
   /** all uploaded photos; image is images[0] when present */
@@ -45,7 +40,6 @@ export interface Product {
   story: string;
   art: ShirtArt;
   featured?: boolean;
-  inventory?: number;
   /** hidden pieces stay out of the public rack (admin-managed) */
   visible?: boolean;
 }
@@ -59,11 +53,8 @@ export const products: Product[] = [
     price: 80,
     compareAt: 145,
     category: "tee",
-    tags: ["tie-dye", "fade"],
     sizes: ["M", "L", "XL"],
     condition: "Excellent",
-    era: "2024",
-    year: 2024,
     story:
       "Garment-dyed in tiny batches at a studio in Nima, so no two come out the same. This one caught the dye a little heavier at the hem — that's the one you want.",
     art: { base: "#F1E0C4", pattern: "fade", accent: "#C4713F" },
@@ -77,12 +68,8 @@ export const products: Product[] = [
     price: 95,
     compareAt: 210,
     category: "tee",
-    tags: ["graphic", "sport"],
     sizes: ["S", "M", "L"],
-    fitNote: "Tag says L — fits a snug M",
     condition: "Excellent",
-    era: "90s",
-    year: 1994,
     story:
       "Pulled from a bale at Kantamanto Market. The badge print has that perfect road-worn fade, and the collar is still remarkably intact for a tee that cheered every match.",
     art: { base: "#E7D9C4", pattern: "graphic", accent: "#C9A227", graphic: "#F5EDDF" },
@@ -96,12 +83,8 @@ export const products: Product[] = [
     price: 70,
     compareAt: 150,
     category: "tee",
-    tags: ["plain", "heavyweight", "deadstock"],
     sizes: ["XL", "XXL"],
-    fitNote: "Boxy cut — size down for a trim fit",
     condition: "Deadstock",
-    era: "2010s",
-    year: 2019,
     story:
       "Never worn, never washed, never unfolded — a whole carton of them turned up in a warehouse in Tema. Thick, structured cotton with a 3-finger collar.",
     art: { base: "#2B231B", pattern: "solid", rib: "#F1E9DC" },
@@ -113,11 +96,8 @@ export const products: Product[] = [
     tagline: "Classic sailor stripes, washed soft as a cloud",
     price: 60,
     category: "tee",
-    tags: ["stripes", "plain"],
     sizes: ["XS", "S", "M", "L"],
     condition: "Like new",
-    era: "00s",
-    year: 2005,
     story:
       "A proper breton that crossed the sea inside a bale. The stripes have softened with honest washing, and the ribbing shows barely any life at all.",
     art: { base: "#F4EAD8", pattern: "stripe", accent: "#3F4E5A" },
@@ -131,11 +111,8 @@ export const products: Product[] = [
     price: 75,
     compareAt: 135,
     category: "tee",
-    tags: ["graphic"],
     sizes: ["S", "M"],
     condition: "Good",
-    era: "90s",
-    year: 1999,
     story:
       "On-air since 1972, off-air since 1999 — this tee is the last thing that station ever printed. There's a coffee ring on the back that we decided to leave exactly where it is.",
     art: { base: "#F1E9DC", pattern: "graphic", accent: "#B5653F", graphic: "#2B231B" },
@@ -148,11 +125,8 @@ export const products: Product[] = [
     price: 90,
     compareAt: 180,
     category: "tee",
-    tags: ["tie-dye", "ringer"],
     sizes: ["M", "L"],
     condition: "Excellent",
-    era: "90s",
-    year: 1995,
     story:
       "A true backyard special from a bale of American surplus — the swirls are tight and even, which means whoever tied it had done this before. Ringer collar in faded plum.",
     art: {
@@ -171,12 +145,8 @@ export const products: Product[] = [
     price: 130,
     compareAt: 280,
     category: "button-up",
-    tags: ["plain", "pocket"],
     sizes: ["S", "M", "L", "XL"],
-    fitNote: "Relaxed fit — layer it over a tee",
     condition: "Excellent",
-    era: "00s",
-    year: 2005,
     story:
       "Japanese mill chambray with that soft, lived-in hand straight out of the store. Double chest pockets, corozo buttons — the kind of shirt tailors in Makola stop you to ask about.",
     art: { base: "#7C93A3", pattern: "solid" },
@@ -189,11 +159,8 @@ export const products: Product[] = [
     price: 110,
     compareAt: 220,
     category: "overshirt",
-    tags: ["check", "oversized"],
     sizes: ["M", "L", "XL"],
     condition: "Good",
-    era: "90s",
-    year: 1995,
     story:
       "Brushed on both sides, heavier than it looks. Wear it open over a tee now — and as a jacket when the harmattan winds come in December.",
     art: { base: "#EFE3CD", pattern: "check", accent: "#96502F", accent2: "#C9A227" },
@@ -206,11 +173,8 @@ export const products: Product[] = [
     tagline: "Archive band merch, printed blind on black",
     price: 85,
     category: "tee",
-    tags: ["graphic"],
     sizes: ["S", "M"],
     condition: "Good",
-    era: "90s",
-    year: 1996,
     story:
       "The band is long gone and so is the label, but the print — roses over the band name — survived the decade. Black tees fade, but this one faded with style.",
     art: { base: "#241E18", pattern: "graphic", accent: "#C08A7E", graphic: "#F1E9DC" },
@@ -223,11 +187,8 @@ export const products: Product[] = [
     price: 65,
     compareAt: 130,
     category: "tee",
-    tags: ["pocket", "plain"],
     sizes: ["L", "XL", "XXL"],
     condition: "Like new",
-    era: "00s",
-    year: 2005,
     story:
       "Thick, sun-faded olive with a single chest pocket — the universal uniform of people who fix things. The kind of tee that gets better the more you wear it.",
     art: { base: "#5F6B52", pattern: "solid", rib: "#EFE3CD" },
@@ -239,11 +200,8 @@ export const products: Product[] = [
     tagline: "A two-button collar from the clubhouse rack",
     price: 55,
     category: "polo",
-    tags: ["plain", "sport"],
     sizes: ["XS", "S", "M"],
     condition: "Excellent",
-    era: "00s",
-    year: 2005,
     story:
       "Found in a pile labelled 'keep the collars' — and rightly so. A quiet sage piqué polo with the crisp two-button placket tennis clubs used to insist on.",
     art: { base: "#7E8B6F", pattern: "solid" },
@@ -255,11 +213,8 @@ export const products: Product[] = [
     tagline: "Soft-washed stripes in faded sherbet",
     price: 70,
     category: "tee",
-    tags: ["stripes"],
     sizes: ["S", "M", "L"],
     condition: "Good",
-    era: "00s",
-    year: 2005,
     story:
       "Candy stripes in washed pink and cream — technically a beach souvenir, emotionally a whole summer. The fabric has gone whisper-soft from years of sun and salt air.",
     art: { base: "#F4E8DA", pattern: "stripe", accent: "#C08A7E" },
@@ -272,15 +227,11 @@ export const products: Product[] = [
     price: 100,
     compareAt: 250,
     category: "tee",
-    tags: ["graphic", "deadstock"],
     sizes: ["L", "XL"],
     condition: "Deadstock",
-    era: "00s",
-    year: 2003,
     story:
       "A whole box of these sat unopened for twenty years, then crossed the Atlantic twice to end up at Kantamanto. This one is still creased from the factory fold — a time capsule.",
     art: { base: "#E2D6C2", pattern: "graphic", accent: "#A34A2F", graphic: "#2B231B" },
-    inventory: 1,
     featured: true,
   },
   {
@@ -291,11 +242,8 @@ export const products: Product[] = [
     price: 80,
     compareAt: 155,
     category: "tee",
-    tags: ["plain", "sport"],
     sizes: ["S", "M", "L"],
     condition: "Excellent",
-    era: "90s",
-    year: 1995,
     story:
       "The raglan cut means the sleeves were sewn in before the body — a dying construction detail. Washed indigo sleeves against a faded ecru body, and a collar that still snaps back.",
     art: { base: "#DCE4E0", pattern: "raglan", accent: "#3F4E5A" },
@@ -311,22 +259,6 @@ export const CATEGORIES: { value: string; label: string }[] = [
 ];
 
 export const SIZES = ["XS", "S", "M", "L", "XL", "XXL"];
-
-/** every tag the admin form offers, so the filters keep working */
-export const TAG_OPTIONS = [
-  "graphic",
-  "stripes",
-  "tie-dye",
-  "plain",
-  "pocket",
-  "deadstock",
-  "heavyweight",
-  "check",
-  "fade",
-  "ringer",
-  "sport",
-  "oversized",
-];
 
 export const CONDITIONS = [
   "Deadstock",

@@ -53,11 +53,6 @@ export function ProductCard({ product }: { product: Product }) {
               </span>
             )}
           </div>
-          {product.inventory === 1 && (
-            <span className="absolute top-3 right-3 rounded-full bg-sale/95 px-2.5 py-1 text-[10px] font-semibold tracking-wide uppercase text-white">
-              Only 1 left
-            </span>
-          )}
         </Link>
 
         {/* mobile: simple + button always visible */}

@@ -16,16 +16,11 @@ model Product {
   compareAt  Int?
   category   String
   condition  String
-  era        String
-  year       Int
-  fitNote    String?
   image      String?
   images     String[]  @default([])
   story      String
-  tags       String[]
   sizes      String[]
   featured   Boolean  @default(false)
-  inventory  Int?
   visible    Boolean  @default(true)
   artBase    String
   artPattern String
@@ -38,7 +33,6 @@ model Product {
 
   @@index([visible, featured])
   @@index([category])
-  @@index([year])
 }
 
 model Order {

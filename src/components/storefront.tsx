@@ -49,9 +49,7 @@ export function Storefront({
           p.name,
           p.tagline,
           p.story,
-          p.era,
           p.condition,
-          ...p.tags,
         ]
           .join(" ")
           .toLowerCase();
@@ -68,7 +66,8 @@ export function Storefront({
         list.sort((a, b) => b.price - a.price);
         break;
       case "newest":
-        list.sort((a, b) => b.year - a.year);
+        // Already sorted by createdAt desc from the server
+        break;
         break;
       default:
         list.sort(

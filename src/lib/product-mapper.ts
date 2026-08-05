@@ -16,16 +16,11 @@ export interface DbProduct {
   compareAt: number | null;
   category: string;
   condition: string;
-  era: string;
-  year: number;
-  fitNote: string | null;
   image: string | null;
   images: string[];
   story: string;
-  tags: string[];
   sizes: string[];
   featured: boolean;
-  inventory: number | null;
   visible: boolean;
   artBase: string;
   artPattern: string;
@@ -71,16 +66,11 @@ export function dbToProduct(row: DbProduct): Product {
     compareAt: row.compareAt ?? undefined,
     category: isOneOf(row.category, CATEGORIES) ? row.category : "tee",
     condition: row.condition,
-    era: row.era,
-    year: row.year,
-    fitNote: row.fitNote ?? undefined,
     image: row.image ?? row.images[0] ?? undefined,
     images: row.images,
     story: row.story,
-    tags: row.tags,
     sizes: row.sizes,
     featured: row.featured,
-    inventory: row.inventory ?? undefined,
     visible: row.visible,
     art: {
       base: row.artBase,
@@ -107,16 +97,11 @@ export function draftToDbShape(
     compareAt: draft.compareAt ?? null,
     category: draft.category,
     condition: draft.condition,
-    era: draft.era,
-    year: draft.year,
-    fitNote: draft.fitNote ?? null,
     image: draft.image ?? draft.images?.[0] ?? null,
     images: draft.images ?? [],
     story: draft.story,
-    tags: draft.tags,
     sizes: draft.sizes,
     featured: draft.featured ?? false,
-    inventory: draft.inventory ?? null,
     visible: draft.visible ?? true,
     artBase: draft.art.base,
     artPattern: draft.art.pattern,
@@ -141,16 +126,11 @@ export function productInputToDbShape(
     compareAt: input.compareAt ?? null,
     category: input.category,
     condition: input.condition,
-    era: input.era,
-    year: input.year,
-    fitNote: input.fitNote ?? null,
     image: input.images[0] ?? null,
     images: input.images,
     story: input.story,
-    tags: input.tags,
     sizes: input.sizes,
     featured: input.featured,
-    inventory: input.inventory ?? null,
     visible: input.visible,
     artBase: input.artBase,
     artPattern: input.artPattern,

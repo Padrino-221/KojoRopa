@@ -49,9 +49,6 @@ export function ProductActions({ product }: { product: Product }) {
           </Badge>
         ))}
       </div>
-      {product.fitNote && (
-        <p className="mt-2.5 text-[13px] text-mocha italic">→ {product.fitNote}</p>
-      )}
 
       {/* qty + add */}
       <div className="mt-5 flex items-center gap-3">

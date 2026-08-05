@@ -29,9 +29,7 @@ export default async function ProductPage(
     .filter((p) => p.slug !== product.slug)
     .map((p) => ({
       product: p,
-      score:
-        (p.category === product.category ? 2 : 0) +
-        p.tags.filter((t) => product.tags.includes(t)).length,
+      score: p.category === product.category ? 2 : 0,
     }))
     .sort((a, b) => b.score - a.score)
     .slice(0, 4)

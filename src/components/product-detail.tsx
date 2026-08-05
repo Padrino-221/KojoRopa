@@ -79,11 +79,6 @@ function ProductGallery({
             </span>
           )}
         </div>
-        {product.inventory === 1 && (
-          <span className="absolute top-4 right-4 rounded-full bg-sale px-3 py-1.5 text-[11px] font-semibold tracking-wide uppercase text-white">
-            Only 1 left
-          </span>
-        )}
       </div>
 
       {images.length > 1 && (
@@ -108,7 +103,7 @@ function ProductGallery({
       )}
 
       <p className="mt-3 text-center text-xs tracking-wide text-taupe">
-        {product.era} · {product.condition}
+        {product.condition}
       </p>
     </div>
   );
@@ -116,8 +111,6 @@ function ProductGallery({
 
 const SPECS: { label: string; get: (p: Product) => string | undefined }[] = [
   { label: "Condition", get: (p) => p.condition },
-  { label: "Era", get: (p) => p.era },
-  { label: "Fit", get: (p) => p.fitNote },
 ];
 
 export function ProductDetail({
@@ -161,9 +154,6 @@ export function ProductDetail({
         {/* info */}
         <div className="animate-fade-up" style={{ animationDelay: "80ms" }}>
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full bg-cream px-3 py-1 text-[11px] font-medium text-mocha">
-              {product.era}
-            </span>
             <span className="rounded-full bg-cream px-3 py-1 text-[11px] font-medium text-mocha">
               {product.condition}
             </span>
