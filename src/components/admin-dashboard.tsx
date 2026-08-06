@@ -865,13 +865,23 @@ export function AdminDashboard({
               setTab(t);
               setSearch("");
             }}
-            className={`rounded-full px-5 py-2 text-sm font-medium transition-all ${
+            className={`inline-flex items-center rounded-full px-5 py-2 text-sm font-medium transition-all ${
               tab === t
                 ? "bg-espresso text-white shadow-sm"
                 : "text-mocha hover:text-espresso"
             }`}
           >
             {t === "products" ? "Products" : t === "orders" ? "Orders" : "Settings"}
+            {t === "orders" && orders.length > 0 && (
+              <span
+                className={`ml-1.5 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full px-1.5 text-[11px] font-semibold tabular-nums ${
+                  tab === t ? "bg-white/20 text-white" : "bg-sand text-espresso"
+                }`}
+                aria-label={`${orders.length} orders`}
+              >
+                {orders.length}
+              </span>
+            )}
           </button>
         ))}
         </div>
@@ -1136,7 +1146,8 @@ export function AdminDashboard({
 
                           {/* shipping address */}
                           <div className="mt-3 border-t border-border/50 pt-3 text-[11px] text-taupe">
-                            {order.street}, {order.city} {order.postal}, {order.country}
+                            {order.street}, {order.city}
+                            {order.postal ? ` ${order.postal}` : ""}, {order.country}
                           </div>
 
                           {/* status controls */}

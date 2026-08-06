@@ -270,17 +270,6 @@ export const CONDITIONS = [
 
 export { FREE_SHIPPING_THRESHOLD, SHIPPING_FEE } from "@/lib/site-config";
 
-export const SHIPPING_COUNTRIES = [
-  "Ghana",
-  "Nigeria",
-  "Togo",
-  "Bénin",
-  "Côte d'Ivoire",
-  "United Kingdom",
-  "United States",
-  "Other",
-];
-
 export function getProductBySlug(slug: string): Product | undefined {
   return products.find((p) => p.slug === slug);
 }

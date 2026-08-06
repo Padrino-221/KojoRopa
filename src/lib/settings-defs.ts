@@ -69,7 +69,6 @@ export const SETTING_SECTIONS = [
       { key: "aboutMetaDescription", label: "Meta description", default: "How KojoRopa became a curated secondhand shirt shop in Accra — and why we'll never restock a single piece." },
       { key: "aboutHeading", label: "Heading", default: "Started with one bale at Kantamanto" },
       { key: "aboutBody", label: "Body", default: "KojoRopa began at Kantamanto Market in Accra — the world's largest secondhand clothing market — with a single bale of imported tees and a stubborn belief: the best shirts are the ones that already lived a little." },
-      { key: "aboutCaption", label: "Art caption", default: "The heavyweight blank we're quietly obsessed with" },
     ],
   },
   {
@@ -93,7 +92,6 @@ export const SETTING_SECTIONS = [
     settings: [
       { key: "freeShippingThreshold", label: "Free shipping threshold", default: "300", type: "number" },
       { key: "shippingFee", label: "Shipping fee", default: "30", type: "number" },
-      { key: "defaultCountry", label: "Default checkout country", default: "Ghana" },
       { key: "maxProductImages", label: "Max product images", default: "8", type: "number" },
       { key: "maxQty", label: "Max quantity per item", default: "99", type: "number" },
     ],

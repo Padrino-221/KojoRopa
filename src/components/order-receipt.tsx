@@ -41,7 +41,7 @@ export async function OrderReceipt({ order }: { order: ReceiptOrder }) {
         </h1>
         <p className="mt-3 text-sm text-mocha sm:text-base">
           Thanks, {order.name.split(" ")[0] || "friend"} —{" "}
-          {s.receiptGreetingSuffix || "your pieces are being wrapped in tissue as we speak."}
+          {s.receiptGreetingSuffix || "your pieces are being wrapped as we speak."}
         </p>
         <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-cream px-4 py-2 text-xs sm:gap-3 sm:px-5 sm:py-2.5 sm:text-sm">
           <span className="tracking-wide uppercase text-taupe">
@@ -105,7 +105,7 @@ export async function OrderReceipt({ order }: { order: ReceiptOrder }) {
             <br />
             {order.street}
             <br />
-            {order.postal} {order.city}, {order.country}
+            {order.postal ? `${order.postal} ` : ""}{order.city}, {order.country}
           </p>
         </div>
       </div>

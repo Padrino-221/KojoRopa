@@ -1,8 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ShirtArt } from "@/components/shirt-art";
-import { products } from "@/lib/products";
-import { getPublicProducts } from "@/lib/queries";
 import { getAllSettings } from "@/lib/actions/settings";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -14,42 +11,32 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function AboutPage() {
-  const [allProducts, s] = await Promise.all([getPublicProducts(), getAllSettings()]);
-  const tee = allProducts[0] ?? products[0];
+  const s = await getAllSettings();
 
   return (
     <>
       <section className="mx-auto max-w-7xl px-4 pt-10 sm:px-6 lg:px-8 lg:pt-16">
-        <div className="grid items-center gap-10 lg:grid-cols-[1fr_0.8fr] lg:gap-16">
-          <div>
-            <p className="text-xs font-semibold tracking-wide uppercase text-clay">
-              Our story
+        <div className="max-w-2xl">
+          <p className="text-xs font-semibold tracking-wide uppercase text-clay">
+            Our story
+          </p>
+          <h1 className="mt-4 font-display text-4xl leading-[1.06] tracking-tight text-espresso sm:text-5xl">
+            {s.aboutHeading || "Started with one bale at Kantamanto"}
+          </h1>
+          <div className="mt-6 space-y-4 text-[15px] leading-relaxed text-mocha sm:text-base">
+            <p>
+              {s.aboutBody || "KojoRopa began at Kantamanto Market in Accra — the world's largest secondhand clothing market — with a single bale of imported tees and a stubborn belief: the best shirts are the ones that already lived a little."}
             </p>
-            <h1 className="mt-4 font-display text-4xl leading-[1.06] tracking-tight text-espresso sm:text-5xl">
-              {s.aboutHeading || "Started with one bale at Kantamanto"}
-            </h1>
-            <div className="mt-6 space-y-4 text-[15px] leading-relaxed text-mocha sm:text-base">
-              <p>
-                {s.aboutBody || "KojoRopa began at Kantamanto Market in Accra — the world's largest secondhand clothing market — with a single bale of imported tees and a stubborn belief: the best shirts are the ones that already lived a little."}
-              </p>
-              <p>
-                Every week we dig through the bales so you don&rsquo;t have to.
-                Each piece is washed, checked under good light, and given a fair
-                price with its original retail shown — so you can see exactly how
-                much secondhand saves you.
-              </p>
-              <p>
-                There is no warehouse, no restock button, no algorithm deciding
-                what you see. Just a rack, a weekly turnover, and shirts with
-                stories that are still being written.
-              </p>
-            </div>
-          </div>
-
-          <div className="relative overflow-hidden rounded-3xl bg-surface p-6 sm:p-10 shadow-lg ring-1 ring-border/50">
-            {tee && <ShirtArt art={tee.art} className="h-auto w-full" />}
-            <p className="mt-2 text-center text-xs tracking-wide text-taupe">
-              {s.aboutCaption || "The heavyweight blank we're quietly obsessed with"}
+            <p>
+              Every week we dig through the bales so you don&rsquo;t have to.
+              Each piece is washed, checked under good light, and given a fair
+              price with its original retail shown — so you can see exactly how
+              much secondhand saves you.
+            </p>
+            <p>
+              There is no warehouse, no restock button, no algorithm deciding
+              what you see. Just a rack, a weekly turnover, and shirts with
+              stories that are still being written.
             </p>
           </div>
         </div>

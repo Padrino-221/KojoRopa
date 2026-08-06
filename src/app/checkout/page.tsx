@@ -7,14 +7,9 @@ import type { FormEvent } from "react";
 import { useCart } from "@/components/cart-provider";
 import { ShirtArt } from "@/components/shirt-art";
 import { formatPrice } from "@/lib/format";
-import {
-  SHIPPING_COUNTRIES,
-} from "@/lib/products";
-import { useSiteSetting } from "@/components/site-settings-provider";
 import { createOrderAction } from "@/lib/actions/orders";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -22,7 +17,6 @@ import { EmptyState } from "@/components/ui/empty-state";
 export default function CheckoutPage() {
   const { items, subtotal, shipping, clearCart, isHydrated } = useCart();
   const router = useRouter();
-  const defaultCountry = useSiteSetting("defaultCountry", "Ghana");
   const [placing, setPlacing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,8 +26,6 @@ export default function CheckoutPage() {
     lastName: "",
     address: "",
     city: "",
-    postal: "",
-    country: defaultCountry,
     phone: "",
   });
 
@@ -60,8 +52,10 @@ export default function CheckoutPage() {
       address: {
         street: form.address,
         city: form.city,
-        postal: form.postal,
-        country: form.country,
+        // Ghana has no postal-code requirement — orders are saved without one.
+        postal: "",
+        // The shop ships within Ghana only.
+        country: "Ghana",
       },
     });
 
@@ -215,7 +209,7 @@ export default function CheckoutPage() {
                   placeholder="Street and number"
                 />
               </div>
-              <div>
+              <div className="sm:col-span-2">
                 <Label htmlFor="city" required>City</Label>
                 <Input
                   id="city"
@@ -224,28 +218,12 @@ export default function CheckoutPage() {
                   onChange={set("city")}
                 />
               </div>
-              <div>
-                <Label htmlFor="postal" required>Postal code</Label>
-                <Input
-                  id="postal"
-                  required
-                  value={form.postal}
-                  onChange={set("postal")}
-                />
-              </div>
               <div className="sm:col-span-2">
                 <Label htmlFor="country" required>Country</Label>
-                <Select
-                  id="country"
-                  value={form.country}
-                  onChange={set("country")}
-                >
-                  {SHIPPING_COUNTRIES.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </Select>
+                <Input id="country" value="Ghana" disabled readOnly />
+                <p className="mt-1.5 text-xs text-taupe">
+                  We currently ship within Ghana only.
+                </p>
               </div>
             </div>
           </section>

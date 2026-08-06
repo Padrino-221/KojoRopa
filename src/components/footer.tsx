@@ -35,16 +35,6 @@ export async function Footer() {
                   Our story
                 </Link>
               </li>
-              <li>
-                <Link href="/about" className="transition-colors hover:text-clay">
-                  Returns
-                </Link>
-              </li>
-              <li>
-                <Link href="/about" className="transition-colors hover:text-clay">
-                  Shipping
-                </Link>
-              </li>
             </ul>
             <ul className="space-y-2">
               <li>{s.footerAddress || "Kantamanto Market, Accra"}</li>

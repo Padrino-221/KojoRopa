@@ -205,10 +205,11 @@ export async function submitOtpAction(
   console.log("[submitOtp] moolre result:", result);
 
   if (result.success) {
+    // Payment confirmed — the order stays "pending" until the admin marks it
+    // "delivered", so the status reflects fulfilment, not payment.
     await prisma.order.update({
       where: { id: orderId },
       data: {
-        status: "delivered",
         moolreTransactionId: result.transactionId || order.moolreTransactionId,
       },
     });
@@ -220,7 +221,7 @@ export async function submitOtpAction(
 }
 
 export type CheckPaymentResult =
-  | { ok: true; status: string }
+  | { ok: true; paid: boolean; status: string }
   | { ok: false; error: string };
 
 /**
@@ -259,7 +260,7 @@ export async function retryPaymentAction(
   });
 
   await logAudit("order.payment", `order ${orderId} payment re-initiated`, ip);
-  return { ok: true, status: "pending" };
+  return { ok: true, paid: false, status: "pending" };
 }
 
 /**
@@ -282,11 +283,9 @@ export async function checkPaymentAction(
   });
 
   if (result.success) {
-    await prisma.order.update({
-      where: { id: orderId },
-      data: { status: "delivered" },
-    });
-    return { ok: true, status: "delivered" };
+    // Payment confirmed — keep the order "pending"; only the admin marks it
+    // "delivered" once it's actually fulfilled.
+    return { ok: true, paid: true, status: "pending" };
   }
 
   return { ok: false, error: result.message || "Payment not yet confirmed." };

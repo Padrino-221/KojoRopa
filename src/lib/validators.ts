@@ -50,8 +50,10 @@ export const orderSchema = z.object({
   address: z.object({
     street: z.string().trim().min(1).max(200),
     city: z.string().trim().min(1).max(100),
-    postal: z.string().trim().min(1).max(20),
-    country: z.string().trim().min(1).max(60),
+    // Ghana has no postal-code requirement — customers may leave it blank.
+    postal: z.string().trim().max(20).default(""),
+    // The shop ships within Ghana only.
+    country: z.literal("Ghana"),
   }),
 });
 

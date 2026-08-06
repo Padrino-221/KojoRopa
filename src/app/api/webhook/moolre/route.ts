@@ -46,28 +46,31 @@ export async function POST(req: Request) {
       return NextResponse.json({ received: true });
     }
 
-    // Update order status based on payment result
-    let newStatus: string;
+    // Payment events never mark an order "delivered" — that status is reserved
+    // for the admin marking an order as fulfilled. A successful payment keeps
+    // the order "pending"; only a failed payment flips it to "failed".
     if (txStatus === 1) {
-      newStatus = "delivered";
-    } else if (txStatus === 2) {
-      newStatus = "failed";
-    } else {
-      // Still pending, don't update
+      await logAudit(
+        "webhook.moolre",
+        `order ${externalRef} payment confirmed (tx: ${data.transactionid})`,
+        undefined
+      );
       return NextResponse.json({ received: true });
     }
 
-    await prisma.order.update({
-      where: { id: externalRef },
-      data: { status: newStatus },
-    });
+    if (txStatus === 2) {
+      await prisma.order.update({
+        where: { id: externalRef },
+        data: { status: "failed" },
+      });
+      await logAudit(
+        "webhook.moolre",
+        `order ${externalRef} → failed (tx: ${data.transactionid})`,
+        undefined
+      );
+    }
 
-    await logAudit(
-      "webhook.moolre",
-      `order ${externalRef} → ${newStatus} (tx: ${data.transactionid})`,
-      undefined
-    );
-
+    // txStatus 0 = still pending — nothing to update.
     return NextResponse.json({ received: true });
   } catch (error) {
     await logAudit("webhook.moolre", `error: ${String(error)}`, undefined);

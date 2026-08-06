@@ -35,35 +35,38 @@ export function PaymentPendingClient({
   const [retrying, setRetrying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [status, setStatus] = useState(initialStatus);
+  // "paid" tracks whether the payment went through. The order itself stays
+  // "pending" until the admin marks it delivered — so we can't use the order
+  // status as the payment-confirmed signal anymore.
+  const [paid, setPaid] = useState(initialStatus === "delivered");
   const [initiated, setInitiated] = useState(paymentInitiated);
 
   const handleCheckStatus = useCallback(async () => {
     setChecking(true);
     const res = await checkPaymentAction(orderId);
-    if (res.ok && res.status === "delivered") {
-      setStatus("delivered");
+    if (res.ok && res.paid) {
+      setPaid(true);
       setSuccess("Payment confirmed!");
     }
     setChecking(false);
   }, [orderId]);
 
-  // Auto-check status every 10 seconds if still pending and initiated
+  // Auto-check payment status every 10 seconds until paid
   useEffect(() => {
-    if (status !== "pending" || !initiated) return;
+    if (paid || !initiated) return;
     const interval = setInterval(handleCheckStatus, 10_000);
     return () => clearInterval(interval);
-  }, [status, initiated, handleCheckStatus]);
+  }, [paid, initiated, handleCheckStatus]);
 
   // Redirect to confirmation once payment is confirmed
   useEffect(() => {
-    if (status === "delivered") {
+    if (paid) {
       const timer = setTimeout(() => {
         router.push(`/confirmation?token=${token}`);
       }, 1500);
       return () => clearTimeout(timer);
     }
-  }, [status, token, router]);
+  }, [paid, token, router]);
 
   const handleRetry = async () => {
     if (retrying) return;
@@ -92,7 +95,7 @@ export function PaymentPendingClient({
 
       if (res.ok) {
         setSuccess(res.message);
-        setStatus("delivered");
+        setPaid(true);
       } else {
         setError(res.error);
       }
@@ -103,7 +106,7 @@ export function PaymentPendingClient({
     }
   };
 
-  if (status === "delivered") {
+  if (paid) {
     return (
       <div className="mx-auto flex max-w-lg flex-col items-center gap-4 px-4 py-24 text-center">
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-olive/10 text-3xl">
