@@ -18,25 +18,25 @@ function envInt(key: string, fallback: number): number {
 
 /* ——— brand ——— */
 
-export const SITE_NAME = env("NEXT_PUBLIC_SITE_NAME", "KojoRopa");
+export const SITE_NAME = env("NEXT_PUBLIC_SITE_NAME", "Kojosropa");
 export const SITE_TAGLINE = env(
   "NEXT_PUBLIC_SITE_TAGLINE",
-  "Secondhand shirts, one of one."
+  "Curated shirts, one of one."
 );
 export const SITE_DESCRIPTION = env(
   "NEXT_PUBLIC_SITE_DESCRIPTION",
-  "KojoRopa is a curated secondhand shirt shop from Accra. Graphic tees, deadstock blanks and soft-washed classics — one of one, picked at Kantamanto Market."
+  "Kojosropa is a curated shirt shop from Accra. Graphic tees, deadstock blanks and soft-worn classics — one of one, and never restocked."
 );
 export const SITE_KEYWORDS = env(
   "NEXT_PUBLIC_SITE_KEYWORDS",
-  "thrift store,secondhand,vintage shirts,graphic tees,Kantamanto,Accra,Ghana"
+  "vintage shirts,graphic tees,curated shirts,one of one,Accra,Ghana"
 ).split(",");
 
 /* ——— hero ——— */
 
 export const HERO_EYEBROW = env(
   "NEXT_PUBLIC_HERO_EYEBROW",
-  "Curated secondhand · Accra"
+  "Curated shirts · Accra"
 );
 export const HERO_HEADLINE = env(
   "NEXT_PUBLIC_HERO_HEADLINE",
@@ -44,7 +44,7 @@ export const HERO_HEADLINE = env(
 );
 export const HERO_DESCRIPTION = env(
   "NEXT_PUBLIC_HERO_DESCRIPTION",
-  "KojoRopa picks one-of-one secondhand shirts from the bales at Kantamanto Market — washed, checked and priced to move."
+  "Kojosropa picks one-of-one shirts from the bales in Accra — checked and priced to move."
 );
 export const HERO_CAPTION = env(
   "NEXT_PUBLIC_HERO_CAPTION",
@@ -82,7 +82,7 @@ export const EMPTY_BODY = env(
 
 export const STORY_EYEBROW = env(
   "NEXT_PUBLIC_STORY_EYEBROW",
-  "Kantamanto-picked, Accra-worn"
+  "Hand-picked, Accra-worn"
 );
 export const STORY_HEADING = env(
   "NEXT_PUBLIC_STORY_HEADING",
@@ -90,14 +90,14 @@ export const STORY_HEADING = env(
 );
 export const STORY_BODY = env(
   "NEXT_PUBLIC_STORY_BODY",
-  "We dig through the secondhand bales at Kantamanto Market so you don\u2019t have to \u2014 washing, checking and pricing every piece honestly."
+  "We dig through the bales in Accra so you don’t have to — checking and pricing every piece honestly."
 );
 
 /* ——— product detail ——— */
 
 export const PRODUCT_DETAIL_NOTE = env(
   "NEXT_PUBLIC_PRODUCT_DETAIL_NOTE",
-  "Every piece is washed, checked and one of one. When it\u2019s gone, it\u2019s gone."
+  "Every piece is checked and one of one. When it’s gone, it’s gone."
 );
 export const RELATED_HEADING = env(
   "NEXT_PUBLIC_RELATED_HEADING",
@@ -112,11 +112,11 @@ export const CART_EMPTY_HEADING = env(
 );
 export const CART_EMPTY_BODY = env(
   "NEXT_PUBLIC_CART_EMPTY_BODY",
-  "Every piece is one of one \u2014 when it\u2019s gone, it\u2019s gone."
+  "Every piece is one of one — when it’s gone, it’s gone."
 );
 export const FREE_SHIPPING_TEXT = env(
   "NEXT_PUBLIC_FREE_SHIPPING_TEXT",
-  "You\u2019ve unlocked free shipping"
+  "You’ve unlocked free shipping"
 );
 
 /* ——— receipt / order confirmation ——— */
@@ -131,33 +131,33 @@ export const RECEIPT_CTA = env(
 );
 export const RECEIPT_FOOTER = env(
   "NEXT_PUBLIC_RECEIPT_FOOTER",
-  "Thank you for shopping with KojoRopa."
+  "Thank you for shopping with Kojosropa."
 );
 
 /* ——— about page ——— */
 
 export const ABOUT_META_DESCRIPTION = env(
   "NEXT_PUBLIC_ABOUT_META_DESCRIPTION",
-  "How KojoRopa became a curated secondhand shirt shop in Accra \u2014 and why we\u2019ll never restock a single piece."
+  "How Kojosropa became a curated shirt shop in Accra — and why we’ll never restock a single piece."
 );
 export const ABOUT_HEADING = env(
   "NEXT_PUBLIC_ABOUT_HEADING",
-  "Started with one bale at Kantamanto"
+  "Started with one bale in Accra"
 );
 export const ABOUT_BODY = env(
   "NEXT_PUBLIC_ABOUT_BODY",
-  "KojoRopa began at Kantamanto Market in Accra \u2014 the world\u2019s largest secondhand clothing market \u2014 with a single bale of imported tees and a stubborn belief: the best shirts are the ones that already lived a little."
+  "Kojosropa began in Accra with a single bale of imported tees and a stubborn belief: the best shirts are the ones that already lived a little."
 );
 export const ABOUT_CAPTION = env(
   "NEXT_PUBLIC_ABOUT_CAPTION",
-  "The heavyweight blank we\u2019re quietly obsessed with"
+  "The heavyweight blank we’re quietly obsessed with"
 );
 export const VALUES = [
   {
     title: env("NEXT_PUBLIC_VALUE_1_TITLE", "Curated, not dumped"),
     copy: env(
       "NEXT_PUBLIC_VALUE_1_COPY",
-      "We buy the way we would thrift ourselves \u2014 slowly, suspiciously, and only for the good stuff. Less than one shirt in ten makes it onto the rack."
+      "We buy the way we shop for ourselves — slowly, suspiciously, and only for the good stuff. Less than one shirt in ten makes it onto the rack."
     ),
   },
   {
@@ -171,7 +171,7 @@ export const VALUES = [
     title: env("NEXT_PUBLIC_VALUE_3_TITLE", "No restocks, ever"),
     copy: env(
       "NEXT_PUBLIC_VALUE_3_COPY",
-      "One of one is the whole point. When a piece sells, its story ends on someone\u2019s shoulders \u2014 not in a warehouse."
+      "One of one is the whole point. When a piece sells, its story ends on someone’s shoulders — not in a warehouse."
     ),
   },
 ];
@@ -180,22 +180,29 @@ export const VALUES = [
 
 export const FOOTER_DESCRIPTION = env(
   "NEXT_PUBLIC_FOOTER_DESCRIPTION",
-  "Secondhand shirts, one of one. Picked at Kantamanto Market, Accra \u2014 washed, checked and priced to move."
+  "Curated shirts, one of one. Picked in Accra — checked and priced to move."
 );
 export const FOOTER_ADDRESS = env(
   "NEXT_PUBLIC_FOOTER_ADDRESS",
-  "Kantamanto Market, Accra"
+  "Accra, Ghana"
 );
 export const FOOTER_COPYRIGHT = env(
   "NEXT_PUBLIC_FOOTER_COPYRIGHT",
-  "\u00a9 {year} KojoRopa"
+  "© {year} Kojosropa"
 );
 export const FOOTER_TAGLINE = env(
   "NEXT_PUBLIC_FOOTER_TAGLINE",
-  "Made in Accra \U00011E73"
+  "Made in Accra"
 );
 
 /* ——— admin ——— */
+
+/**
+ * Secret path segment for the admin dashboard. Set NEXT_PUBLIC_ADMIN_PATH to
+ * something hard to guess (e.g. a random word pair) — the admin then lives at
+ * /<your-secret> instead of the guessable /admin.
+ */
+export const ADMIN_PATH = env("NEXT_PUBLIC_ADMIN_PATH", "manage-rack");
 
 export const ADMIN_HEADING = env(
   "NEXT_PUBLIC_ADMIN_HEADING",

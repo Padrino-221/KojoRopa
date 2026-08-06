@@ -118,7 +118,7 @@ export async function OrderReceipt({ order }: { order: ReceiptOrder }) {
           {s.receiptCta || "Keep browsing the rack"}
         </Link>
         <p className="text-xs text-taupe">
-          {s.receiptFooter || "Thank you for shopping with KojoRopa."}
+          {s.receiptFooter || "Thank you for shopping with Kojosropa."}
         </p>
       </div>
     </div>

@@ -9,7 +9,7 @@ import { Brand } from "@/components/brand";
 
 export function Navbar() {
   const { count, isHydrated, openCart } = useCart();
-  const siteName = useSiteSetting("siteName", "KojoRopa");
+  const siteName = useSiteSetting("siteName", "Kojosropa");
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);

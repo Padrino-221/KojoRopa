@@ -27,6 +27,7 @@ import { updateOrderStatusAction, type OrderStatus } from "@/lib/actions/orders"
 import { ORDER_STATUSES } from "@/lib/order-status";
 import { logoutAction } from "@/lib/actions/auth";
 import { useSiteSetting } from "@/components/site-settings-provider";
+import { ChangePassword } from "@/components/admin-change-password";
 import { Brand } from "@/components/brand";
 import {
   getDbSettings,
@@ -576,10 +577,21 @@ function SettingsPanel({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => {
+    // Start with the first section open so the page isn't one long scroll.
+    const init: Record<string, boolean> = {};
+    SETTING_SECTIONS.forEach((sec, i) => {
+      init[sec.title] = i !== 0;
+    });
+    return init;
+  });
 
   useEffect(() => {
     getDbSettings().then((db) => {
-      setSettings(db);
+      // The password hash is managed by the Security card — keep it out of
+      // the bulk save flow entirely.
+      const { adminPasswordHash: _omit, ...rest } = db;
+      setSettings(rest);
       setLoading(false);
     });
   }, []);
@@ -658,8 +670,28 @@ function SettingsPanel({
       {SETTING_SECTIONS.map((section) => (
         <Card key={section.title}>
           <CardHeader>
-            <CardTitle>{section.title}</CardTitle>
+            <button
+              type="button"
+              onClick={() =>
+                setCollapsed((c) => ({ ...c, [section.title]: !c[section.title] }))
+              }
+              className="flex w-full items-center justify-between gap-3 text-left"
+              aria-expanded={!collapsed[section.title]}
+            >
+              <CardTitle>{section.title}</CardTitle>
+              <span
+                aria-hidden
+                className={`text-taupe transition-transform duration-200 ${
+                  collapsed[section.title] ? "" : "rotate-180"
+                }`}
+              >
+                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </span>
+            </button>
           </CardHeader>
+          {!collapsed[section.title] && (
           <div className="space-y-4">
             {section.settings.map((s) => (
               <div key={s.key}>
@@ -722,8 +754,20 @@ function SettingsPanel({
               </div>
             ))}
           </div>
+          )}
         </Card>
       ))}
+
+      {/* security */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Security</CardTitle>
+          <p className="mt-1 text-sm text-mocha">
+            Change the admin dashboard password.
+          </p>
+        </CardHeader>
+        <ChangePassword />
+      </Card>
     </div>
   );
 }
@@ -1457,7 +1501,7 @@ export function AdminDashboard({
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <Brand
-            name={`${useSiteSetting("siteName", "KojoRopa")} admin`}
+            name={`${useSiteSetting("siteName", "Kojosropa")} admin`}
             logoClassName="h-4 w-auto"
             nameClassName="text-xs font-semibold tracking-wide uppercase"
           />

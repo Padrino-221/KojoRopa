@@ -104,14 +104,14 @@ export async function Footer() {
           <div className="max-w-md">
             <Brand
               href="/"
-              name={s.siteName || "KojoRopa"}
+              name={s.siteName || "Kojosropa"}
               onDark
               logoWrapClassName="rounded-2xl bg-white px-3 py-2"
               logoClassName="h-8 w-auto sm:h-10"
               nameClassName="font-display text-3xl tracking-tight sm:text-4xl"
             />
             <p className="mt-4 text-sm leading-relaxed text-white/60">
-              {s.footerDescription || "Secondhand shirts, one of one. Picked at Kantamanto Market, Accra — washed, checked and priced to move."}
+              {s.footerDescription || "Curated shirts, one of one. Picked in Accra — checked and priced to move."}
             </p>
           </div>
           <p className="text-[11px] font-semibold tracking-[0.2em] text-white/50 uppercase">
@@ -165,7 +165,7 @@ export async function Footer() {
               Visit
             </p>
             <ul className="mt-4 space-y-3 text-sm text-white/75">
-              <li>{s.footerAddress || "Kantamanto Market, Accra"}</li>
+              <li>{s.footerAddress || "Accra, Ghana"}</li>
               <li className="text-white/45">
                 New finds every week — one of one, no restocks.
               </li>
@@ -175,7 +175,7 @@ export async function Footer() {
 
         <div className="mt-12 flex flex-col items-center justify-between gap-2 border-t border-white/10 pt-6 text-xs text-white/40 sm:flex-row">
           <p>
-            {(s.footerCopyright || "© {year} KojoRopa").replace("{year}", String(new Date().getFullYear()))}
+            {(s.footerCopyright || "© {year} Kojosropa").replace("{year}", String(new Date().getFullYear()))}
           </p>
           <p>{s.footerTagline || "Made in Accra"}</p>
         </div>

@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/db";
-import { isAdmin } from "@/lib/auth";
+import { isAdmin, verifyAdminPassword, hashPassword } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { getClientIp } from "@/lib/request";
 import { SETTING_SECTIONS } from "@/lib/settings-defs";
@@ -73,6 +73,50 @@ export async function saveSettingsAction(
     );
     const ip = await getClientIp().catch(() => null);
     await logAudit("settings.bulk_update", `${Object.keys(settings).length} settings`, ip);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
+}
+
+/**
+ * Changes the admin password. Once set, the DB-stored scrypt hash overrides
+ * the ADMIN_PASSWORD env fallback for future logins.
+ */
+export async function changePasswordAction(
+  current: string,
+  next: string
+): Promise<{ ok: boolean; error?: string }> {
+  if (!(await isAdmin())) return { ok: false, error: "Unauthorized" };
+  if (typeof current !== "string" || !current) {
+    return { ok: false, error: "Enter your current password." };
+  }
+  if (typeof next !== "string" || next.length < 8) {
+    return { ok: false, error: "New password must be at least 8 characters." };
+  }
+  if (current === next) {
+    return { ok: false, error: "New password must be different from the current one." };
+  }
+  if (!(await verifyAdminPassword(current))) {
+    await logAudit(
+      "auth.password_change_failed",
+      "wrong current password",
+      await getClientIp().catch(() => null)
+    );
+    return { ok: false, error: "Current password is incorrect." };
+  }
+  try {
+    const value = hashPassword(next);
+    await prisma.siteSetting.upsert({
+      where: { key: "adminPasswordHash" },
+      update: { value },
+      create: { key: "adminPasswordHash", value },
+    });
+    await logAudit(
+      "auth.password_changed",
+      "admin password updated",
+      await getClientIp().catch(() => null)
+    );
     return { ok: true };
   } catch (e) {
     return { ok: false, error: String(e) };

@@ -122,7 +122,7 @@ export function ProductDetail({
   product: Product;
   related: Product[];
 }) {
-  const productDetailNote = useSiteSetting("productDetailNote", "Every piece is washed, checked and one of one. When it's gone, it's gone.");
+  const productDetailNote = useSiteSetting("productDetailNote", "Every piece is checked and one of one. When it's gone, it's gone.");
   const relatedHeading = useSiteSetting("relatedHeading", "You might also like");
   const images =
     product.images && product.images.length > 0

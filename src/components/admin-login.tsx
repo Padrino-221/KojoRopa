@@ -33,7 +33,7 @@ function LockIcon({ className = "h-4 w-4" }: { className?: string }) {
 }
 
 export function AdminLogin() {
-  const siteName = useSiteSetting("siteName", "KojoRopa");
+  const siteName = useSiteSetting("siteName", "Kojosropa");
 
   const [pwState, pwAction, pwPending] = useActionState<
     VerifyPasswordState,
@@ -49,7 +49,7 @@ export function AdminLogin() {
 
   return (
     <div className="relative flex min-h-[70vh] items-center justify-center overflow-hidden px-4 py-16">
-      {/* ambient colour wash */}
+      {/* ambient colour glow */}
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
         <div className="absolute -top-32 -right-24 h-96 w-96 rounded-full bg-clay/[0.07] blur-3xl" />
         <div className="absolute -bottom-40 -left-24 h-96 w-96 rounded-full bg-espresso/[0.05] blur-3xl" />

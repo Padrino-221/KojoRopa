@@ -1,5 +1,5 @@
 import "server-only";
-import { createHmac, timingSafeEqual, randomBytes } from "node:crypto";
+import { createHmac, timingSafeEqual, randomBytes, scryptSync } from "node:crypto";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/db";
@@ -26,8 +26,39 @@ function safeEqual(a: string, b: string): boolean {
   return timingSafeEqual(bufA, bufB);
 }
 
-/** Constant-time-ish password check against ADMIN_PASSWORD. */
-export function verifyAdminPassword(password: string): boolean {
+/**
+ * Hashes a password with a random salt using scrypt. Returns `salt:hash`.
+ * Used by the admin "change password" feature (stored in the database).
+ */
+export function hashPassword(password: string): string {
+  const salt = randomBytes(16).toString("hex");
+  const hash = scryptSync(password, salt, 64).toString("hex");
+  return `${salt}:${hash}`;
+}
+
+function verifyScryptHash(password: string, stored: string): boolean {
+  const sep = stored.indexOf(":");
+  if (sep === -1) return false;
+  const salt = stored.slice(0, sep);
+  const hash = stored.slice(sep + 1);
+  if (!salt || !hash) return false;
+  const candidate = scryptSync(password, salt, 64);
+  const expected = Buffer.from(hash, "hex");
+  if (candidate.length !== expected.length) return false;
+  return timingSafeEqual(candidate, expected);
+}
+
+/**
+ * Verifies the admin password: a DB-stored scrypt hash (set via "Change
+ * password" in the dashboard) wins; otherwise falls back to ADMIN_PASSWORD.
+ */
+export async function verifyAdminPassword(password: string): Promise<boolean> {
+  const stored = await prisma.siteSetting.findUnique({
+    where: { key: "adminPasswordHash" },
+  });
+  if (stored?.value) {
+    return verifyScryptHash(password, stored.value);
+  }
   const expected = process.env.ADMIN_PASSWORD ?? "";
   if (!expected) return false;
   return safeEqual(password, expected);

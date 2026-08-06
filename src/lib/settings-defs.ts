@@ -4,22 +4,15 @@
  */
 export const SETTING_SECTIONS = [
   {
-    title: "Brand",
+    title: "Brand & About",
     settings: [
-      { key: "siteName", label: "Store name", default: "KojoRopa" },
-      { key: "siteTagline", label: "Tagline", default: "Secondhand shirts, one of one." },
-      { key: "siteDescription", label: "Meta description", default: "KojoRopa is a curated secondhand shirt shop from Accra. Graphic tees, deadstock blanks and soft-washed classics — one of one, picked at Kantamanto Market." },
-      { key: "siteKeywords", label: "Meta keywords (comma-separated)", default: "thrift store,secondhand,vintage shirts,graphic tees,Kantamanto,Accra,Ghana" },
-    ],
-  },
-  {
-    title: "Hero",
-    settings: [
-      { key: "heroEyebrow", label: "Eyebrow text", default: "Curated secondhand · Accra" },
-      { key: "heroHeadline", label: "Headline", default: "Transform Your Style with Confidence." },
-      { key: "heroDescription", label: "Description", default: "KojoRopa picks one-of-one secondhand shirts from the bales at Kantamanto Market — washed, checked and priced to move." },
-      { key: "heroCaption", label: "Caption under image", default: "The pick of the rack — one of one, no restocks" },
-      { key: "heroRotationMs", label: "Rotation interval (ms)", default: "21600000", type: "number" },
+      { key: "siteName", label: "Store name", default: "Kojosropa" },
+      { key: "siteTagline", label: "Tagline", default: "Curated shirts, one of one." },
+      { key: "siteDescription", label: "Meta description", default: "Kojosropa is a curated shirt shop from Accra. Graphic tees, deadstock blanks and soft-worn classics — one of one, and never restocked." },
+      { key: "siteKeywords", label: "Meta keywords (comma-separated)", default: "vintage shirts,graphic tees,curated shirts,one of one,Accra,Ghana" },
+      { key: "aboutMetaDescription", label: "About — meta description", default: "How Kojosropa became a curated shirt shop in Accra — and why we'll never restock a single piece." },
+      { key: "aboutHeading", label: "About — heading", default: "Started with one bale in Accra" },
+      { key: "aboutBody", label: "About — body", default: "Kojosropa began in Accra with a single bale of imported tees and a stubborn belief: the best shirts are the ones that already lived a little." },
     ],
   },
   {
@@ -30,6 +23,21 @@ export const SETTING_SECTIONS = [
       { key: "popularHeading", label: "Popular items section", default: "Popular Items" },
       { key: "emptyHeading", label: "Empty state heading", default: "Nothing on this hanger" },
       { key: "emptyBody", label: "Empty state body", default: "No pieces match those filters right now. Loosen a filter or two — the rack turns over every week." },
+      { key: "productDetailNote", label: "Product page — note under actions", default: "Every piece is checked and one of one. When it's gone, it's gone." },
+      { key: "relatedHeading", label: "Product page — related heading", default: "You might also like" },
+    ],
+  },
+  {
+    title: "Home page",
+    settings: [
+      { key: "heroEyebrow", label: "Hero — eyebrow text", default: "Curated shirts · Accra" },
+      { key: "heroHeadline", label: "Hero — headline", default: "Transform Your Style with Confidence." },
+      { key: "heroDescription", label: "Hero — description", default: "Kojosropa picks one-of-one shirts from the bales in Accra — checked and priced to move." },
+      { key: "heroCaption", label: "Hero — caption under image", default: "The pick of the rack — one of one, no restocks" },
+      { key: "heroRotationMs", label: "Hero — rotation interval (ms)", default: "21600000", type: "number" },
+      { key: "storyEyebrow", label: "Story band — eyebrow", default: "Hand-picked, Accra-worn" },
+      { key: "storyHeading", label: "Story band — heading", default: "Less than one shirt in ten makes it onto the rack" },
+      { key: "storyBody", label: "Story band — body", default: "We dig through the bales in Accra so you don't have to — checking and pricing every piece honestly." },
     ],
   },
   {
@@ -37,64 +45,35 @@ export const SETTING_SECTIONS = [
     settings: [
       { key: "categories", label: "Categories (value:Label, comma-separated)", default: "tee:Tees,button-up:Button-ups,polo:Polos,overshirt:Overshirts", type: "textarea" },
       { key: "sizes", label: "Sizes (comma-separated)", default: "XS,S,M,L,XL,XXL", type: "textarea" },
+      { key: "maxProductImages", label: "Max product images", default: "8", type: "number" },
+      { key: "maxQty", label: "Max quantity per item", default: "99", type: "number" },
     ],
   },
   {
-    title: "Home — Story band",
+    title: "Cart & Checkout",
     settings: [
-      { key: "storyEyebrow", label: "Eyebrow", default: "Kantamanto-picked, Accra-worn" },
-      { key: "storyHeading", label: "Heading", default: "Less than one shirt in ten makes it onto the rack" },
-      { key: "storyBody", label: "Body", default: "We dig through the secondhand bales at Kantamanto Market so you don't have to — washing, checking and pricing every piece honestly." },
+      { key: "cartEmptyHeading", label: "Cart — empty heading", default: "Your bag is empty" },
+      { key: "cartEmptyBody", label: "Cart — empty body", default: "Every piece is one of one — when it's gone, it's gone." },
+      { key: "freeShippingText", label: "Cart — free shipping unlocked text", default: "You've unlocked free shipping" },
+      { key: "freeShippingThreshold", label: "Shipping — free shipping threshold", default: "300", type: "number" },
+      { key: "shippingFee", label: "Shipping — fee", default: "30", type: "number" },
+      { key: "receiptGreetingSuffix", label: "Confirmation — greeting suffix", default: "your pieces are being wrapped in tissue as we speak." },
+      { key: "receiptCta", label: "Confirmation — CTA button text", default: "Keep browsing the rack" },
+      { key: "receiptFooter", label: "Confirmation — footer text", default: "Thank you for shopping with Kojosropa." },
     ],
   },
   {
-    title: "Product detail",
+    title: "Footer & Social",
     settings: [
-      { key: "productDetailNote", label: "Note under actions", default: "Every piece is washed, checked and one of one. When it's gone, it's gone." },
-      { key: "relatedHeading", label: "Related products heading", default: "You might also like" },
-    ],
-  },
-  {
-    title: "Cart",
-    settings: [
-      { key: "cartEmptyHeading", label: "Empty cart heading", default: "Your bag is empty" },
-      { key: "cartEmptyBody", label: "Empty cart body", default: "Every piece is one of one — when it's gone, it's gone." },
-      { key: "freeShippingText", label: "Free shipping unlocked text", default: "You've unlocked free shipping" },
-    ],
-  },
-  {
-    title: "Order confirmation",
-    settings: [
-      { key: "receiptGreetingSuffix", label: "Greeting suffix", default: "your pieces are being wrapped in tissue as we speak." },
-      { key: "receiptCta", label: "CTA button text", default: "Keep browsing the rack" },
-      { key: "receiptFooter", label: "Footer text", default: "Thank you for shopping with KojoRopa." },
-    ],
-  },
-  {
-    title: "About page",
-    settings: [
-      { key: "aboutMetaDescription", label: "Meta description", default: "How KojoRopa became a curated secondhand shirt shop in Accra — and why we'll never restock a single piece." },
-      { key: "aboutHeading", label: "Heading", default: "Started with one bale at Kantamanto" },
-      { key: "aboutBody", label: "Body", default: "KojoRopa began at Kantamanto Market in Accra — the world's largest secondhand clothing market — with a single bale of imported tees and a stubborn belief: the best shirts are the ones that already lived a little." },
-    ],
-  },
-  {
-    title: "Footer",
-    settings: [
-      { key: "footerDescription", label: "Description", default: "Secondhand shirts, one of one. Picked at Kantamanto Market, Accra — washed, checked and priced to move." },
-      { key: "footerAddress", label: "Address", default: "Kantamanto Market, Accra" },
-      { key: "footerCopyright", label: "Copyright (use {year} for year)", default: "© {year} KojoRopa" },
-      { key: "footerTagline", label: "Tagline", default: "Made in Accra" },
-    ],
-  },
-  {
-    title: "Social",
-    settings: [
-      { key: "instagramHandle", label: "Instagram handle", default: "@kojosropa" },
-      { key: "facebookHandle", label: "Facebook page", default: "Kojosropa" },
-      { key: "whatsappNumber", label: "WhatsApp number", default: "0209401655" },
-      { key: "tiktokHandle", label: "TikTok handle", default: "Kojosropa" },
-      { key: "snapchatHandle", label: "Snapchat username", default: "Kojosropa" },
+      { key: "footerDescription", label: "Footer — description", default: "Curated shirts, one of one. Picked in Accra — checked and priced to move." },
+      { key: "footerAddress", label: "Footer — address", default: "Accra, Ghana" },
+      { key: "footerCopyright", label: "Footer — copyright (use {year} for year)", default: "© {year} Kojosropa" },
+      { key: "footerTagline", label: "Footer — tagline", default: "Made in Accra" },
+      { key: "instagramHandle", label: "Social — Instagram handle", default: "@kojosropa" },
+      { key: "facebookHandle", label: "Social — Facebook page", default: "Kojosropa" },
+      { key: "whatsappNumber", label: "Social — WhatsApp number", default: "0209401655" },
+      { key: "tiktokHandle", label: "Social — TikTok handle", default: "Kojosropa" },
+      { key: "snapchatHandle", label: "Social — Snapchat username", default: "Kojosropa" },
     ],
   },
   {
@@ -102,15 +81,6 @@ export const SETTING_SECTIONS = [
     settings: [
       { key: "adminHeading", label: "Dashboard heading", default: "Manage the rack" },
       { key: "adminDescription", label: "Dashboard description", default: "Changes are saved to the database and update the shop instantly." },
-    ],
-  },
-  {
-    title: "Shipping & limits",
-    settings: [
-      { key: "freeShippingThreshold", label: "Free shipping threshold", default: "300", type: "number" },
-      { key: "shippingFee", label: "Shipping fee", default: "30", type: "number" },
-      { key: "maxProductImages", label: "Max product images", default: "8", type: "number" },
-      { key: "maxQty", label: "Max quantity per item", default: "99", type: "number" },
     ],
   },
 ] as const;

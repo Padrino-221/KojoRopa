@@ -10,8 +10,50 @@ import { orderSchema } from "@/lib/validators";
 import type { OrderInput } from "@/lib/validators";
 import { ORDER_STATUSES, type OrderStatus } from "@/lib/order-status";
 import { initiatePayment, submitOtp, checkPaymentStatus } from "@/lib/moolre";
+import {
+  sendOrderConfirmation,
+  sendAdminOrderNotification,
+  sendDeliveryUpdate,
+} from "@/lib/email";
+import type { EmailOrder } from "@/lib/email";
 
 export type { OrderStatus };
+
+/** A persisted order including its line items. */
+type OrderWithItems = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  subtotal: number;
+  shipping: number;
+  total: number;
+  street: string;
+  city: string;
+  postal: string;
+  country: string;
+  token: string | null;
+  items: { name: string; size: string; qty: number; price: number }[];
+};
+
+/** Maps a persisted order to the shape the email layer expects. */
+function toEmailOrder(order: OrderWithItems): EmailOrder {
+  return {
+    id: order.id,
+    name: order.name,
+    email: order.email,
+    phone: order.phone,
+    subtotal: order.subtotal,
+    shipping: order.shipping,
+    total: order.total,
+    street: order.street,
+    city: order.city,
+    postal: order.postal,
+    country: order.country,
+    token: order.token,
+    items: order.items,
+  };
+}
 
 export type CreateOrderResult =
   | {
@@ -214,6 +256,27 @@ export async function submitOtpAction(
       },
     });
     await logAudit("order.payment", `order ${orderId} payment confirmed`, ip);
+
+    // Send the receipt to the buyer and a heads-up to the shop owner.
+    // Fire-and-forget: failures are logged in the email layer, never thrown.
+    const full = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: { items: true },
+    });
+    if (full) {
+      const orderForEmail = toEmailOrder(full);
+      const [customer, admin] = await Promise.all([
+        sendOrderConfirmation(orderForEmail),
+        sendAdminOrderNotification(orderForEmail),
+      ]);
+      if (customer) {
+        await logAudit("email.order_confirmation", `receipt emailed for order ${orderId}`, ip);
+      }
+      if (admin) {
+        await logAudit("email.admin_notification", `new-order notification for ${orderId}`, ip);
+      }
+    }
+
     return { ok: true, message: result.message || "Payment confirmed!" };
   }
 
@@ -326,6 +389,21 @@ export async function updateOrderStatusAction(
   }
   await prisma.order.update({ where: { id }, data: { status } });
   await logAudit("order.status", `order ${id} → ${status}`, ip);
+
+  // When a piece is marked delivered, tell the buyer.
+  if (status === "delivered") {
+    const full = await prisma.order.findUnique({
+      where: { id },
+      include: { items: true },
+    });
+    if (full) {
+      const sent = await sendDeliveryUpdate(toEmailOrder(full));
+      if (sent) {
+        await logAudit("email.delivery", `delivery update emailed for order ${id}`, ip);
+      }
+    }
+  }
+
   return { ok: true };
 }
 

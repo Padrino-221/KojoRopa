@@ -7,7 +7,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const s = await getAllSettings();
   return {
     title: "Our story",
-    description: s.aboutMetaDescription || "How KojoRopa became a curated secondhand shirt shop in Accra — and why we'll never restock a single piece.",
+    description: s.aboutMetaDescription || "How Kojosropa became a curated shirt shop in Accra — and why we'll never restock a single piece.",
   };
 }
 
@@ -24,17 +24,17 @@ export default async function AboutPage() {
               Our story
             </p>
             <h1 className="mt-4 font-display text-4xl leading-[1.06] tracking-tight text-balance text-espresso sm:text-5xl">
-              {s.aboutHeading || "Started with one bale at Kantamanto"}
+              {s.aboutHeading || "Started with one bale in Accra"}
             </h1>
             <div className="mt-6 space-y-4 text-[15px] leading-relaxed text-mocha sm:text-base">
               <p>
-                {s.aboutBody || "KojoRopa began at Kantamanto Market in Accra — the world's largest secondhand clothing market — with a single bale of imported tees and a stubborn belief: the best shirts are the ones that already lived a little."}
+                {s.aboutBody || "Kojosropa began in Accra with a single bale of imported tees and a stubborn belief: the best shirts are the ones that already lived a little."}
               </p>
               <p>
                 Every week we dig through the bales so you don&rsquo;t have to.
-                Each piece is washed, checked under good light, and given a fair
+                Each piece is checked under good light, and given a fair
                 price with its original retail shown — so you can see exactly how
-                much secondhand saves you.
+                much you save.
               </p>
               <p>
                 There is no warehouse, no restock button, no algorithm deciding
@@ -48,7 +48,7 @@ export default async function AboutPage() {
         {/* values */}
         <div className="mt-14 grid gap-6 md:grid-cols-3">
           {[
-            { title: s.value1Title || "Curated, not dumped", copy: s.value1Copy || "We buy the way we would thrift ourselves — slowly, suspiciously, and only for the good stuff. Less than one shirt in ten makes it onto the rack." },
+            { title: s.value1Title || "Curated, not dumped", copy: s.value1Copy || "We buy the way we shop for ourselves — slowly, suspiciously, and only for the good stuff. Less than one shirt in ten makes it onto the rack." },
             { title: s.value2Title || "Honest labels", copy: s.value2Copy || "Condition, era, fit and every honest flaw are written on the page. A limp collar is a feature when we tell you about it first." },
             { title: s.value3Title || "No restocks, ever", copy: s.value3Copy || "One of one is the whole point. When a piece sells, its story ends on someone's shoulders — not in a warehouse." },
           ].map((v, i) => (

@@ -18,7 +18,7 @@ export async function Hero() {
 
   return (
     <section className="relative overflow-hidden">
-      {/* ambient colour wash */}
+      {/* ambient colour glow */}
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
         <div className="absolute -top-40 -right-24 h-[28rem] w-[28rem] rounded-full bg-clay/[0.07] blur-3xl" />
         <div className="absolute -bottom-48 -left-24 h-[26rem] w-[26rem] rounded-full bg-espresso/[0.04] blur-3xl" />
@@ -31,13 +31,13 @@ export async function Hero() {
             <div className="animate-fade-up">
               <p className="flex items-center gap-3 text-xs font-semibold tracking-[0.22em] text-clay uppercase">
                 <span aria-hidden className="h-px w-8 bg-clay/60" />
-                {settings.heroEyebrow || "Curated secondhand · Accra"}
+                {settings.heroEyebrow || "Curated shirts · Accra"}
               </p>
               <h1 className="mt-5 font-display text-5xl leading-[1.02] tracking-tight text-balance text-espresso sm:text-6xl lg:text-7xl">
                 {settings.heroHeadline || "Transform Your Style with Confidence."}
               </h1>
               <p className="mt-6 max-w-lg text-base leading-relaxed text-mocha sm:text-lg">
-                {settings.heroDescription || "KojoRopa picks one-of-one secondhand shirts from the bales at Kantamanto Market — washed, checked and priced to move."}
+                {settings.heroDescription || "Kojosropa picks one-of-one shirts from the bales in Accra — checked and priced to move."}
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <Link
@@ -73,7 +73,7 @@ export async function Hero() {
                 </span>
                 <span className="flex items-center gap-2">
                   <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-clay" />
-                  Washed &amp; checked
+                  Checked &amp; ready
                 </span>
               </div>
             </div>

@@ -2,12 +2,13 @@
 
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { ADMIN_PATH } from "@/lib/site-config";
 
 /**
  * Renders the storefront chrome (navbar, footer, bottom nav, cart) around
- * children, but skips it on /admin routes so the admin tool gets a focused,
- * chrome-less experience. The chrome components are passed in as server
- * children so they keep their server rendering.
+ * children, but skips it on the secret admin route so the admin tool gets a
+ * focused, chrome-less experience. The chrome components are passed in as
+ * server children so they keep their server rendering.
  */
 export function AppShell({
   children,
@@ -23,7 +24,9 @@ export function AppShell({
   cartDrawer: ReactNode;
 }) {
   const pathname = usePathname();
-  const isAdmin = pathname.startsWith("/admin");
+  const adminBase = `/${ADMIN_PATH}`;
+  const isAdmin =
+    pathname === adminBase || pathname.startsWith(`${adminBase}/`);
 
   return (
     <>

@@ -1,8 +1,8 @@
 const DEFAULT_ITEMS = [
   "One of one, no restocks",
-  "Kantamanto Market · Accra",
-  "Washed & checked",
-  "Secondhand, first love",
+  "Hand-picked in Accra",
+  "Checked & ready",
+  "Curated, first love",
   "New finds every week",
 ];
 

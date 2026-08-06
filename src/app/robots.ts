@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { ADMIN_PATH } from "@/lib/site-config";
 
 export default function robots(): MetadataRoute.Robots {
   const base =
@@ -7,7 +8,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: ["/admin", "/checkout", "/confirmation", "/api/"],
+      disallow: [`/${ADMIN_PATH}`, "/checkout", "/confirmation", "/api/"],
     },
     sitemap: `${base}/sitemap.xml`,
   };

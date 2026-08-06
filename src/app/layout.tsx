@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Fraunces, Inter } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "@/components/cart-provider";
@@ -35,10 +36,10 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL ?? "https://kojoropa.example"
+    process.env.NEXT_PUBLIC_SITE_URL ?? "https://kojosropa.example"
   ),
   title: {
-    default: `${SITE_NAME} — Secondhand Shirts, One of One`,
+    default: `${SITE_NAME} — Curated Shirts, One of One`,
     template: `%s · ${SITE_NAME}`,
   },
   description: SITE_DESCRIPTION,
@@ -56,8 +57,11 @@ export default async function RootLayout(props: LayoutProps<"/">) {
     >
       <head>
         {/* Marks JS as available so scroll-reveals can hide content; without
-            JS everything stays visible. */}
-        <script
+            JS everything stays visible. Injected into the initial HTML before
+            hydration (avoids React's inline-script hydration warning). */}
+        <Script
+          id="remove-no-js"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: "document.documentElement.classList.remove('no-js');",
           }}

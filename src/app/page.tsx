@@ -43,14 +43,14 @@ export default async function HomePage(props: PageProps<"/">) {
           <Reveal className="flex flex-col items-center text-center">
             <p className="flex items-center gap-3 text-[11px] font-semibold tracking-[0.22em] text-clay uppercase">
               <span aria-hidden className="h-px w-8 bg-clay/60" />
-              {s.storyEyebrow || "Kantamanto-picked, Accra-worn"}
+              {s.storyEyebrow || "Hand-picked, Accra-worn"}
               <span aria-hidden className="h-px w-8 bg-clay/60" />
             </p>
             <h2 className="mt-4 max-w-2xl font-display text-3xl leading-tight tracking-tight text-balance text-espresso sm:text-4xl">
               {s.storyHeading || "Less than one shirt in ten makes it onto the rack"}
             </h2>
             <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-mocha sm:text-base">
-              {s.storyBody || "We dig through the secondhand bales at Kantamanto Market so you don't have to — washing, checking and pricing every piece honestly."}
+              {s.storyBody || "We dig through the bales in Accra so you don't have to — checking and pricing every piece honestly."}
             </p>
             <Link
               href="/about"

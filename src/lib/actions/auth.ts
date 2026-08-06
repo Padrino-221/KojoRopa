@@ -13,6 +13,7 @@ import {
   verifyTotp,
   isTotpEnabled,
 } from "@/lib/auth";
+import { ADMIN_PATH } from "@/lib/site-config";
 import { logAudit } from "@/lib/audit";
 import { rateLimit, rateLimitGlobal } from "@/lib/rate-limit";
 import { getClientIp } from "@/lib/request";
@@ -41,7 +42,7 @@ export async function verifyPasswordAction(
     return { error: "Enter your password." };
   }
 
-  if (!verifyAdminPassword(password)) {
+  if (!(await verifyAdminPassword(password))) {
     await logAudit("login.failed", "wrong password", ip);
     return { error: "Wrong password." };
   }
@@ -57,7 +58,7 @@ export async function verifyPasswordAction(
       path: "/",
       maxAge: SESSION_MAX_AGE_SECONDS,
     });
-    redirect("/admin");
+    redirect(`/${ADMIN_PATH}`);
   }
 
   const tempToken = await createTempToken();
@@ -118,7 +119,7 @@ export async function verifyTotpAction(
     maxAge,
   });
 
-  redirect("/admin");
+  redirect(`/${ADMIN_PATH}`);
 }
 
 /* ————— Logout ————— */
@@ -126,5 +127,5 @@ export async function verifyTotpAction(
 export async function logoutAction(): Promise<void> {
   await logAudit("logout", "admin signed out");
   await logoutAdmin();
-  redirect("/admin");
+  redirect(`/${ADMIN_PATH}`);
 }
