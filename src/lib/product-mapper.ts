@@ -1,9 +1,5 @@
 import type { Prisma } from "@/generated/prisma/client";
-import type {
-  Product,
-  ProductCategory,
-  ShirtPattern,
-} from "@/lib/products";
+import type { Product, ShirtPattern } from "@/lib/products";
 import type { ProductInput } from "@/lib/validators";
 
 /** Flat shape of a Product row as stored in the database. */
@@ -32,13 +28,6 @@ export interface DbProduct {
 
 export type ProductDraft = Omit<Product, "id" | "slug">;
 
-const CATEGORIES: readonly ProductCategory[] = [
-  "tee",
-  "button-up",
-  "polo",
-  "overshirt",
-];
-
 const PATTERNS: readonly ShirtPattern[] = [
   "solid",
   "stripe",
@@ -64,7 +53,7 @@ export function dbToProduct(row: DbProduct): Product {
     tagline: row.tagline,
     price: row.price,
     compareAt: row.compareAt ?? undefined,
-    category: isOneOf(row.category, CATEGORIES) ? row.category : "tee",
+    category: row.category,
     condition: row.condition,
     image: row.image ?? row.images[0] ?? undefined,
     images: row.images,

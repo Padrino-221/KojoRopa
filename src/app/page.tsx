@@ -5,7 +5,7 @@ import { Storefront } from "@/components/storefront";
 import type { StorefrontInitial } from "@/components/storefront";
 import { Reveal } from "@/components/ui/reveal";
 import { getPublicProducts } from "@/lib/queries";
-import { CATEGORIES, SIZES } from "@/lib/products";
+import { parseCategories, parseSizes } from "@/lib/catalog";
 import { getAllSettings } from "@/lib/actions/settings";
 
 export default async function HomePage(props: PageProps<"/">) {
@@ -19,11 +19,13 @@ export default async function HomePage(props: PageProps<"/">) {
 
   const category = pickString(qp.category, "");
   const size = pickString(qp.size, "");
+  const categories = parseCategories(s.categories);
+  const sizes = parseSizes(s.sizes);
 
   const initial: StorefrontInitial = {
     q: pickString(qp.q, ""),
-    category: CATEGORIES.some((c) => c.value === category) ? category : "all",
-    size: SIZES.includes(size) ? size : "all",
+    category: categories.some((c) => c.value === category) ? category : "all",
+    size: sizes.includes(size) ? size : "all",
     sort: pickString(qp.sort, "featured"),
   };
 

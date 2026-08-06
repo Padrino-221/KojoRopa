@@ -8,7 +8,11 @@ type BrandProps = {
   href?: string;
   className?: string;
   logoClassName?: string;
+  /** Wraps the logo in a container (e.g. a white rounded badge on dark backgrounds). */
+  logoWrapClassName?: string;
   nameClassName?: string;
+  /** Uses white name text — for use on dark backgrounds. */
+  onDark?: boolean;
 };
 
 export function Brand({
@@ -16,12 +20,26 @@ export function Brand({
   href,
   className = "",
   logoClassName = "h-6 w-auto sm:h-7 md:h-8",
+  logoWrapClassName,
   nameClassName = "font-display text-xl leading-none tracking-tight md:text-[22px]",
+  onDark = false,
 }: BrandProps) {
+  const logo = logoWrapClassName ? (
+    <span
+      className={`flex shrink-0 items-center justify-center ${logoWrapClassName}`}
+    >
+      <img src="/logo.png" alt="" className={logoClassName} />
+    </span>
+  ) : (
+    <img src="/logo.png" alt="" className={logoClassName} />
+  );
+
   const content = (
     <>
-      <img src="/logo.png" alt="" className={logoClassName} />
-      <span className={`min-w-0 truncate text-espresso ${nameClassName}`}>
+      {logo}
+      <span
+        className={`min-w-0 truncate ${onDark ? "text-white" : "text-espresso"} ${nameClassName}`}
+      >
         {name}
       </span>
     </>

@@ -75,10 +75,6 @@ export async function Hero() {
                   <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-clay" />
                   Washed &amp; checked
                 </span>
-                <span className="flex items-center gap-2">
-                  <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-clay" />
-                  Ships from Accra
-                </span>
               </div>
             </div>
 

@@ -6,10 +6,14 @@ import type { FormEvent } from "react";
 import { ShirtArt } from "@/components/shirt-art";
 import { compressImage } from "@/lib/image";
 import {
-  CATEGORIES,
   CONDITIONS,
-  SIZES,
 } from "@/lib/products";
+import {
+  parseCategories,
+  parseSizes,
+  DEFAULT_CATEGORIES_RAW,
+  DEFAULT_SIZES_RAW,
+} from "@/lib/catalog";
 import type { Product, ProductCategory, ShirtPattern } from "@/lib/products";
 import { formatPrice, formatOrderDate } from "@/lib/format";
 import type { ProductInput } from "@/lib/validators";
@@ -164,8 +168,17 @@ function ProductForm({
   onClose: () => void;
 }) {
   const maxProductImages = parseInt(useSiteSetting("maxProductImages", "8"), 10) || 8;
+  const categoriesRaw = useSiteSetting("categories", DEFAULT_CATEGORIES_RAW);
+  const sizesRaw = useSiteSetting("sizes", DEFAULT_SIZES_RAW);
+  const categoryOptions = useMemo(
+    () => parseCategories(categoriesRaw),
+    [categoriesRaw]
+  );
+  const sizeOptions = useMemo(() => parseSizes(sizesRaw), [sizesRaw]);
   const [form, setForm] = useState<FormState>(
-    initial ? toForm(initial) : emptyForm()
+    initial
+      ? toForm(initial)
+      : { ...emptyForm(), category: categoryOptions[0]?.value ?? "tee" }
   );
   const [uploading, setUploading] = useState(0);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -280,7 +293,7 @@ function ProductForm({
                 <CustomSelect
                   value={form.category}
                   onChange={(v) => set("category", v)}
-                  options={CATEGORIES.filter((c) => c.value !== "all").map((c) => ({
+                  options={categoryOptions.map((c) => ({
                     value: c.value,
                     label: c.label,
                   }))}
@@ -341,7 +354,7 @@ function ProductForm({
             <div>
               <Label>Sizes</Label>
               <div className="flex flex-wrap gap-2">
-                {SIZES.map((s) => (
+                {sizeOptions.map((s) => (
                   <Badge
                     key={s}
                     variant={form.sizes.includes(s) ? "primary" : "default"}
@@ -662,7 +675,10 @@ function SettingsPanel({
                       }
                       className="flex-1 bg-linen"
                     />
-                  ) : s.key.includes("Body") || s.key.includes("Description") || s.key.includes("Copy") ? (
+                  ) : ("type" in s && s.type === "textarea") ||
+                    s.key.includes("Body") ||
+                    s.key.includes("Description") ||
+                    s.key.includes("Copy") ? (
                     <Textarea
                       id={`setting-${s.key}`}
                       rows={3}

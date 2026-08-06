@@ -2,8 +2,13 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import { ProductCard } from "@/components/product-card";
-import { CATEGORIES, SIZES } from "@/lib/products";
 import type { Product } from "@/lib/products";
+import {
+  parseCategories,
+  parseSizes,
+  DEFAULT_CATEGORIES_RAW,
+  DEFAULT_SIZES_RAW,
+} from "@/lib/catalog";
 import { useSiteSetting } from "@/components/site-settings-provider";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { Reveal } from "@/components/ui/reveal";
@@ -37,6 +42,13 @@ export function Storefront({
   const storeHeading = useSiteSetting("storeHeading", "Popular of the week");
   const emptyHeading = useSiteSetting("emptyHeading", "Nothing on this hanger");
   const emptyBody = useSiteSetting("emptyBody", "No pieces match those filters right now. Loosen a filter or two — the rack turns over every week.");
+  const categoriesRaw = useSiteSetting("categories", DEFAULT_CATEGORIES_RAW);
+  const sizesRaw = useSiteSetting("sizes", DEFAULT_SIZES_RAW);
+  const categoryPills = useMemo(
+    () => [{ value: "all", label: "All" }, ...parseCategories(categoriesRaw)],
+    [categoriesRaw]
+  );
+  const sizeOptions = useMemo(() => parseSizes(sizesRaw), [sizesRaw]);
 
   const result = useMemo(() => {
     const query = q.trim().toLowerCase();
@@ -116,6 +128,12 @@ export function Storefront({
         <path d="M20.38 3.46L16 2a4 4 0 01-8 0L3.62 3.46a2 2 0 00-1.34 2.23l.58 3.47a1 1 0 00.99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 002-2V10h2.15a1 1 0 00.99-.84l.58-3.47a2 2 0 00-1.34-2.23z" />
       </svg>
     ),
+    tag: (
+      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
+        <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+        <line x1="7" y1="7" x2="7.01" y2="7" />
+      </svg>
+    ),
   };
 
   return (
@@ -145,7 +163,7 @@ export function Storefront({
       {/* category pills + search */}
       <div className="mt-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap gap-2">
-          {CATEGORIES.map((c) => (
+          {categoryPills.map((c) => (
             <button
               key={c.value}
               type="button"
@@ -157,7 +175,7 @@ export function Storefront({
                   : "bg-surface text-mocha ring-1 ring-border hover:bg-cream hover:ring-clay/40 hover:text-clay"
               }`}
             >
-              {categoryIcons[c.value] || categoryIcons.all}
+              {categoryIcons[c.value] || categoryIcons.tag}
               {c.label}
             </button>
           ))}
@@ -194,7 +212,7 @@ export function Storefront({
           className="h-9 rounded-full text-[13px]"
           options={[
             { value: "all", label: "All sizes" },
-            ...SIZES.map((s) => ({ value: s, label: `Size ${s}` })),
+            ...sizeOptions.map((s) => ({ value: s, label: `Size ${s}` })),
           ]}
         />
 

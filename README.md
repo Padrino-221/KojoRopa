@@ -62,8 +62,11 @@ the `ADMIN_PASSWORD` from your `.env`.
 | `ADMIN_PASSWORD`            | Admin dashboard password                            |
 | `SESSION_SECRET`            | Signs the admin session cookie (min 32 chars)       |
 | `NEXT_PUBLIC_SITE_URL`      | Canonical URL for SEO / sitemap / robots            |
-| `NEXT_PUBLIC_CONTACT_EMAIL` | Contact email shown in the footer                   |
-| `NEXT_PUBLIC_INSTAGRAM_HANDLE` | Instagram handle shown in the footer             |
+| `NEXT_PUBLIC_INSTAGRAM_HANDLE`   | Instagram handle shown in the footer            |
+| `NEXT_PUBLIC_FACEBOOK_HANDLE`    | Facebook page shown in the footer               |
+| `NEXT_PUBLIC_WHATSAPP_NUMBER`    | WhatsApp number shown in the footer             |
+| `NEXT_PUBLIC_TIKTOK_HANDLE`      | TikTok handle shown in the footer               |
+| `NEXT_PUBLIC_SNAPCHAT_HANDLE`    | Snapchat username shown in the footer           |
 
 ## Scripts
 

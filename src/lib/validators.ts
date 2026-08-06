@@ -15,7 +15,7 @@ export const productSchema = z.object({
   tagline: z.string().trim().max(160),
   price: z.number().int().positive().max(100_000),
   compareAt: z.number().int().positive().max(1_000_000).optional().nullable(),
-  category: z.enum(["tee", "button-up", "polo", "overshirt"]),
+  category: z.string().trim().min(1, "Choose a category").max(30),
   condition: z.string().trim().min(1).max(40),
   story: z.string().trim().max(2000),
   sizes: z.array(z.string().trim().min(1).max(10)).max(10),

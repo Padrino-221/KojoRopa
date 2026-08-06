@@ -30,7 +30,7 @@ export interface Product {
   tagline: string;
   price: number; // GHS
   compareAt?: number; // original retail, for "savings" chips
-  category: ProductCategory;
+  category: string;
   sizes: string[];
   condition: string;
   /** uploaded product photo as base64 data URL */
@@ -249,16 +249,6 @@ export const products: Product[] = [
     art: { base: "#DCE4E0", pattern: "raglan", accent: "#3F4E5A" },
   },
 ];
-
-export const CATEGORIES: { value: string; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "tee", label: "Tees" },
-  { value: "button-up", label: "Button-ups" },
-  { value: "polo", label: "Polos" },
-  { value: "overshirt", label: "Overshirts" },
-];
-
-export const SIZES = ["XS", "S", "M", "L", "XL", "XXL"];
 
 export const CONDITIONS = [
   "Deadstock",

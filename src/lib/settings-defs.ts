@@ -33,6 +33,13 @@ export const SETTING_SECTIONS = [
     ],
   },
   {
+    title: "Catalog",
+    settings: [
+      { key: "categories", label: "Categories (value:Label, comma-separated)", default: "tee:Tees,button-up:Button-ups,polo:Polos,overshirt:Overshirts", type: "textarea" },
+      { key: "sizes", label: "Sizes (comma-separated)", default: "XS,S,M,L,XL,XXL", type: "textarea" },
+    ],
+  },
+  {
     title: "Home — Story band",
     settings: [
       { key: "storyEyebrow", label: "Eyebrow", default: "Kantamanto-picked, Accra-worn" },
@@ -78,6 +85,16 @@ export const SETTING_SECTIONS = [
       { key: "footerAddress", label: "Address", default: "Kantamanto Market, Accra" },
       { key: "footerCopyright", label: "Copyright (use {year} for year)", default: "© {year} KojoRopa" },
       { key: "footerTagline", label: "Tagline", default: "Made in Accra" },
+    ],
+  },
+  {
+    title: "Social",
+    settings: [
+      { key: "instagramHandle", label: "Instagram handle", default: "@kojosropa" },
+      { key: "facebookHandle", label: "Facebook page", default: "Kojosropa" },
+      { key: "whatsappNumber", label: "WhatsApp number", default: "0209401655" },
+      { key: "tiktokHandle", label: "TikTok handle", default: "Kojosropa" },
+      { key: "snapchatHandle", label: "Snapchat username", default: "Kojosropa" },
     ],
   },
   {
