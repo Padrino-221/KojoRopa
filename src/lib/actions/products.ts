@@ -97,6 +97,30 @@ export async function updateProductAction(
   return { ok: true, product: dbToProduct(row) };
 }
 
+export async function setProductSoldAction(
+  slug: string,
+  sold: boolean
+): Promise<ProductActionResult> {
+  if (!(await ensureAdmin())) {
+    return { ok: false, error: "You need to sign in again." };
+  }
+  const existing = await prisma.product.findUnique({ where: { slug } });
+  if (!existing) {
+    return { ok: false, error: "That piece no longer exists." };
+  }
+  const row = await prisma.product.update({
+    where: { slug },
+    data: { sold },
+  });
+  await logAudit(
+    "product.sold",
+    `marked "${row.name}" (${slug}) as ${sold ? "sold" : "back on the rack"}`,
+    await getClientIp()
+  );
+  revalidatePath("/", "layout");
+  return { ok: true, product: dbToProduct(row) };
+}
+
 export async function deleteProductAction(
   slug: string
 ): Promise<{ ok: true } | { ok: false; error: string }> {

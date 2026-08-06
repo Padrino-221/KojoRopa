@@ -42,6 +42,8 @@ export interface Product {
   featured?: boolean;
   /** hidden pieces stay out of the public rack (admin-managed) */
   visible?: boolean;
+  /** sold pieces are retired from the rack once payment is confirmed */
+  sold?: boolean;
 }
 
 export const products: Product[] = [

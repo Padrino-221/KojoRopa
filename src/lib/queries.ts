@@ -2,10 +2,10 @@ import "server-only";
 import { prisma } from "@/lib/db";
 import { dbToProduct } from "@/lib/product-mapper";
 
-/** Visible products, featured first, newest first — the public rack. */
+/** Visible, unsold products, featured first, newest first — the public rack. */
 export async function getPublicProducts() {
   const rows = await prisma.product.findMany({
-    where: { visible: true },
+    where: { visible: true, sold: false },
     orderBy: [{ featured: "desc" }, { createdAt: "desc" }],
   });
   return rows.map(dbToProduct);
@@ -13,7 +13,7 @@ export async function getPublicProducts() {
 
 export async function getProductBySlug(slug: string) {
   const row = await prisma.product.findFirst({
-    where: { slug, visible: true },
+    where: { slug, visible: true, sold: false },
   });
   return row ? dbToProduct(row) : null;
 }

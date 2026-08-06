@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { verifyWebhookSecret } from "@/lib/moolre";
 import { logAudit } from "@/lib/audit";
+import { markOrderProductsSold } from "@/lib/order";
 
 interface MoolreWebhookPayload {
   status: number;
@@ -49,10 +51,21 @@ export async function POST(req: Request) {
     // Payment events never mark an order "delivered" — that status is reserved
     // for the admin marking an order as fulfilled. A successful payment keeps
     // the order "pending"; only a failed payment flips it to "failed".
+    // On success, the one-of-one pieces in the order are retired from the rack.
     if (txStatus === 1) {
+      await prisma.order.update({
+        where: { id: externalRef },
+        data: {
+          moolreTransactionId: data.transactionid || undefined,
+        },
+      });
+
+      const retired = await markOrderProductsSold(externalRef, undefined);
+      revalidatePath("/", "layout");
+
       await logAudit(
         "webhook.moolre",
-        `order ${externalRef} payment confirmed (tx: ${data.transactionid})`,
+        `order ${externalRef} payment confirmed (tx: ${data.transactionid}) — ${retired} piece(s) retired`,
         undefined
       );
       return NextResponse.json({ received: true });

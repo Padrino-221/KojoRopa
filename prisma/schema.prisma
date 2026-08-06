@@ -22,6 +22,7 @@ model Product {
   sizes      String[]
   featured   Boolean  @default(false)
   visible    Boolean  @default(true)
+  sold       Boolean  @default(false)
   artBase    String
   artPattern String
   artAccent  String?

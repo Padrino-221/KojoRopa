@@ -18,6 +18,7 @@ export interface DbProduct {
   sizes: string[];
   featured: boolean;
   visible: boolean;
+  sold: boolean;
   artBase: string;
   artPattern: string;
   artAccent: string | null;
@@ -61,6 +62,7 @@ export function dbToProduct(row: DbProduct): Product {
     sizes: row.sizes,
     featured: row.featured,
     visible: row.visible,
+    sold: row.sold,
     art: {
       base: row.artBase,
       pattern: isOneOf(row.artPattern, PATTERNS) ? row.artPattern : "solid",

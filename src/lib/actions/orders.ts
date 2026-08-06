@@ -1,11 +1,12 @@
 "use server";
 
 import { randomUUID } from "node:crypto";
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { rateLimit, rateLimitGlobal } from "@/lib/rate-limit";
 import { getClientIp } from "@/lib/request";
 import { logAudit } from "@/lib/audit";
-import { createOrderNumber } from "@/lib/order";
+import { createOrderNumber, markOrderProductsSold } from "@/lib/order";
 import { orderSchema } from "@/lib/validators";
 import type { OrderInput } from "@/lib/validators";
 import { ORDER_STATUSES, type OrderStatus } from "@/lib/order-status";
@@ -104,7 +105,7 @@ export async function createOrderAction(
 
   const slugs = [...new Set([...normalizedItems.values()].map((item) => item.slug))];
   const dbProducts = await prisma.product.findMany({
-    where: { slug: { in: slugs }, visible: true },
+    where: { slug: { in: slugs }, visible: true, sold: false },
   });
   const bySlug = new Map(dbProducts.map((p) => [p.slug, p]));
 
@@ -255,6 +256,11 @@ export async function submitOtpAction(
         moolreTransactionId: result.transactionId || order.moolreTransactionId,
       },
     });
+
+    // One-of-one pieces in this order are now sold — retire them from the rack.
+    await markOrderProductsSold(orderId, ip);
+    revalidatePath("/", "layout");
+
     await logAudit("order.payment", `order ${orderId} payment confirmed`, ip);
 
     // Send the receipt to the buyer and a heads-up to the shop owner.
@@ -347,7 +353,9 @@ export async function checkPaymentAction(
 
   if (result.success) {
     // Payment confirmed — keep the order "pending"; only the admin marks it
-    // "delivered" once it's actually fulfilled.
+    // "delivered" once it's actually fulfilled. The pieces are now sold.
+    await markOrderProductsSold(orderId);
+    revalidatePath("/", "layout");
     return { ok: true, paid: true, status: "pending" };
   }
 

@@ -20,6 +20,7 @@ import type { ProductInput } from "@/lib/validators";
 import {
   createProductAction,
   deleteProductAction,
+  setProductSoldAction,
   updateProductAction,
 } from "@/lib/actions/products";
 import { uploadProductImageAction } from "@/lib/actions/upload";
@@ -1245,6 +1246,24 @@ export function AdminDashboard({
     }
   };
 
+  const toggleSold = async (p: Product) => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const res = await setProductSoldAction(p.slug, !p.sold);
+      if (res.ok) {
+        setProducts((prev) =>
+          prev.map((x) => (x.slug === p.slug ? res.product : x))
+        );
+        toast("success", res.product.sold ? `"${p.name}" marked as sold.` : `"${p.name}" is back on the rack.`);
+      } else {
+        toast("error", res.error);
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const requestDelete = (p: Product) => {
     setConfirm({
       title: `Remove “${p.name}”?`,
@@ -1327,6 +1346,7 @@ export function AdminDashboard({
       total: products.length,
       visible: products.filter((p) => p.visible !== false).length,
       hidden: products.filter((p) => p.visible === false).length,
+      sold: products.filter((p) => p.sold).length,
     }),
     [products]
   );
@@ -1608,11 +1628,12 @@ export function AdminDashboard({
         {tab === "products" && (
           <>
             {/* stats */}
-            <div className="mt-8 grid grid-cols-3 gap-2 sm:gap-3">
+            <div className="mt-8 grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
               {[
                 { label: "Total", value: stats.total },
                 { label: "Visible", value: stats.visible },
                 { label: "Hidden", value: stats.hidden },
+                { label: "Sold", value: stats.sold },
               ].map((s) => (
                 <Card key={s.label} padding="sm" className="text-center sm:p-5">
                   <p className="font-display text-2xl text-espresso sm:text-3xl">{s.value}</p>
@@ -1759,6 +1780,9 @@ export function AdminDashboard({
                         {p.visible === false && (
                           <Badge variant="muted" size="sm">Hidden</Badge>
                         )}
+                        {p.sold && (
+                          <Badge variant="danger" size="sm">Sold</Badge>
+                        )}
                         {p.featured && (
                           <Badge variant="warning" size="sm">Featured</Badge>
                         )}
@@ -1858,6 +1882,20 @@ export function AdminDashboard({
                                   <circle cx="12" cy="12" r="3" />
                                 </svg>
                                 {p.visible === false ? "Show on rack" : "Hide from rack"}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setMenu(null);
+                                  toggleSold(p);
+                                }}
+                                className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-sm text-espresso transition-colors hover:bg-cream"
+                              >
+                                <svg viewBox="0 0 24 24" className="h-4 w-4 text-mocha" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M4 7h16M10 12h4" />
+                                  <path d="M6 7l1 12h10l1-12M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+                                </svg>
+                                {p.sold ? "Back on the rack" : "Mark as sold"}
                               </button>
                               <button
                                 type="button"
