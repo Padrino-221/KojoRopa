@@ -1,0 +1,22 @@
+# systemd unit for the KojoRopa Next.js standalone server.
+# Installed to /etc/systemd/system/kojoropa.service by deploy/setup-server.sh.
+
+[Unit]
+Description=KojoRopa storefront (Next.js standalone)
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=kojoropa
+Group=kojoropa
+WorkingDirectory=/opt/kojoropa/app/standalone
+EnvironmentFile=/opt/kojoropa/.env
+Environment=PORT=3000
+Environment=HOSTNAME=127.0.0.1
+ExecStart=/usr/bin/node server.js
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -11,10 +11,10 @@ interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
 const variantClasses: Record<BadgeVariant, string> = {
   default: "bg-surface text-mocha ring-1 ring-border",
   primary: "bg-clay text-white",
-  success: "bg-olive/15 text-olive",
-  warning: "bg-gold/15 text-gold",
-  danger: "bg-sale/15 text-sale",
-  muted: "bg-sand text-taupe",
+  success: "bg-espresso text-white",
+  warning: "bg-gold/10 text-gold ring-1 ring-gold/20",
+  danger: "bg-sale/10 text-sale ring-1 ring-sale/20",
+  muted: "bg-cream text-taupe",
 };
 
 const sizeClasses: Record<BadgeSize, string> = {

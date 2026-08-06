@@ -123,7 +123,7 @@ function CustomSelect({
           ref={listRef}
           id="listbox-options"
           role="listbox"
-          className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-xl bg-surface py-1 shadow-lg ring-1 ring-border/50 animate-fade-in"
+          className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-xl bg-surface py-1 ring-2 ring-border animate-fade-in"
         >
           {options.map((opt, i) => (
             <li

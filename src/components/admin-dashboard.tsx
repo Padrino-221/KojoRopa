@@ -23,6 +23,7 @@ import { updateOrderStatusAction, type OrderStatus } from "@/lib/actions/orders"
 import { ORDER_STATUSES } from "@/lib/order-status";
 import { logoutAction } from "@/lib/actions/auth";
 import { useSiteSetting } from "@/components/site-settings-provider";
+import { Brand } from "@/components/brand";
 import {
   getDbSettings,
   saveSettingsAction,
@@ -824,16 +825,18 @@ export function AdminDashboard({
       {/* header */}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold tracking-wide uppercase text-clay">
-            {useSiteSetting("siteName", "KojoRopa")} admin
-          </p>
+          <Brand
+            name={`${useSiteSetting("siteName", "KojoRopa")} admin`}
+            logoClassName="h-4 w-auto"
+            nameClassName="text-xs font-semibold tracking-wide uppercase"
+          />
           <h1 className="mt-2 font-display text-3xl tracking-tight text-espresso sm:text-4xl">
             {tab === "products" ? adminHeading : "Orders"}
           </h1>
           <p className="mt-1 text-sm text-mocha">
             {tab === "products"
               ? adminDescription
-              : `${orders.length} order${orders.length === 1 ? "" : "s"} placed so far.`}
+              : `${orders.length} order${orders.length === 1 ? "" : "s"} placed · ${orders.filter((o) => o.status === "pending").length} pending`}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -848,7 +851,10 @@ export function AdminDashboard({
               disabled={busy}
               size="sm"
             >
-              + Add item
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              Add item
             </Button>
           )}
         </div>
@@ -865,13 +871,23 @@ export function AdminDashboard({
               setTab(t);
               setSearch("");
             }}
-            className={`inline-flex items-center rounded-full px-5 py-2 text-sm font-medium transition-all ${
+            className={`inline-flex items-center rounded-full px-5 py-2 text-sm font-medium transition-all duration-200 active:scale-95 ${
               tab === t
-                ? "bg-espresso text-white shadow-sm"
+                ? "bg-espresso text-white"
                 : "text-mocha hover:text-espresso"
             }`}
           >
             {t === "products" ? "Products" : t === "orders" ? "Orders" : "Settings"}
+            {t === "products" && products.length > 0 && (
+              <span
+                className={`ml-1.5 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full px-1.5 text-[11px] font-semibold tabular-nums ${
+                  tab === t ? "bg-white/20 text-white" : "bg-sand text-espresso"
+                }`}
+                aria-label={`${products.length} products`}
+              >
+                {products.length}
+              </span>
+            )}
             {t === "orders" && orders.length > 0 && (
               <span
                 className={`ml-1.5 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full px-1.5 text-[11px] font-semibold tabular-nums ${
@@ -919,6 +935,8 @@ export function AdminDashboard({
         )}
       </div>
 
+      {/* tab content */}
+      <div key={tab} className="animate-fade-in">
       {tab === "products" && (
         <>
           {/* stats */}
@@ -962,7 +980,20 @@ export function AdminDashboard({
           {list.length === 0 ? (
             <div className="mt-10">
               <EmptyState
-                icon="🔍"
+                icon={
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="h-7 w-7 text-taupe"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                    aria-hidden
+                  >
+                    <circle cx="11" cy="11" r="7" />
+                    <path d="m20 20-3.5-3.5" />
+                  </svg>
+                }
                 title="The rack is empty"
                 description="Add your first piece and it will appear on the shop immediately."
                 action={
@@ -971,15 +1002,18 @@ export function AdminDashboard({
                     size="sm"
                     className="mt-2"
                   >
-                    + Add item
+                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                      <path d="M12 5v14M5 12h14" />
+                    </svg>
+                    Add item
                   </Button>
                 }
               />
             </div>
           ) : (
-            <ul className="mt-6 space-y-2 rounded-2xl bg-surface ring-1 ring-border/50">
+            <ul className="mt-6 space-y-2 overflow-hidden rounded-2xl bg-surface ring-1 ring-border/50">
               {list.map((p) => (
-                <li key={p.id} className="flex items-center gap-3 sm:gap-4 border-b border-border/50 p-3 sm:p-4 last:border-0">
+                <li key={p.id} className="flex items-center gap-3 sm:gap-4 border-b border-border/50 p-3 sm:p-4 transition-colors last:border-0 hover:bg-cream/40">
                   <div className="h-14 w-10 sm:h-16 sm:w-12 shrink-0 overflow-hidden rounded-xl bg-cream">
                     {p.image ? (
                       <img src={p.image} alt={p.name} className="h-full w-full object-cover" />
@@ -1078,7 +1112,21 @@ export function AdminDashboard({
           {orders.length === 0 ? (
             <div className="mt-10">
               <EmptyState
-                icon="📦"
+                icon={
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="h-7 w-7 text-taupe"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden
+                  >
+                    <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z" />
+                    <path d="M12 12l8-4.5M12 12L4 7.5M12 12v9" />
+                  </svg>
+                }
                 title="No orders yet"
                 description="Orders will appear here as customers check out."
               />
@@ -1122,7 +1170,7 @@ export function AdminDashboard({
                       </div>
 
                       {expandedOrders.has(order.id) && (
-                        <>
+                        <div className="animate-fade-in">
                           {/* items */}
                           <ul className="mt-3 divide-y divide-border/50 border-t border-border/50 pt-3">
                             {order.items.map((item) => (
@@ -1166,7 +1214,7 @@ export function AdminDashboard({
                               </Button>
                             ))}
                           </div>
-                        </>
+                        </div>
                       )}
                     </li>
                   ))}
@@ -1175,16 +1223,15 @@ export function AdminDashboard({
           </>
       )}
 
+      {tab === "settings" && <SettingsPanel />}
+      </div>
+
       {editor && (
         <ProductForm
           initial={editor.mode === "edit" ? editor.product : null}
           onSave={handleSave}
           onClose={() => setEditor(null)}
         />
-      )}
-
-      {tab === "settings" && (
-        <SettingsPanel />
       )}
     </div>
   );

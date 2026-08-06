@@ -32,7 +32,7 @@ function Modal({ open, onClose, children, className = "", ...props }: ModalProps
       />
       <div
         className={[
-          "relative z-10 flex max-h-[90vh] w-full max-w-4xl flex-col rounded-3xl bg-linen shadow-2xl",
+          "relative z-10 flex max-h-[90vh] w-full max-w-4xl flex-col rounded-3xl border border-border bg-linen",
           className,
         ].join(" ")}
         {...props}

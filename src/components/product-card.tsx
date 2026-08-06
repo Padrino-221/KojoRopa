@@ -19,7 +19,7 @@ export function ProductCard({ product }: { product: Product }) {
 
   return (
     <div className="group">
-      <div className="relative overflow-hidden rounded-2xl bg-surface shadow-sm ring-1 ring-border/50 transition-all hover:shadow-md hover:ring-clay/20">
+      <div className="relative overflow-hidden rounded-2xl bg-surface ring-1 ring-border/40 transition-all duration-300 ease-out group-hover:-translate-y-1 group-hover:ring-clay/25">
         <Link
           href={`/product/${product.slug}`}
           className="block focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-clay"
@@ -30,12 +30,12 @@ export function ProductCard({ product }: { product: Product }) {
               <img
                 src={product.image}
                 alt={product.name}
-                className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+                className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.05]"
               />
             ) : (
               <ShirtArt
                 art={product.art}
-                className="h-full w-full transition-transform duration-500 ease-out group-hover:scale-105"
+                className="h-full w-full transition-transform duration-700 ease-out group-hover:scale-[1.05]"
               />
             )}
           </div>
@@ -64,7 +64,7 @@ export function ProductCard({ product }: { product: Product }) {
             type="button"
             aria-label={`Add ${product.name} to bag`}
             onClick={handleQuickAdd}
-            className={`flex h-10 w-10 items-center justify-center rounded-full shadow-md transition-all ${
+            className={`flex h-10 w-10 items-center justify-center rounded-full transition-all duration-200 ${
               added
                 ? "bg-olive text-white"
                 : "bg-white/95 text-clay backdrop-blur hover:bg-clay hover:text-white"
@@ -87,7 +87,7 @@ export function ProductCard({ product }: { product: Product }) {
           className="absolute right-3 bottom-3 hidden translate-y-0 opacity-100 transition-all duration-300 md:translate-y-12 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="flex items-center gap-1 rounded-full bg-white/95 p-1 shadow-md backdrop-blur">
+          <div className="flex items-center gap-1 rounded-full bg-white/95 p-1 ring-1 ring-border/40 backdrop-blur">
             <div className="flex items-center gap-0.5 px-1">
               {product.sizes.map((size) => (
                 <button

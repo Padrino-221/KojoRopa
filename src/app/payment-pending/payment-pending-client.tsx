@@ -109,7 +109,7 @@ export function PaymentPendingClient({
   if (paid) {
     return (
       <div className="mx-auto flex max-w-lg flex-col items-center gap-4 px-4 py-24 text-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-olive/10 text-3xl">
+        <div className="flex h-16 w-16 animate-pop items-center justify-center rounded-full bg-clay/10 text-3xl text-clay">
           ✓
         </div>
         <h1 className="font-display text-2xl text-espresso sm:text-3xl">
@@ -124,10 +124,21 @@ export function PaymentPendingClient({
 
   return (
     <div className="mx-auto max-w-lg px-4 py-12 sm:py-20">
-      <Card padding="lg" className="shadow-lg">
+      <Card padding="lg">
         <div className="text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-sand text-3xl">
-            📱
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-sand">
+            <svg
+              viewBox="0 0 24 24"
+              className="h-7 w-7 text-taupe"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <rect x="7" y="2.5" width="10" height="19" rx="2.5" />
+              <path d="M11 18.5h2" />
+            </svg>
           </div>
           <h1 className="mt-4 font-display text-2xl text-espresso">
             Complete Payment
@@ -158,7 +169,7 @@ export function PaymentPendingClient({
         </div>
 
         {success && !error && (
-          <p className="mt-4 text-center text-xs font-medium text-olive">
+          <p className="mt-4 text-center text-xs font-medium text-clay">
             {success}
           </p>
         )}

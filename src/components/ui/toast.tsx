@@ -62,8 +62,8 @@ const icons: Record<ToastType, string> = {
 };
 
 const typeClasses: Record<ToastType, string> = {
-  success: "bg-olive/15 text-olive border-olive/20",
-  error: "bg-sale/15 text-sale border-sale/20",
+  success: "bg-espresso/10 text-espresso border-espresso/15",
+  error: "bg-sale/10 text-sale border-sale/20",
   info: "bg-clay/10 text-clay border-clay/20",
 };
 
@@ -77,7 +77,7 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }
     <div
       className={[
         "pointer-events-auto flex items-center gap-3 rounded-2xl border px-5 py-3",
-        "shadow-lg shadow-espresso/5 backdrop-blur-sm",
+        "backdrop-blur-sm",
         "animate-fade-up",
         typeClasses[toast.type],
       ].join(" ")}

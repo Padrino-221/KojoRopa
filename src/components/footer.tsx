@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Brand } from "@/components/brand";
 import { getAllSettings } from "@/lib/actions/settings";
 
 const CONTACT_EMAIL =
@@ -10,24 +11,35 @@ export async function Footer() {
   const s = await getAllSettings();
   return (
     <footer className="border-t border-border bg-surface pb-24 lg:pb-0">
-      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        <div className="flex flex-col items-start justify-between gap-8 sm:flex-row">
-          {/* brand */}
-          <div className="max-w-xs">
-            <p className="font-display text-xl tracking-tight text-espresso">
-              {s.siteName || "KojoRopa"}
-            </p>
-            <p className="mt-2 text-sm leading-relaxed text-mocha">
+      <div className="mx-auto max-w-7xl px-4 pt-14 pb-10 sm:px-6 lg:px-8">
+        {/* brand lockup */}
+        <div className="flex flex-col items-start justify-between gap-6 lg:flex-row lg:items-end">
+          <div className="max-w-md">
+            <Brand
+              href="/"
+              name={s.siteName || "KojoRopa"}
+              logoClassName="h-8 w-auto sm:h-10"
+              nameClassName="font-display text-3xl tracking-tight sm:text-4xl"
+            />
+            <p className="mt-4 text-sm leading-relaxed text-mocha">
               {s.footerDescription || "Secondhand shirts, one of one. Picked at Kantamanto Market, Accra — washed, checked and priced to move."}
             </p>
           </div>
+          <p className="text-[11px] font-semibold tracking-[0.2em] text-taupe uppercase">
+            {s.footerTagline || "Made in Accra"}
+          </p>
+        </div>
 
-          {/* links */}
-          <div className="flex gap-12 text-sm text-mocha">
-            <ul className="space-y-2">
+        {/* columns */}
+        <div className="mt-12 grid gap-10 sm:grid-cols-3">
+          <div>
+            <p className="text-[11px] font-semibold tracking-[0.18em] text-taupe uppercase">
+              Shop
+            </p>
+            <ul className="mt-4 space-y-3 text-sm text-mocha">
               <li>
                 <Link href="/#shop" className="transition-colors hover:text-clay">
-                  Shop
+                  The rack
                 </Link>
               </li>
               <li>
@@ -36,8 +48,12 @@ export async function Footer() {
                 </Link>
               </li>
             </ul>
-            <ul className="space-y-2">
-              <li>{s.footerAddress || "Kantamanto Market, Accra"}</li>
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold tracking-[0.18em] text-taupe uppercase">
+              Contact
+            </p>
+            <ul className="mt-4 space-y-3 text-sm text-mocha">
               <li>
                 <a
                   href={`mailto:${CONTACT_EMAIL}`}
@@ -46,12 +62,32 @@ export async function Footer() {
                   {CONTACT_EMAIL}
                 </a>
               </li>
-              <li>{INSTAGRAM}</li>
+              <li>
+                <a
+                  href={`https://instagram.com/${INSTAGRAM.replace("@", "")}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="transition-colors hover:text-clay"
+                >
+                  {INSTAGRAM}
+                </a>
+              </li>
+            </ul>
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold tracking-[0.18em] text-taupe uppercase">
+              Visit
+            </p>
+            <ul className="mt-4 space-y-3 text-sm text-mocha">
+              <li>{s.footerAddress || "Kantamanto Market, Accra"}</li>
+              <li className="text-taupe">
+                New finds every week — one of one, no restocks.
+              </li>
             </ul>
           </div>
         </div>
 
-        <div className="mt-8 flex flex-col items-center justify-between gap-2 border-t border-border pt-6 text-xs text-taupe sm:flex-row">
+        <div className="mt-12 flex flex-col items-center justify-between gap-2 border-t border-border pt-6 text-xs text-taupe sm:flex-row">
           <p>
             {(s.footerCopyright || "© {year} KojoRopa").replace("{year}", String(new Date().getFullYear()))}
           </p>

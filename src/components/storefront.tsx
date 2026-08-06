@@ -6,6 +6,7 @@ import { CATEGORIES, SIZES } from "@/lib/products";
 import type { Product } from "@/lib/products";
 import { useSiteSetting } from "@/components/site-settings-provider";
 import { CustomSelect } from "@/components/ui/custom-select";
+import { Reveal } from "@/components/ui/reveal";
 
 export interface StorefrontInitial {
   q: string;
@@ -125,13 +126,19 @@ export function Storefront({
       {/* heading */}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h2 className="font-display text-3xl tracking-tight text-espresso sm:text-4xl">
+          <p className="flex items-center gap-3 text-[11px] font-semibold tracking-[0.22em] text-clay uppercase">
+            <span aria-hidden className="h-px w-8 bg-clay/60" />
+            The rack
+          </p>
+          <h2 className="mt-3 font-display text-4xl tracking-tight text-balance text-espresso sm:text-5xl">
             {storeHeading}
           </h2>
         </div>
-        <p className="text-sm text-mocha">
-          {result.length} {result.length === 1 ? "piece" : "pieces"} · each one
-          one of one
+        <p className="flex items-center gap-2 text-sm text-mocha">
+          <span className="rounded-full bg-cream px-3 py-1 text-xs font-medium tabular-nums text-espresso ring-1 ring-border">
+            {result.length}
+          </span>
+          {result.length === 1 ? "piece" : "pieces"} · each one one of one
         </p>
       </div>
 
@@ -144,10 +151,10 @@ export function Storefront({
               type="button"
               onClick={() => setCategory(c.value)}
               aria-pressed={category === c.value}
-              className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 text-[13px] font-medium transition-all ${
+              className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 text-[13px] font-medium transition-all duration-200 active:scale-95 ${
                 category === c.value
-                  ? "bg-clay text-white shadow-sm shadow-clay/20"
-                  : "bg-surface text-mocha ring-1 ring-border hover:ring-clay/30 hover:text-clay"
+                  ? "bg-clay text-white"
+                  : "bg-surface text-mocha ring-1 ring-border hover:bg-cream hover:ring-clay/40 hover:text-clay"
               }`}
             >
               {categoryIcons[c.value] || categoryIcons.all}
@@ -214,26 +221,28 @@ export function Storefront({
       {result.length > 0 ? (
         <div className="mt-8 grid grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-6 lg:grid-cols-3 xl:grid-cols-4">
           {result.map((product: Product, i) => (
-            <div
-              key={product.id}
-              className="animate-fade-up"
-              style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}
-            >
+            <Reveal key={product.id} delay={Math.min(i, 7) * 60}>
               <ProductCard product={product} />
-            </div>
+            </Reveal>
           ))}
         </div>
       ) : (
-        <div className="mt-12 flex flex-col items-center gap-3 rounded-2xl border border-dashed border-sand-deep bg-cream/50 px-6 py-16 text-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-sand text-2xl">
-            🔍
+        <div className="mt-12 flex animate-scale-in flex-col items-center gap-4 rounded-[1.5rem] border border-dashed border-sand-deep bg-cream/40 px-6 py-16 text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-surface ring-1 ring-border">
+            <svg
+              viewBox="0 0 24 24"
+              className="h-7 w-7 text-taupe"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+            >
+              <circle cx="11" cy="11" r="7" />
+              <path d="m20 20-3.5-3.5" />
+            </svg>
           </div>
-          <p className="font-display text-2xl text-espresso">
-            {emptyHeading}
-          </p>
-          <p className="max-w-sm text-sm text-mocha">
-            {emptyBody}
-          </p>
+          <p className="font-display text-2xl text-espresso">{emptyHeading}</p>
+          <p className="max-w-sm text-sm text-mocha">{emptyBody}</p>
           <button
             type="button"
             onClick={clearAll}

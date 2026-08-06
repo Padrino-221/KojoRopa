@@ -1,25 +1,26 @@
 @import "tailwindcss";
 
 @theme {
-  /* ——— Off-white, black, red palette ——— */
-  --color-linen: #f5f3f0;
-  --color-cream: #ebe8e3;
-  --color-sand: #d9d5ce;
-  --color-sand-deep: #c4bfbb;
+  /* ——— White, black, red palette ——— */
+  --color-linen: #ffffff;
+  --color-cream: #f5f5f5;
+  --color-sand: #e5e5e5;
+  --color-sand-deep: #d4d4d4;
   --color-espresso: #111111;
-  --color-mocha: #555555;
-  --color-taupe: #999999;
+  --color-mocha: #525252;
+  --color-taupe: #8a8a8a;
   --color-clay: #c8102e;
   --color-clay-deep: #a80d24;
-  --color-sage: #555555;
-  --color-olive: #16a34a;
+  --color-sage: #111111;
+  /* Success states use brand black — no green in the palette */
+  --color-olive: #111111;
   --color-gold: #c8102e;
   --color-sale: #c8102e;
   --color-teal: #c8102e;
   --color-teal-light: #fef2f2;
   --color-teal-dark: #a80d24;
   --color-surface: #ffffff;
-  --color-surface-hover: #f9f9f9;
+  --color-surface-hover: #f5f5f5;
   --color-border: #e5e5e5;
   --color-border-light: #f0f0f0;
 
@@ -29,15 +30,17 @@
     "Segoe UI", sans-serif;
 
   /* ——— Motion ——— */
-  --animate-fade-up: fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
-  --animate-slide-in: slide-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
-  --animate-fade-in: fade-in 0.25s ease-out both;
-  --animate-pop: pop 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-fade-up: fade-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-slide-in: slide-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-fade-in: fade-in 0.3s ease-out both;
+  --animate-pop: pop 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-scale-in: scale-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-marquee: marquee 34s linear infinite;
 
   @keyframes fade-up {
     from {
       opacity: 0;
-      transform: translateY(12px);
+      transform: translateY(14px);
     }
     to {
       opacity: 1;
@@ -63,21 +66,94 @@
   @keyframes pop {
     from {
       opacity: 0;
-      transform: scale(0.96);
+      transform: scale(0.94);
     }
     to {
       opacity: 1;
       transform: scale(1);
     }
   }
+  @keyframes scale-in {
+    from {
+      opacity: 0;
+      transform: scale(0.96) translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
 }
 
 html {
-  scroll-padding-top: 72px;
+  scroll-behavior: smooth;
+  scroll-padding-top: 88px;
 }
 
 body {
   @apply bg-linen font-sans text-espresso antialiased;
+}
+
+/* ——— Scroll reveal ——— */
+/* Without JS (html.no-js) everything stays visible. */
+html.no-js .reveal {
+  opacity: 1;
+  transform: none;
+  transition: none;
+}
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* ——— Marquee edge fade ——— */
+.marquee-mask {
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 12%,
+    black 88%,
+    transparent
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 12%,
+    black 88%,
+    transparent
+  );
+}
+
+/* ——— Reduced motion ——— */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .thin-scroll {

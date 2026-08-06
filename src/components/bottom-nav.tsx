@@ -40,7 +40,7 @@ export function BottomNav() {
             <path d="M9 7V6a3 3 0 0 1 6 0v1" />
           </svg>
           {isHydrated && count > 0 && (
-            <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-clay px-1 text-[9px] font-semibold text-white">
+            <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 animate-pop items-center justify-center rounded-full bg-clay px-1 text-[9px] font-semibold text-white">
               {count}
             </span>
           )}
@@ -52,7 +52,7 @@ export function BottomNav() {
 
   return (
     <nav className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 lg:hidden">
-      <div className="flex items-center gap-1 rounded-full border border-border bg-surface px-2 py-1.5 shadow-lg shadow-espresso/5">
+      <div className="flex items-center gap-1 rounded-full border border-border bg-surface/95 px-2 py-1.5 backdrop-blur">
         {navItems.map((item) => {
           const isActive = item.href === "/" && pathname === "/";
           const isCart = item.label === "Cart";
@@ -63,7 +63,7 @@ export function BottomNav() {
                 key={item.label}
                 type="button"
                 onClick={item.onClick}
-                className="flex h-11 w-11 items-center justify-center rounded-full text-mocha transition-colors hover:bg-cream hover:text-clay"
+                className="flex h-11 w-11 items-center justify-center rounded-full text-mocha transition-all hover:bg-cream hover:text-clay active:scale-90"
               >
                 {item.icon}
               </button>
@@ -74,7 +74,7 @@ export function BottomNav() {
             <Link
               key={item.label}
               href={item.href}
-              className={`flex h-11 w-11 items-center justify-center rounded-full transition-colors ${
+              className={`flex h-11 w-11 items-center justify-center rounded-full transition-all active:scale-90 ${
                 isActive
                   ? "bg-clay text-white"
                   : "text-mocha hover:bg-cream hover:text-clay"

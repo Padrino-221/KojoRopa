@@ -1,17 +1,32 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { useCart } from "@/components/cart-provider";
 import { useSiteSetting } from "@/components/site-settings-provider";
+import { Brand } from "@/components/brand";
 
 export function Navbar() {
   const { count, isHydrated, openCart } = useCart();
   const siteName = useSiteSetting("siteName", "KojoRopa");
+  const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-surface/95 backdrop-blur-md">
+    <header
+      className={`sticky top-0 z-40 border-b backdrop-blur-xl transition-colors duration-300 ${
+        scrolled ? "border-border bg-surface/95" : "border-transparent bg-surface/80"
+      }`}
+    >
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
         {/* mobile menu toggle */}
         <button
@@ -37,26 +52,43 @@ export function Navbar() {
         </button>
 
         {/* logo — centered on mobile, left-aligned on desktop */}
-        <Link
+        <Brand
           href="/"
-          className="flex-1 text-center font-display text-[22px] leading-none tracking-tight text-espresso transition-opacity hover:opacity-70 md:flex-none md:text-left"
-        >
-          {siteName}
-        </Link>
+          name={siteName}
+          className="flex-1 justify-center md:flex-none md:justify-start"
+        />
 
         {/* desktop nav */}
         <nav className="ml-auto hidden items-center gap-1 md:flex">
           <Link
             href="/#shop"
-            className="rounded-full px-4 py-2 text-[13px] font-medium text-mocha transition-colors hover:bg-cream hover:text-espresso"
+            className={`relative rounded-full px-4 py-2 text-[13px] font-medium transition-colors ${
+              pathname === "/" ? "text-espresso" : "text-mocha hover:text-espresso"
+            }`}
           >
             Shop
+            {pathname === "/" && (
+              <span
+                aria-hidden
+                className="absolute bottom-0.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-clay"
+              />
+            )}
           </Link>
           <Link
             href="/about"
-            className="rounded-full px-4 py-2 text-[13px] font-medium text-mocha transition-colors hover:bg-cream hover:text-espresso"
+            className={`relative rounded-full px-4 py-2 text-[13px] font-medium transition-colors ${
+              pathname.startsWith("/about")
+                ? "text-espresso"
+                : "text-mocha hover:text-espresso"
+            }`}
           >
             About
+            {pathname.startsWith("/about") && (
+              <span
+                aria-hidden
+                className="absolute bottom-0.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-clay"
+              />
+            )}
           </Link>
         </nav>
 

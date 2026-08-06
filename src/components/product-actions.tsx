@@ -53,12 +53,12 @@ export function ProductActions({ product }: { product: Product }) {
           onClick={handleAdd}
           disabled={!size}
           className={`relative flex h-12 w-full overflow-hidden px-4 sm:px-6 text-xs sm:text-sm tracking-wide ${
-            justAdded ? "bg-olive hover:bg-olive" : ""
+            justAdded ? "bg-espresso hover:bg-espresso" : ""
           }`}
         >
           {justAdded ? (
             <span className="flex animate-pop items-center gap-2">
-              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <svg viewBox="0 0 24 24" className="h-4 w-4 text-clay" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M5 13l4 4L19 7" />
               </svg>
               Added to bag

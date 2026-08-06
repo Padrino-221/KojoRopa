@@ -50,8 +50,18 @@ export default async function RootLayout(props: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${fraunces.variable} ${inter.variable} h-full antialiased`}
+      suppressHydrationWarning
+      className={`no-js ${fraunces.variable} ${inter.variable} h-full antialiased`}
     >
+      <head>
+        {/* Marks JS as available so scroll-reveals can hide content; without
+            JS everything stays visible. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: "document.documentElement.classList.remove('no-js');",
+          }}
+        />
+      </head>
       <body className="flex min-h-full flex-col bg-linen">
         <SiteSettingsProvider settings={settings}>
           <ToastProvider>

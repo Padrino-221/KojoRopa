@@ -222,7 +222,7 @@ function DateRangePicker({
       </button>
 
       {open && (
-        <div className="absolute right-0 z-50 mt-1 w-72 rounded-xl bg-surface p-4 shadow-lg ring-1 ring-border/50 animate-fade-in">
+        <div className="absolute right-0 z-50 mt-1 w-72 rounded-xl bg-surface p-4 ring-2 ring-border animate-fade-in">
           {/* selection indicator */}
           <div className="mb-3 flex items-center gap-2 text-xs">
             <span className={`rounded-md px-2 py-1 ${selecting === "from" ? "bg-clay/10 font-medium text-clay" : "text-taupe"}`}>

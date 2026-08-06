@@ -84,7 +84,20 @@ export default function CheckoutPage() {
     return (
       <div className="mx-auto flex max-w-lg flex-col items-center gap-4 px-4 py-24 text-center">
         <EmptyState
-          icon="🛍️"
+          icon={
+            <svg
+              viewBox="0 0 24 24"
+              className="h-7 w-7 text-taupe"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M6 7h12l1 13H5L6 7Z" />
+              <path d="M9 7V6a3 3 0 0 1 6 0v1" />
+            </svg>
+          }
           title="Your bag is empty"
           description="Add a piece or two from the rack before checking out."
           action={
@@ -256,7 +269,7 @@ export default function CheckoutPage() {
         </div>
 
         {/* summary */}
-        <Card padding="lg" className="shadow-lg lg:sticky lg:top-24">
+        <Card padding="lg" className="lg:sticky lg:top-24">
           <h2 className="font-display text-xl text-espresso">Order summary</h2>
           <ul className="mt-5 max-h-72 space-y-4 overflow-y-auto thin-scroll pr-1">
             {items.map((line) => (
@@ -319,13 +332,13 @@ export default function CheckoutPage() {
 
           <ul className="mt-5 space-y-2 text-xs text-mocha">
             <li className="flex items-center gap-2">
-              <span className="text-olive">✓</span> Free returns within 14 days
+              <span className="text-clay">✓</span> Free returns within 14 days
             </li>
             <li className="flex items-center gap-2">
-              <span className="text-olive">✓</span> Each piece is one of one
+              <span className="text-clay">✓</span> Each piece is one of one
             </li>
             <li className="flex items-center gap-2">
-              <span className="text-olive">✓</span> Ships from Accra in 1–3 days
+              <span className="text-clay">✓</span> Ships from Accra in 1–3 days
             </li>
           </ul>
         </Card>

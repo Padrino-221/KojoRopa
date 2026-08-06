@@ -41,14 +41,14 @@ export function CartDrawer() {
       <aside
         ref={panelRef}
         tabIndex={-1}
-        className="absolute right-0 top-0 flex h-full w-full max-w-md animate-slide-in flex-col bg-linen shadow-2xl focus:outline-none"
+        className="absolute right-0 top-0 flex h-full w-full max-w-md animate-slide-in flex-col border-l border-border bg-linen focus:outline-none"
       >
         {/* header */}
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
-          <h2 className="font-display text-xl tracking-tight text-espresso">
-            Your bag{" "}
-            <span className="text-sm font-sans text-mocha">
-              ({items.reduce((n, l) => n + l.qty, 0)})
+          <h2 className="flex items-center gap-2.5 font-display text-xl tracking-tight text-espresso">
+            Your bag
+            <span className="rounded-full bg-cream px-2.5 py-0.5 text-xs font-medium tabular-nums text-mocha ring-1 ring-border">
+              {items.reduce((n, l) => n + l.qty, 0)}
             </span>
           </h2>
           <Button
@@ -66,8 +66,19 @@ export function CartDrawer() {
         {/* lines */}
         {items.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-4 px-8 text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-cream text-2xl">
-              🧺
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-surface ring-1 ring-border">
+              <svg
+                viewBox="0 0 24 24"
+                className="h-7 w-7 text-taupe"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M6 7h12l1 13H5L6 7Z" />
+                <path d="M9 7V6a3 3 0 0 1 6 0v1" />
+              </svg>
             </div>
             <p className="font-display text-xl text-espresso">{cartEmptyHeading}</p>
             <p className="text-sm text-mocha">
@@ -85,7 +96,7 @@ export function CartDrawer() {
           <div className="thin-scroll flex-1 overflow-y-auto px-6 py-4">
             <ul className="space-y-4">
               {items.map((line) => (
-                <li key={`${line.productId}-${line.size}`} className="flex gap-4 rounded-2xl bg-surface p-3 ring-1 ring-border/50">
+                <li key={`${line.productId}-${line.size}`} className="flex gap-4 rounded-2xl bg-surface p-3 ring-1 ring-border/40 transition-colors hover:ring-clay/20">
                   <Link
                     href={`/product/${line.slug}`}
                     onClick={closeCart}
@@ -152,9 +163,20 @@ export function CartDrawer() {
             <Link
               href="/checkout"
               onClick={closeCart}
-              className="mt-4 flex w-full items-center justify-center rounded-full bg-clay py-3.5 text-sm font-medium tracking-wide text-white transition-colors hover:bg-clay-deep"
+              className="group mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-clay py-3.5 text-sm font-medium tracking-wide text-white transition-colors hover:bg-clay-deep"
             >
               Checkout · {formatPrice(subtotal)}
+              <svg
+                viewBox="0 0 24 24"
+                className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M5 12h14M13 6l6 6-6 6" />
+              </svg>
             </Link>
             <Button
               variant="ghost"

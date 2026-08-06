@@ -8,6 +8,7 @@ import { ProductCard } from "@/components/product-card";
 import { formatPrice, formatSavings } from "@/lib/format";
 import type { Product } from "@/lib/products";
 import { useSiteSetting } from "@/components/site-settings-provider";
+import { Reveal } from "@/components/ui/reveal";
 
 function ProductGallery({
   product,
@@ -24,15 +25,16 @@ function ProductGallery({
 
   return (
     <div className="animate-fade-up">
-      <div className="relative overflow-hidden rounded-3xl bg-surface shadow-lg ring-1 ring-border/50">
+      <div className="relative overflow-hidden rounded-3xl bg-surface ring-1 ring-border/40">
         <div className="aspect-square">
           {current ? (
             <img
+              key={active}
               src={current}
               alt={`${product.name} photo ${active + 1}${
                 images.length > 1 ? ` of ${images.length}` : ""
               }`}
-              className="h-full w-full object-cover"
+              className="h-full w-full animate-fade-in object-cover"
             />
           ) : (
             <ShirtArt art={product.art} className="h-full w-full" />
@@ -45,7 +47,7 @@ function ProductGallery({
               type="button"
               onClick={prev}
               aria-label="Previous photo"
-              className="absolute top-1/2 left-3 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-espresso shadow-md backdrop-blur transition-colors hover:bg-white hover:text-clay"
+              className="absolute top-1/2 left-3 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-espresso ring-1 ring-border backdrop-blur transition-colors hover:bg-white hover:text-clay"
             >
               <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M15 18l-6-6 6-6" />
@@ -55,7 +57,7 @@ function ProductGallery({
               type="button"
               onClick={next}
               aria-label="Next photo"
-              className="absolute top-1/2 right-3 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-espresso shadow-md backdrop-blur transition-colors hover:bg-white hover:text-clay"
+              className="absolute top-1/2 right-3 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-espresso ring-1 ring-border backdrop-blur transition-colors hover:bg-white hover:text-clay"
             >
               <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 6l6 6-6 6" />
@@ -226,8 +228,10 @@ export function ProductDetail({
           </Link>
         </div>
         <div className="mt-6 grid grid-cols-2 gap-x-4 gap-y-8 lg:grid-cols-4">
-          {related.map((p) => (
-            <ProductCard key={p.id} product={p} />
+          {related.map((p, i) => (
+            <Reveal key={p.id} delay={Math.min(i, 7) * 60}>
+              <ProductCard product={p} />
+            </Reveal>
           ))}
         </div>
       </section>

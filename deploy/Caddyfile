@@ -1,0 +1,11 @@
+# Caddy reverse proxy for KojoRopa. Installed to /etc/caddy/Caddyfile.
+#
+# With a domain (HTTPS via Let's Encrypt, automatic):
+#   store.example.com {
+#       reverse_proxy 127.0.0.1:3000
+#   }
+#
+# Without a domain (plain HTTP on port 80, until DNS + TLS are added):
+#   :80 {
+#       reverse_proxy 127.0.0.1:3000
+#   }
