@@ -41,7 +41,7 @@ export interface EmailOrder {
   email: string;
   phone?: string | null;
   subtotal: number;
-  shipping: number;
+  deliveryFee: number;
   total: number;
   street: string;
   city: string;
@@ -130,10 +130,10 @@ function orderItemsHtml(order: EmailOrder): string {
         <td align="right" style="padding:10px 0;font-size:13px;color:#525252;">${formatPrice(order.subtotal)}</td>
       </tr>
       ${
-        order.shipping > 0
+        order.deliveryFee > 0
           ? `<tr>
-        <td style="padding:6px 0;font-size:13px;color:#525252;">Shipping</td>
-        <td align="right" style="padding:6px 0;font-size:13px;color:#525252;">${formatPrice(order.shipping)}</td>
+        <td style="padding:6px 0;font-size:13px;color:#525252;">Delivery fee</td>
+        <td align="right" style="padding:6px 0;font-size:13px;color:#525252;">${formatPrice(order.deliveryFee)}</td>
       </tr>`
           : ""
       }

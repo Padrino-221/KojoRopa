@@ -114,9 +114,9 @@ export const CART_EMPTY_BODY = env(
   "NEXT_PUBLIC_CART_EMPTY_BODY",
   "Every piece is one of one — when it’s gone, it’s gone."
 );
-export const FREE_SHIPPING_TEXT = env(
-  "NEXT_PUBLIC_FREE_SHIPPING_TEXT",
-  "You’ve unlocked free shipping"
+export const FREE_DELIVERY_TEXT = env(
+  "NEXT_PUBLIC_FREE_DELIVERY_TEXT",
+  "You’ve unlocked free delivery"
 );
 
 /* ——— receipt / order confirmation ——— */
@@ -218,13 +218,13 @@ export const ADMIN_DESCRIPTION = env(
 export const MAX_PRODUCT_IMAGES = envInt("NEXT_PUBLIC_MAX_PRODUCT_IMAGES", 8);
 export const MAX_QTY = envInt("NEXT_PUBLIC_MAX_QTY", 99);
 
-/* ——— shipping ——— */
+/* ——— delivery ——— */
 
-export const FREE_SHIPPING_THRESHOLD = envInt(
-  "NEXT_PUBLIC_FREE_SHIPPING_THRESHOLD",
+export const FREE_DELIVERY_THRESHOLD = envInt(
+  "NEXT_PUBLIC_FREE_DELIVERY_THRESHOLD",
   300
 );
-export const SHIPPING_FEE = envInt("NEXT_PUBLIC_SHIPPING_FEE", 30);
+export const DELIVERY_FEE = envInt("NEXT_PUBLIC_DELIVERY_FEE", 30);
 
 /* ——— checkout ——— */
 

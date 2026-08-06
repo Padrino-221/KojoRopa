@@ -68,7 +68,7 @@ interface AdminOrder {
   name: string;
   phone: string | null;
   subtotal: number;
-  shipping: number;
+  deliveryFee: number;
   total: number;
   street: string;
   city: string;
@@ -971,10 +971,10 @@ function OrderDrawer({
             </ul>
           </section>
 
-          {/* shipping */}
+          {/* delivery */}
           <section>
             <p className="text-[11px] font-semibold tracking-[0.18em] text-taupe uppercase">
-              Shipping to
+              Delivery to
             </p>
             <p className="mt-2 rounded-xl bg-cream p-3 text-sm leading-relaxed text-mocha">
               {order.street}, {order.city}
@@ -990,7 +990,7 @@ function OrderDrawer({
             </div>
             <div className="flex justify-between text-mocha">
               <dt>Delivery</dt>
-              <dd className="tabular-nums">{formatPrice(order.shipping)}</dd>
+              <dd className="tabular-nums">{formatPrice(order.deliveryFee)}</dd>
             </div>
             <div className="flex justify-between border-t border-border pt-3 text-base font-semibold text-espresso">
               <dt>Total</dt>

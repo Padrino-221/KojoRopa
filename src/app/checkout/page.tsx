@@ -15,7 +15,7 @@ import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 
 export default function CheckoutPage() {
-  const { items, subtotal, shipping, clearCart, isHydrated } = useCart();
+  const { items, subtotal, deliveryFee, clearCart, isHydrated } = useCart();
   const router = useRouter();
   const [placing, setPlacing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +32,7 @@ export default function CheckoutPage() {
   const set = (key: keyof typeof form) => (e: { target: { value: string } }) =>
     setForm((f) => ({ ...f, [key]: e.target.value }));
 
-  const total = subtotal + shipping;
+  const total = subtotal + deliveryFee;
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -185,13 +185,13 @@ export default function CheckoutPage() {
             </div>
           </section>
 
-          {/* shipping */}
+          {/* delivery */}
           <section>
             <h2 className="flex items-center gap-3 font-display text-xl text-espresso">
               <span className="flex h-7 w-7 items-center justify-center rounded-full bg-clay text-xs font-semibold text-white">
                 2
               </span>
-              Shipping
+              Delivery
             </h2>
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <div>
@@ -301,10 +301,10 @@ export default function CheckoutPage() {
               <dt>Subtotal</dt>
               <dd className="tabular-nums">{formatPrice(subtotal)}</dd>
             </div>
-            {shipping > 0 && (
+            {deliveryFee > 0 && (
               <div className="flex justify-between text-mocha">
                 <dt>Delivery charge</dt>
-                <dd className="tabular-nums">{formatPrice(shipping)}</dd>
+                <dd className="tabular-nums">{formatPrice(deliveryFee)}</dd>
               </div>
             )}
             <div className="flex justify-between border-t border-border pt-3 text-base font-semibold text-espresso">

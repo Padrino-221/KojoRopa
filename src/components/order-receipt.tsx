@@ -9,7 +9,7 @@ export interface ReceiptOrder {
   email: string;
   name: string;
   subtotal: number;
-  shipping: number;
+  deliveryFee: number;
   total: number;
   street: string;
   city: string;
@@ -84,10 +84,10 @@ export async function OrderReceipt({ order }: { order: ReceiptOrder }) {
             <dt>Subtotal</dt>
             <dd className="tabular-nums">{formatPrice(order.subtotal)}</dd>
           </div>
-          {order.shipping > 0 && (
+          {order.deliveryFee > 0 && (
             <div className="flex justify-between text-mocha">
-              <dt>Shipping</dt>
-              <dd className="tabular-nums">{formatPrice(order.shipping)}</dd>
+              <dt>Delivery fee</dt>
+              <dd className="tabular-nums">{formatPrice(order.deliveryFee)}</dd>
             </div>
           )}
           <div className="flex justify-between border-t border-border pt-3 text-base font-semibold text-espresso">
@@ -99,7 +99,7 @@ export async function OrderReceipt({ order }: { order: ReceiptOrder }) {
         </dl>
 
         <div className="mt-4 rounded-xl bg-cream p-3 text-sm text-mocha sm:mt-5 sm:p-4">
-          <p className="font-medium text-espresso">Shipping to</p>
+          <p className="font-medium text-espresso">Delivery to</p>
           <p className="mt-1">
             {order.name}
             <br />

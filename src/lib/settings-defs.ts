@@ -54,9 +54,9 @@ export const SETTING_SECTIONS = [
     settings: [
       { key: "cartEmptyHeading", label: "Cart — empty heading", default: "Your bag is empty" },
       { key: "cartEmptyBody", label: "Cart — empty body", default: "Every piece is one of one — when it's gone, it's gone." },
-      { key: "freeShippingText", label: "Cart — free shipping unlocked text", default: "You've unlocked free shipping" },
-      { key: "freeShippingThreshold", label: "Shipping — free shipping threshold", default: "300", type: "number" },
-      { key: "shippingFee", label: "Shipping — fee", default: "30", type: "number" },
+      { key: "freeDeliveryText", label: "Cart — free delivery unlocked text", default: "You've unlocked free delivery" },
+      { key: "freeDeliveryThreshold", label: "Delivery — free delivery threshold", default: "300", type: "number" },
+      { key: "deliveryFee", label: "Delivery — fee", default: "30", type: "number" },
       { key: "receiptGreetingSuffix", label: "Confirmation — greeting suffix", default: "your pieces are being wrapped in tissue as we speak." },
       { key: "receiptCta", label: "Confirmation — CTA button text", default: "Keep browsing the rack" },
       { key: "receiptFooter", label: "Confirmation — footer text", default: "Thank you for shopping with Kojosropa." },

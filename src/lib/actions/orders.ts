@@ -26,7 +26,7 @@ type OrderWithItems = {
   email: string;
   phone: string | null;
   subtotal: number;
-  shipping: number;
+  deliveryFee: number;
   total: number;
   street: string;
   city: string;
@@ -44,7 +44,7 @@ function toEmailOrder(order: OrderWithItems): EmailOrder {
     email: order.email,
     phone: order.phone,
     subtotal: order.subtotal,
-    shipping: order.shipping,
+    deliveryFee: order.deliveryFee,
     total: order.total,
     street: order.street,
     city: order.city,
@@ -123,9 +123,9 @@ export async function createOrderAction(
     subtotal += product.price * line.qty;
   }
 
-  const shippingSetting = await prisma.siteSetting.findUnique({ where: { key: "shippingFee" } });
-  const shipping = parseInt(shippingSetting?.value || "0", 10) || 0;
-  const total = subtotal + shipping;
+  const deliveryFeeSetting = await prisma.siteSetting.findUnique({ where: { key: "deliveryFee" } });
+  const deliveryFee = parseInt(deliveryFeeSetting?.value || "0", 10) || 0;
+  const total = subtotal + deliveryFee;
   const orderId = createOrderNumber();
   const token = randomUUID();
 
@@ -139,7 +139,7 @@ export async function createOrderAction(
           name: input.name,
           phone: input.phone,
           subtotal,
-          shipping,
+          deliveryFee,
           total,
           street: input.address.street,
           city: input.address.city,

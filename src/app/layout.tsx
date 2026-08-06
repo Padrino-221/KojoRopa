@@ -29,7 +29,7 @@ const inter = Inter({
   display: "swap",
 });
 
-// The whole site is DB-driven (products, site settings, shipping fee). Render
+// The whole site is DB-driven (products, site settings, delivery fee). Render
 // on demand so builds never require a reachable database — and so content is
 // always fresh instead of baked in at build time.
 export const dynamic = "force-dynamic";

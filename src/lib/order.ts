@@ -13,7 +13,7 @@ export interface Order {
   name: string;
   items: OrderLine[];
   subtotal: number;
-  shipping: number;
+  deliveryFee: number;
   total: number;
   address: {
     street: string;

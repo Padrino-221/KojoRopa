@@ -11,9 +11,9 @@ PostgreSQL via Prisma.
   size and price filters, plus search and sort.
 - **Product pages** — story, condition, era, fabric specs and honest fit notes
   for every piece, with a size picker and add-to-bag.
-- **Shopping bag** — a slide-out drawer with quantity controls, a free-shipping
+- **Shopping bag** — a slide-out drawer with quantity controls, a free-delivery
   progress meter, and persistence (prices in GHS).
-- **Checkout** — a contact → shipping → Mobile Money (Moolre) flow that
+- **Checkout** — a contact → delivery → Mobile Money (Moolre) flow that
   creates a real order server-side. Prices and stock are recomputed from the
   database — the client can't change what it pays.
 - **Confirmation** — an order receipt fetched from the database by order number.

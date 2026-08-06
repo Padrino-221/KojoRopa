@@ -42,7 +42,7 @@ model Order {
   name      String
   phone     String?
   subtotal  Int
-  shipping  Int
+  deliveryFee Int
   total     Int
   street    String
   city      String

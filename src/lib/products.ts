@@ -258,7 +258,7 @@ export const CONDITIONS = [
   "Light wear",
 ];
 
-export { FREE_SHIPPING_THRESHOLD, SHIPPING_FEE } from "@/lib/site-config";
+export { FREE_DELIVERY_THRESHOLD, DELIVERY_FEE } from "@/lib/site-config";
 
 export function getProductBySlug(slug: string): Product | undefined {
   return products.find((p) => p.slug === slug);

@@ -29,7 +29,7 @@ interface CartContextValue {
   subtotal: number;
   isOpen: boolean;
   isHydrated: boolean;
-  shipping: number;
+  deliveryFee: number;
   openCart: () => void;
   closeCart: () => void;
   addItem: (product: Product, size: string) => void;
@@ -42,8 +42,8 @@ const STORAGE_KEY = "kojoropa-cart-v2";
 const CartContext = createContext<CartContextValue | null>(null);
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const shippingFeeSetting = useSiteSetting("shippingFee", "0");
-  const shippingFee = parseInt(shippingFeeSetting, 10) || 0;
+  const deliveryFeeSetting = useSiteSetting("deliveryFee", "0");
+  const deliveryFee = parseInt(deliveryFeeSetting, 10) || 0;
   const [items, setItems] = useState<CartLine[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
@@ -140,14 +140,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
     );
   }, [items]);
 
-  const shipping = items.length === 0 ? 0 : shippingFee;
+  const deliveryFeeValue = items.length === 0 ? 0 : deliveryFee;
 
   const value = useMemo(
     () => ({
       items,
       count,
       subtotal,
-      shipping,
+      deliveryFee: deliveryFeeValue,
       isOpen,
       isHydrated,
       openCart,
@@ -160,7 +160,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       items,
       count,
       subtotal,
-      shipping,
+      deliveryFeeValue,
       isOpen,
       isHydrated,
       openCart,
