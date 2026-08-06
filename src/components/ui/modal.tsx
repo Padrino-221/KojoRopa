@@ -6,9 +6,17 @@ interface ModalProps extends HTMLAttributes<HTMLDivElement> {
   open: boolean;
   onClose: () => void;
   children: ReactNode;
+  /** sm = narrow dialog, md = default, lg = wide form */
+  size?: "sm" | "md" | "lg";
 }
 
-function Modal({ open, onClose, children, className = "", ...props }: ModalProps) {
+const modalSizeClasses: Record<NonNullable<ModalProps["size"]>, string> = {
+  sm: "max-w-md",
+  md: "max-w-2xl",
+  lg: "max-w-4xl",
+};
+
+function Modal({ open, onClose, children, className = "", size = "lg", ...props }: ModalProps) {
   useEffect(() => {
     if (!open) return;
     const handleEsc = (e: KeyboardEvent) => {
@@ -32,7 +40,8 @@ function Modal({ open, onClose, children, className = "", ...props }: ModalProps
       />
       <div
         className={[
-          "relative z-10 flex max-h-[90vh] w-full max-w-4xl flex-col rounded-3xl border border-border bg-linen",
+          "relative z-10 flex max-h-[90vh] w-full flex-col rounded-3xl border border-border bg-linen",
+          modalSizeClasses[size],
           className,
         ].join(" ")}
         {...props}

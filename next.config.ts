@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: "standalone",
+  // Standalone output is required for the self-hosted VPS deployment
+  // (deploy/setup-server.sh runs .next/standalone/server.js) but is not
+  // supported on Vercel — it breaks the build there. Vercel sets VERCEL=1.
+  output: process.env.VERCEL ? undefined : "standalone",
   experimental: {
     serverActions: {
       bodySizeLimit: "2mb",

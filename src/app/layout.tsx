@@ -6,6 +6,7 @@ import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { CartDrawer } from "@/components/cart-drawer";
 import { BottomNav } from "@/components/bottom-nav";
+import { AppShell } from "@/components/app-shell";
 import { SiteSettingsProvider } from "@/components/site-settings-provider";
 import { ToastProvider } from "@/components/ui/toast";
 import { getAllSettings } from "@/lib/actions/settings";
@@ -66,11 +67,14 @@ export default async function RootLayout(props: LayoutProps<"/">) {
         <SiteSettingsProvider settings={settings}>
           <ToastProvider>
             <CartProvider>
-              <Navbar />
-              <main className="flex-1 pb-20 lg:pb-0">{props.children}</main>
-              <Footer />
-              <BottomNav />
-              <CartDrawer />
+              <AppShell
+                navbar={<Navbar />}
+                footer={<Footer />}
+                bottomNav={<BottomNav />}
+                cartDrawer={<CartDrawer />}
+              >
+                {props.children}
+              </AppShell>
             </CartProvider>
           </ToastProvider>
         </SiteSettingsProvider>

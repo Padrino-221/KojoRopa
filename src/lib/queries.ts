@@ -63,3 +63,16 @@ export async function getAdminOrders() {
     status: row.status as "pending" | "delivered" | "failed",
   }));
 }
+
+/** A page of admin audit trail entries, newest first — for the admin dashboard. */
+export async function getAdminLog(page = 1, pageSize = 20) {
+  const [rows, total] = await Promise.all([
+    prisma.adminLog.findMany({
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.adminLog.count(),
+  ]);
+  return { rows, total };
+}

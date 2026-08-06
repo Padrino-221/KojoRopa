@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
 
 import { ShirtArt } from "@/components/shirt-art";
@@ -29,6 +29,7 @@ import {
   saveSettingsAction,
   resetSettingAction,
 } from "@/lib/actions/settings";
+import { getAuditLogAction } from "@/lib/actions/audit";
 import { SETTING_SECTIONS } from "@/lib/settings-defs";
 import { useToast } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
@@ -60,6 +61,7 @@ interface AdminOrder {
   placedAt: Date | string;
   email: string;
   name: string;
+  phone: string | null;
   subtotal: number;
   shipping: number;
   total: number;
@@ -68,7 +70,17 @@ interface AdminOrder {
   postal: string;
   country: string;
   status: OrderStatus;
+  moolreSessionId: string | null;
+  moolreTransactionId: string | null;
   items: AdminOrderItem[];
+}
+
+interface AdminLogRow {
+  id: string;
+  event: string;
+  detail: string;
+  ip: string | null;
+  createdAt: Date | string;
 }
 
 /* ————— add / edit form ————— */
@@ -168,6 +180,19 @@ function ProductForm({
         ? f[key].filter((v) => v !== value)
         : [...f[key], value],
     }));
+
+  const moveImage = (index: number, dir: -1 | 1) => {
+    const target = index + dir;
+    if (target < 0 || target >= form.images.length) return;
+    set(
+      "images",
+      form.images.map((src, i, arr) => {
+        if (i === index) return arr[target];
+        if (i === target) return arr[index];
+        return src;
+      })
+    );
+  };
 
   const price = parseFloat(form.price);
   const valid = form.name.trim().length > 0 && price > 0;
@@ -350,7 +375,7 @@ function ProductForm({
             <Label>
               Product Photos{" "}
               <span className="font-normal normal-case text-taupe">
-                (first photo is the cover)
+                (first photo is the cover — use the arrows to reorder)
               </span>
             </Label>
             <div className="flex flex-wrap gap-3">
@@ -393,6 +418,32 @@ function ProductForm({
                       <path d="M6 6l12 12M18 6L6 18" />
                     </svg>
                   </button>
+                  {form.images.length > 1 && (
+                    <div className="absolute bottom-1 right-1 flex gap-1">
+                      <button
+                        type="button"
+                        disabled={i === 0}
+                        onClick={() => moveImage(i, -1)}
+                        aria-label="Move photo earlier"
+                        className="flex h-6 w-6 items-center justify-center rounded-full bg-espresso/60 text-white transition-colors hover:bg-espresso disabled:pointer-events-none disabled:opacity-40"
+                      >
+                        <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M18 15l-6-6-6 6" />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        disabled={i === form.images.length - 1}
+                        onClick={() => moveImage(i, 1)}
+                        aria-label="Move photo later"
+                        className="flex h-6 w-6 items-center justify-center rounded-full bg-espresso/60 text-white transition-colors hover:bg-espresso disabled:pointer-events-none disabled:opacity-40"
+                      >
+                        <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M6 9l6 6 6-6" />
+                        </svg>
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
               {form.images.length < maxProductImages && (
@@ -502,7 +553,11 @@ function productToInput(p: Product): ProductInput {
 
 /* ————— settings panel ————— */
 
-function SettingsPanel() {
+function SettingsPanel({
+  onDirtyChange,
+}: {
+  onDirtyChange?: (dirty: boolean) => void;
+}) {
   const { toast } = useToast();
   const [settings, setSettings] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
@@ -515,6 +570,10 @@ function SettingsPanel() {
       setLoading(false);
     });
   }, []);
+
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+  }, [dirty, onDirtyChange]);
 
   const getSettingValue = (key: string, defaultValue: string) =>
     settings[key] ?? defaultValue;
@@ -665,27 +724,415 @@ const statusLabel: Record<OrderStatus, string> = {
   failed: "Failed",
 };
 
+const eventBadgeVariant: Record<string, "muted" | "success" | "danger" | "warning"> = {
+  "login.success": "success",
+  "login.failed": "danger",
+  logout: "muted",
+  "order.create": "muted",
+  "order.status": "success",
+  "order.delete": "danger",
+  "order.payment": "warning",
+  "product.create": "warning",
+  "product.update": "warning",
+  "product.delete": "danger",
+  "setting.update": "muted",
+  "setting.reset": "muted",
+  "settings.bulk_update": "muted",
+  "webhook.moolre": "muted",
+};
+
+/* ————— confirm dialog ————— */
+
+interface ConfirmState {
+  title: string;
+  body: string;
+  confirmLabel: string;
+  run: () => Promise<void> | void;
+}
+
+function ConfirmDialog({
+  confirm,
+  busy,
+  onConfirm,
+  onClose,
+}: {
+  confirm: ConfirmState;
+  busy: boolean;
+  onConfirm: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <Modal open onClose={onClose} size="sm">
+      <div className="p-6 sm:p-8">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-sale/10 text-sale">
+          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
+            <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />
+          </svg>
+        </div>
+        <h2 className="mt-4 font-display text-xl tracking-tight text-espresso">
+          {confirm.title}
+        </h2>
+        <p className="mt-2 text-sm leading-relaxed text-mocha">
+          {confirm.body}
+        </p>
+        <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            variant="danger"
+            onClick={onConfirm}
+            disabled={busy}
+            loading={busy}
+          >
+            {confirm.confirmLabel}
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+/* ————— order detail slide-over ————— */
+
+function OrderDrawer({
+  order,
+  busy,
+  onClose,
+  onStatusChange,
+}: {
+  order: AdminOrder | null;
+  busy: boolean;
+  onClose: () => void;
+  onStatusChange: (orderId: string, status: OrderStatus) => void;
+}) {
+  const panelRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (!order) return;
+    panelRef.current?.focus();
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = "";
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [order, onClose]);
+
+  if (!order) return null;
+  const paymentInitiated = Boolean(
+    order.moolreSessionId || order.moolreTransactionId
+  );
+
+  return (
+    <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label={`Order ${order.id}`}>
+      {/* overlay */}
+      <button
+        type="button"
+        aria-label="Close order"
+        onClick={onClose}
+        className="absolute inset-0 animate-fade-in cursor-default bg-espresso/40 backdrop-blur-sm"
+      />
+
+      {/* panel */}
+      <aside
+        ref={panelRef}
+        tabIndex={-1}
+        className="absolute right-0 top-0 flex h-full w-full max-w-md animate-slide-in flex-col border-l border-border bg-linen focus:outline-none"
+      >
+        {/* header */}
+        <div className="flex items-center justify-between border-b border-border px-6 py-4">
+          <div>
+            <h2 className="font-display text-xl tracking-tight text-espresso">
+              Order
+            </h2>
+            <p className="mt-0.5 text-xs tabular-nums text-taupe">{order.id}</p>
+          </div>
+          <Button variant="ghost" size="icon-sm" onClick={onClose} aria-label="Close">
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </Button>
+        </div>
+
+        {/* body */}
+        <div className="thin-scroll flex-1 space-y-6 overflow-y-auto px-6 py-5">
+          {/* customer */}
+          <section>
+            <p className="text-[11px] font-semibold tracking-[0.18em] text-taupe uppercase">
+              Customer
+            </p>
+            <p className="mt-2 text-sm font-medium text-espresso">{order.name}</p>
+            <p className="mt-0.5 text-sm text-mocha">{order.email}</p>
+            {order.phone && (
+              <p className="mt-0.5 text-sm text-mocha">{order.phone}</p>
+            )}
+            <p className="mt-1 text-xs text-taupe">{formatOrderDate(order.placedAt)}</p>
+          </section>
+
+          {/* status + payment */}
+          <section>
+            <p className="text-[11px] font-semibold tracking-[0.18em] text-taupe uppercase">
+              Status
+            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <Badge variant={statusBadgeVariant[order.status]}>
+                {statusLabel[order.status]}
+              </Badge>
+              <Badge variant={paymentInitiated ? "muted" : "warning"}>
+                {paymentInitiated ? "Payment initiated" : "No payment session"}
+              </Badge>
+            </div>
+          </section>
+
+          {/* items */}
+          <section>
+            <p className="text-[11px] font-semibold tracking-[0.18em] text-taupe uppercase">
+              Items
+            </p>
+            <ul className="mt-2 divide-y divide-border border-y border-border">
+              {order.items.map((item) => (
+                <li key={item.id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
+                  <span className="min-w-0 flex-1 truncate text-espresso">
+                    {item.name}
+                    <span className="text-taupe">
+                      {" "}×{item.qty}
+                      {item.size ? ` · ${item.size}` : ""}
+                    </span>
+                  </span>
+                  <span className="shrink-0 tabular-nums text-espresso">
+                    {formatPrice(item.price * item.qty)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          {/* shipping */}
+          <section>
+            <p className="text-[11px] font-semibold tracking-[0.18em] text-taupe uppercase">
+              Shipping to
+            </p>
+            <p className="mt-2 rounded-xl bg-cream p-3 text-sm leading-relaxed text-mocha">
+              {order.street}, {order.city}
+              {order.postal ? ` ${order.postal}` : ""}, {order.country}
+            </p>
+          </section>
+
+          {/* totals */}
+          <dl className="space-y-2 border-t border-border pt-4 text-sm">
+            <div className="flex justify-between text-mocha">
+              <dt>Subtotal</dt>
+              <dd className="tabular-nums">{formatPrice(order.subtotal)}</dd>
+            </div>
+            <div className="flex justify-between text-mocha">
+              <dt>Delivery</dt>
+              <dd className="tabular-nums">{formatPrice(order.shipping)}</dd>
+            </div>
+            <div className="flex justify-between border-t border-border pt-3 text-base font-semibold text-espresso">
+              <dt>Total</dt>
+              <dd className="font-display text-xl tabular-nums">
+                {formatPrice(order.total)}
+              </dd>
+            </div>
+          </dl>
+        </div>
+
+        {/* footer: status controls */}
+        <div className="shrink-0 border-t border-border px-6 py-5">
+          <p className="text-[11px] font-semibold tracking-[0.18em] text-taupe uppercase">
+            Update status
+          </p>
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            {ORDER_STATUSES.map((s) => (
+              <Button
+                key={s}
+                variant={order.status === s ? "primary" : "secondary"}
+                size="sm"
+                onClick={() => onStatusChange(order.id, s)}
+                disabled={busy || order.status === s}
+                className="px-2"
+              >
+                {statusLabel[s]}
+              </Button>
+            ))}
+          </div>
+        </div>
+      </aside>
+    </div>
+  );
+}
+
+/* ————— pagination ————— */
+
+function Pagination({
+  page,
+  totalPages,
+  onChange,
+}: {
+  page: number;
+  totalPages: number;
+  onChange: (page: number) => void;
+}) {
+  if (totalPages <= 1) return null;
+
+  const items: (number | "…")[] = [];
+  let last = 0;
+  for (let p = 1; p <= totalPages; p++) {
+    if (p === 1 || p === totalPages || Math.abs(p - page) <= 2) {
+      if (p - last > 1) items.push("…");
+      items.push(p);
+      last = p;
+    }
+  }
+
+  const arrow =
+    "flex h-9 w-9 items-center justify-center rounded-full text-mocha transition-all duration-200 hover:bg-cream hover:text-espresso active:scale-95 disabled:pointer-events-none disabled:opacity-40";
+
+  return (
+    <nav aria-label="Pagination" className="mt-6 flex items-center justify-center gap-1">
+      <button
+        type="button"
+        onClick={() => onChange(page - 1)}
+        disabled={page === 1}
+        aria-label="Previous page"
+        className={arrow}
+      >
+        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M15 18l-6-6 6-6" />
+        </svg>
+      </button>
+      {items.map((item, i) =>
+        item === "…" ? (
+          <span key={`gap-${i}`} aria-hidden className="px-1 text-sm text-taupe">
+            …
+          </span>
+        ) : (
+          <button
+            key={item}
+            type="button"
+            onClick={() => onChange(item)}
+            aria-current={item === page ? "page" : undefined}
+            className={`h-9 min-w-9 rounded-full px-2.5 text-sm tabular-nums transition-all duration-200 active:scale-95 ${
+              item === page
+                ? "bg-espresso text-white"
+                : "text-mocha hover:bg-cream hover:text-espresso"
+            }`}
+          >
+            {item}
+          </button>
+        )
+      )}
+      <button
+        type="button"
+        onClick={() => onChange(page + 1)}
+        disabled={page === totalPages}
+        aria-label="Next page"
+        className={arrow}
+      >
+        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M9 6l6 6-6 6" />
+        </svg>
+      </button>
+    </nav>
+  );
+}
+
+/* ————— dashboard ————— */
+
+type AdminTab = "products" | "orders" | "settings" | "activity";
+
+const ORDERS_PAGE_SIZE = 10;
+const LOG_PAGE_SIZE = 20;
+const TABS: { value: AdminTab; label: string }[] = [
+  { value: "products", label: "Products" },
+  { value: "orders", label: "Orders" },
+  { value: "activity", label: "Activity" },
+  { value: "settings", label: "Settings" },
+];
+
 export function AdminDashboard({
   initialProducts,
   initialOrders,
+  initialLog,
+  initialLogTotal,
 }: {
   initialProducts: Product[];
   initialOrders: AdminOrder[];
+  initialLog: AdminLogRow[];
+  initialLogTotal: number;
 }) {
   const adminHeading = useSiteSetting("adminHeading", "Manage the rack");
   const adminDescription = useSiteSetting("adminDescription", "Changes are saved to the database and update the shop instantly.");
   const { toast } = useToast();
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [orders, setOrders] = useState<AdminOrder[]>(initialOrders);
-  const [tab, setTab] = useState<"products" | "orders" | "settings">("products");
+  const [log, setLog] = useState<AdminLogRow[]>(initialLog);
+  const [logTotal, setLogTotal] = useState(initialLogTotal);
+  const [tab, setTab] = useState<AdminTab>("products");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateRange, setDateRange] = useState<{ from: string; to: string }>({ from: "", to: "" });
-  const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
   const [editor, setEditor] = useState<
     { mode: "new" } | { mode: "edit"; product: Product } | null
   >(null);
+  const [activeOrder, setActiveOrder] = useState<AdminOrder | null>(null);
+  const [confirm, setConfirm] = useState<ConfirmState | null>(null);
+  const [confirmBusy, setConfirmBusy] = useState(false);
+  const [menu, setMenu] = useState<{ slug: string; top: number; left: number } | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [settingsDirty, setSettingsDirty] = useState(false);
+  const [logLoading, setLogLoading] = useState(false);
+  const [ordersPage, setOrdersPage] = useState(1);
+  const [logPage, setLogPage] = useState(1);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const logRequestRef = useRef(0);
+  const closeOrder = useCallback(() => setActiveOrder(null), []);
+
+  /* '/' focuses the product search */
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const typing =
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" ||
+          target.isContentEditable);
+      if (e.key !== "/" || typing || e.metaKey || e.ctrlKey || e.altKey) return;
+      e.preventDefault();
+      setTab("products");
+      requestAnimationFrame(() => searchRef.current?.focus());
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  /* reset to the first page when order filters change */
+  useEffect(() => {
+    setOrdersPage(1);
+  }, [statusFilter, dateRange.from, dateRange.to]);
+
+  const pendingCount = useMemo(
+    () => orders.filter((o) => o.status === "pending").length,
+    [orders]
+  );
+
+  const orderStats = useMemo(
+    () => ({
+      pending: pendingCount,
+      delivered: orders.filter((o) => o.status === "delivered").length,
+      failed: orders.filter((o) => o.status === "failed").length,
+      revenue: orders
+        .filter((o) => o.status === "delivered")
+        .reduce((sum, o) => sum + o.total, 0),
+    }),
+    [orders, pendingCount]
+  );
 
   const handleSave = async (input: ProductInput) => {
     if (busy) return;
@@ -729,6 +1176,7 @@ export function AdminDashboard({
         setProducts((prev) =>
           prev.map((x) => (x.slug === p.slug ? res.product : x))
         );
+        toast("success", res.product.visible ? `"${p.name}" is back on the rack.` : `"${p.name}" hidden.`);
       } else {
         toast("error", res.error);
       }
@@ -737,28 +1185,20 @@ export function AdminDashboard({
     }
   };
 
-  const handleDelete = async (p: Product) => {
-    if (!window.confirm(`Remove "${p.name}" from the catalog?`)) return;
-    setBusy(true);
-    try {
-      const res = await deleteProductAction(p.slug);
-      if (res.ok) {
-        setProducts((prev) => prev.filter((x) => x.slug !== p.slug));
-        toast("success", `"${p.name}" removed.`);
-      } else {
-        toast("error", res.error);
-      }
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const toggleOrder = (id: string) => {
-    setExpandedOrders((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
+  const requestDelete = (p: Product) => {
+    setConfirm({
+      title: `Remove “${p.name}”?`,
+      body: "This permanently removes the piece from the catalog. The action is recorded in the audit log and can't be undone.",
+      confirmLabel: "Remove piece",
+      run: async () => {
+        const res = await deleteProductAction(p.slug);
+        if (res.ok) {
+          setProducts((prev) => prev.filter((x) => x.slug !== p.slug));
+          toast("success", `“${p.name}” removed.`);
+        } else {
+          toast("error", res.error);
+        }
+      },
     });
   };
 
@@ -770,6 +1210,7 @@ export function AdminDashboard({
         setOrders((prev) =>
           prev.map((o) => (o.id === orderId ? { ...o, status } : o))
         );
+        setActiveOrder((cur) => (cur && cur.id === orderId ? { ...cur, status } : cur));
         toast("success", `Order ${orderId} marked as ${statusLabel[status]}.`);
       } else {
         toast("error", res.error);
@@ -777,6 +1218,48 @@ export function AdminDashboard({
     } finally {
       setBusy(false);
     }
+  };
+
+  const handleConfirm = async () => {
+    if (!confirm) return;
+    setConfirmBusy(true);
+    try {
+      await confirm.run();
+    } catch {
+      toast("error", "Something went wrong. Please try again.");
+    } finally {
+      setConfirmBusy(false);
+      setConfirm(null);
+    }
+  };
+
+  /* warn before closing the tab with unsaved settings */
+  useEffect(() => {
+    if (!settingsDirty) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [settingsDirty]);
+
+  const handleTabClick = (t: AdminTab) => {
+    if (t !== "settings" && tab === "settings" && settingsDirty) {
+      setConfirm({
+        title: "Unsaved settings",
+        body: "You have unsaved changes in Site settings. They will be lost if you leave this tab.",
+        confirmLabel: "Leave anyway",
+        run: () => {
+          setSettingsDirty(false);
+          setTab(t);
+          setSearch("");
+        },
+      });
+      return;
+    }
+    setTab(t);
+    setSearch("");
   };
 
   const stats = useMemo(
@@ -820,6 +1303,138 @@ export function AdminDashboard({
     return true;
   });
 
+  const ordersTotalPages = Math.max(
+    1,
+    Math.ceil(filteredOrders.length / ORDERS_PAGE_SIZE)
+  );
+  const currentOrdersPage = Math.min(ordersPage, ordersTotalPages);
+  const pagedOrders = filteredOrders.slice(
+    (currentOrdersPage - 1) * ORDERS_PAGE_SIZE,
+    currentOrdersPage * ORDERS_PAGE_SIZE
+  );
+
+  const logTotalPages = Math.max(1, Math.ceil(logTotal / LOG_PAGE_SIZE));
+  const currentLogPage = Math.min(logPage, logTotalPages);
+  const logStart = log.length === 0 ? 0 : (currentLogPage - 1) * LOG_PAGE_SIZE + 1;
+  const logEnd = Math.min(logTotal, currentLogPage * LOG_PAGE_SIZE);
+
+  const ordersStart =
+    pagedOrders.length === 0 ? 0 : (currentOrdersPage - 1) * ORDERS_PAGE_SIZE + 1;
+  const ordersEnd = Math.min(
+    filteredOrders.length,
+    currentOrdersPage * ORDERS_PAGE_SIZE
+  );
+
+  /* ————— bulk selection ————— */
+  const allSelected = list.length > 0 && list.every((p) => selected.has(p.id));
+  const toggleSelect = (id: string, on: boolean) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (on) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
+  const toggleSelectAll = (on: boolean) =>
+    setSelected(on ? new Set(list.map((p) => p.id)) : new Set());
+  const clearSelected = () => setSelected(new Set());
+
+  const bulkSetVisible = async (show: boolean) => {
+    if (busy || selected.size === 0) return;
+    setBusy(true);
+    const targets = products.filter((p) => selected.has(p.id));
+    try {
+      const results = await Promise.all(
+        targets.map(async (p) => {
+          const res = await updateProductAction(p.slug, {
+            ...productToInput(p),
+            visible: show,
+          });
+          return { p, ok: res.ok };
+        })
+      );
+      const okIds = new Set(
+        results.filter((r) => r.ok).map((r) => r.p.id)
+      );
+      const failed = results.length - okIds.size;
+      setProducts((prev) =>
+        prev.map((p) => (okIds.has(p.id) ? { ...p, visible: show } : p))
+      );
+      if (failed > 0) {
+        toast(
+          "error",
+          `${failed} ${failed === 1 ? "piece" : "pieces"} could not be updated.`
+        );
+      } else {
+        toast(
+          "success",
+          `${selected.size} ${selected.size === 1 ? "piece" : "pieces"} ${show ? "shown" : "hidden"}.`
+        );
+      }
+      clearSelected();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const requestBulkDelete = () => {
+    const count = selected.size;
+    setConfirm({
+      title: `Remove ${count} ${count === 1 ? "piece" : "pieces"}?`,
+      body: "This permanently removes every selected piece from the catalog. The action is recorded in the audit log and can't be undone.",
+      confirmLabel: `Remove ${count}`,
+      run: async () => {
+        const targets = products.filter((p) => selected.has(p.id));
+        const results = await Promise.all(
+          targets.map(async (p) => {
+            const res = await deleteProductAction(p.slug);
+            return { p, ok: res.ok };
+          })
+        );
+        const okIds = new Set(
+          results.filter((r) => r.ok).map((r) => r.p.id)
+        );
+        const failed = results.length - okIds.size;
+        setProducts((prev) => prev.filter((p) => !okIds.has(p.id)));
+        if (failed > 0) {
+          toast(
+            "error",
+            `${failed} ${failed === 1 ? "piece" : "pieces"} could not be removed.`
+          );
+        } else {
+          toast(
+            "success",
+            `${count} ${count === 1 ? "piece" : "pieces"} removed.`
+          );
+        }
+        clearSelected();
+      },
+    });
+  };
+
+  const loadLogPage = useCallback(async (page: number) => {
+    const requestId = ++logRequestRef.current;
+    setLogLoading(true);
+    try {
+      const { rows, total } = await getAuditLogAction(page, LOG_PAGE_SIZE);
+      if (requestId !== logRequestRef.current) return; // stale response
+      setLog(rows);
+      setLogTotal(total);
+      setLogPage(page);
+    } finally {
+      if (requestId === logRequestRef.current) setLogLoading(false);
+    }
+  }, []);
+
+  const headerCopy =
+    tab === "products"
+      ? adminDescription
+      : tab === "orders"
+        ? `${orders.length} order${orders.length === 1 ? "" : "s"} placed · ${pendingCount} pending`
+        : tab === "activity"
+          ? "Every admin action, recorded."
+          : "Changes take effect after saving. Some changes reload the page.";
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
       {/* header */}
@@ -831,13 +1446,9 @@ export function AdminDashboard({
             nameClassName="text-xs font-semibold tracking-wide uppercase"
           />
           <h1 className="mt-2 font-display text-3xl tracking-tight text-espresso sm:text-4xl">
-            {tab === "products" ? adminHeading : "Orders"}
+            {tab === "products" ? adminHeading : tab === "orders" ? "Orders" : tab === "activity" ? "Activity" : "Site settings"}
           </h1>
-          <p className="mt-1 text-sm text-mocha">
-            {tab === "products"
-              ? adminDescription
-              : `${orders.length} order${orders.length === 1 ? "" : "s"} placed · ${orders.filter((o) => o.status === "pending").length} pending`}
-          </p>
+          <p className="mt-1 text-sm text-mocha">{headerCopy}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <form action={logoutAction}>
@@ -862,44 +1473,41 @@ export function AdminDashboard({
 
       {/* tabs + filters */}
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex gap-1 rounded-full bg-surface p-1 ring-1 ring-border/50 w-fit">
-        {(["products", "orders", "settings"] as const).map((t) => (
-          <button
-            key={t}
-            type="button"
-            onClick={() => {
-              setTab(t);
-              setSearch("");
-            }}
-            className={`inline-flex items-center rounded-full px-5 py-2 text-sm font-medium transition-all duration-200 active:scale-95 ${
-              tab === t
-                ? "bg-espresso text-white"
-                : "text-mocha hover:text-espresso"
-            }`}
-          >
-            {t === "products" ? "Products" : t === "orders" ? "Orders" : "Settings"}
-            {t === "products" && products.length > 0 && (
-              <span
-                className={`ml-1.5 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full px-1.5 text-[11px] font-semibold tabular-nums ${
-                  tab === t ? "bg-white/20 text-white" : "bg-sand text-espresso"
-                }`}
-                aria-label={`${products.length} products`}
-              >
-                {products.length}
-              </span>
-            )}
-            {t === "orders" && orders.length > 0 && (
-              <span
-                className={`ml-1.5 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full px-1.5 text-[11px] font-semibold tabular-nums ${
-                  tab === t ? "bg-white/20 text-white" : "bg-sand text-espresso"
-                }`}
-                aria-label={`${orders.length} orders`}
-              >
-                {orders.length}
-              </span>
-            )}
-          </button>
-        ))}
+        <div className="flex w-fit gap-1 rounded-full bg-surface p-1 ring-1 ring-border/50">
+          {TABS.map((t) => (
+            <button
+              key={t.value}
+              type="button"
+              onClick={() => handleTabClick(t.value)}
+              className={`inline-flex items-center rounded-full px-5 py-2 text-sm font-medium transition-all duration-200 active:scale-95 ${
+                tab === t.value
+                  ? "bg-espresso text-white"
+                  : "text-mocha hover:text-espresso"
+              }`}
+            >
+              {t.label}
+              {t.value === "products" && products.length > 0 && (
+                <span
+                  className={`ml-1.5 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full px-1.5 text-[11px] font-semibold tabular-nums ${
+                    tab === t.value ? "bg-white/20 text-white" : "bg-sand text-espresso"
+                  }`}
+                  aria-label={`${products.length} products`}
+                >
+                  {products.length}
+                </span>
+              )}
+              {t.value === "orders" && pendingCount > 0 && (
+                <span
+                  className={`ml-1.5 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full px-1.5 text-[11px] font-semibold tabular-nums ${
+                    tab === t.value ? "bg-white/20 text-white" : "bg-clay text-white"
+                  }`}
+                  aria-label={`${pendingCount} pending orders`}
+                >
+                  {pendingCount}
+                </span>
+              )}
+            </button>
+          ))}
         </div>
         {tab === "orders" && orders.length > 0 && (
           <div className="flex items-center gap-2">
@@ -937,212 +1545,375 @@ export function AdminDashboard({
 
       {/* tab content */}
       <div key={tab} className="animate-fade-in">
-      {tab === "products" && (
-        <>
-          {/* stats */}
-          <div className="mt-8 grid grid-cols-3 gap-2 sm:gap-3">
-            {[
-              { label: "Total", value: stats.total },
-              { label: "Visible", value: stats.visible },
-              { label: "Hidden", value: stats.hidden },
-            ].map((s) => (
-              <Card key={s.label} padding="sm" className="text-center sm:p-5">
-                <p className="font-display text-2xl sm:text-3xl text-espresso">{s.value}</p>
-                <p className="mt-1 text-[10px] sm:text-xs tracking-wide text-mocha">{s.label}</p>
-              </Card>
-            ))}
-          </div>
+        {tab === "products" && (
+          <>
+            {/* stats */}
+            <div className="mt-8 grid grid-cols-3 gap-2 sm:gap-3">
+              {[
+                { label: "Total", value: stats.total },
+                { label: "Visible", value: stats.visible },
+                { label: "Hidden", value: stats.hidden },
+              ].map((s) => (
+                <Card key={s.label} padding="sm" className="text-center sm:p-5">
+                  <p className="font-display text-2xl text-espresso sm:text-3xl">{s.value}</p>
+                  <p className="mt-1 text-[10px] tracking-wide text-mocha sm:text-xs">{s.label}</p>
+                </Card>
+              ))}
+            </div>
 
-          {/* search */}
-          <div className="relative mt-8 max-w-sm">
-            <svg
-              viewBox="0 0 24 24"
-              className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-taupe"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-            >
-              <circle cx="11" cy="11" r="7" />
-              <path d="m20 20-3.5-3.5" />
-            </svg>
-            <Input
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search items"
-              aria-label="Search admin items"
-              className="rounded-full bg-surface py-2.5 pr-4 pl-10"
-            />
-          </div>
-
-          {/* list */}
-          {list.length === 0 ? (
-            <div className="mt-10">
-              <EmptyState
-                icon={
-                  <svg
-                    viewBox="0 0 24 24"
-                    className="h-7 w-7 text-taupe"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                    strokeLinecap="round"
-                    aria-hidden
-                  >
-                    <circle cx="11" cy="11" r="7" />
-                    <path d="m20 20-3.5-3.5" />
-                  </svg>
-                }
-                title="The rack is empty"
-                description="Add your first piece and it will appear on the shop immediately."
-                action={
-                  <Button
-                    onClick={() => setEditor({ mode: "new" })}
-                    size="sm"
-                    className="mt-2"
-                  >
-                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-                      <path d="M12 5v14M5 12h14" />
-                    </svg>
-                    Add item
-                  </Button>
-                }
+            {/* search */}
+            <div className="relative mt-8 max-w-sm">
+              <svg
+                viewBox="0 0 24 24"
+                className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-taupe"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              >
+                <circle cx="11" cy="11" r="7" />
+                <path d="m20 20-3.5-3.5" />
+              </svg>
+              <Input
+                ref={searchRef}
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search items  ( / )"
+                aria-label="Search admin items"
+                className="rounded-full bg-surface py-2.5 pr-4 pl-10"
               />
             </div>
-          ) : (
-            <ul className="mt-6 space-y-2 overflow-hidden rounded-2xl bg-surface ring-1 ring-border/50">
-              {list.map((p) => (
-                <li key={p.id} className="flex items-center gap-3 sm:gap-4 border-b border-border/50 p-3 sm:p-4 transition-colors last:border-0 hover:bg-cream/40">
-                  <div className="h-14 w-10 sm:h-16 sm:w-12 shrink-0 overflow-hidden rounded-xl bg-cream">
-                    {p.image ? (
-                      <img src={p.image} alt={p.name} className="h-full w-full object-cover" />
-                    ) : (
-                      <ShirtArt art={p.art} className="h-full w-full" />
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="truncate text-sm font-medium text-espresso">
-                        {p.name}
-                      </p>
-                      {p.visible === false && (
-                        <Badge variant="muted" size="sm">Hidden</Badge>
-                      )}
-                      {p.featured && (
-                        <Badge variant="warning" size="sm">Featured</Badge>
+
+            {/* bulk selection bar */}
+            {selected.size > 0 && (
+              <div className="mt-4 flex animate-fade-in flex-wrap items-center justify-between gap-3 rounded-2xl bg-espresso px-4 py-3 text-white">
+                <p className="text-sm font-medium">
+                  {selected.size} {selected.size === 1 ? "piece" : "pieces"} selected
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => bulkSetVisible(true)}
+                    disabled={busy}
+                    className="rounded-full bg-white/10 px-4 py-1.5 text-xs font-medium transition-colors hover:bg-white/20 disabled:opacity-50"
+                  >
+                    Show
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => bulkSetVisible(false)}
+                    disabled={busy}
+                    className="rounded-full bg-white/10 px-4 py-1.5 text-xs font-medium transition-colors hover:bg-white/20 disabled:opacity-50"
+                  >
+                    Hide
+                  </button>
+                  <button
+                    type="button"
+                    onClick={requestBulkDelete}
+                    disabled={busy}
+                    className="rounded-full bg-sale/30 px-4 py-1.5 text-xs font-medium transition-colors hover:bg-sale/50 disabled:opacity-50"
+                  >
+                    Delete
+                  </button>
+                  <button
+                    type="button"
+                    onClick={clearSelected}
+                    className="rounded-full px-3 py-1.5 text-xs text-white/70 transition-colors hover:text-white"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* list */}
+            {list.length === 0 ? (
+              <div className="mt-10">
+                <EmptyState
+                  icon={
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="h-7 w-7 text-taupe"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                      aria-hidden
+                    >
+                      <circle cx="11" cy="11" r="7" />
+                      <path d="m20 20-3.5-3.5" />
+                    </svg>
+                  }
+                  title="The rack is empty"
+                  description="Add your first piece and it will appear on the shop immediately."
+                  action={
+                    <Button
+                      onClick={() => setEditor({ mode: "new" })}
+                      size="sm"
+                      className="mt-2"
+                    >
+                      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                        <path d="M12 5v14M5 12h14" />
+                      </svg>
+                      Add item
+                    </Button>
+                  }
+                />
+              </div>
+            ) : (
+              <ul className="mt-6 space-y-2 overflow-hidden rounded-2xl bg-surface ring-1 ring-border/50">
+                <li className="hidden items-center gap-3 border-b border-border/50 px-3 py-2 text-[11px] font-semibold tracking-wider text-taupe uppercase sm:flex sm:gap-4 sm:px-4">
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    onChange={(e) => toggleSelectAll(e.target.checked)}
+                    aria-label="Select all pieces"
+                    className="h-4 w-4 rounded accent-clay"
+                  />
+                  <span className="flex-1">Piece</span>
+                  <span className="w-20 shrink-0 text-right">Price</span>
+                  <span className="w-28 shrink-0 text-right">Actions</span>
+                </li>
+                {list.map((p) => (
+                  <li key={p.id} className="flex items-center gap-3 border-b border-border/50 p-3 transition-colors last:border-0 hover:bg-cream/40 sm:gap-4 sm:p-4">
+                    <input
+                      type="checkbox"
+                      checked={selected.has(p.id)}
+                      onChange={(e) => toggleSelect(p.id, e.target.checked)}
+                      aria-label={`Select ${p.name}`}
+                      className="h-4 w-4 shrink-0 rounded accent-clay"
+                    />
+                    <div className="h-14 w-10 shrink-0 overflow-hidden rounded-xl bg-cream sm:h-16 sm:w-12">
+                      {p.image ? (
+                        <img src={p.image} alt={p.name} className="h-full w-full object-cover" />
+                      ) : (
+                        <ShirtArt art={p.art} className="h-full w-full" />
                       )}
                     </div>
-                    <p className="mt-0.5 truncate text-xs text-mocha">
-                      {p.tagline}
-                    </p>
-                    <p className="mt-1 text-xs text-taupe">
-                      {p.category} · {p.sizes.join("/") || "no sizes"}
-                    </p>
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <p className="text-sm font-semibold tabular-nums text-espresso">
-                      {formatPrice(p.price)}
-                    </p>
-                    {p.compareAt && (
-                      <p className="text-[11px] text-taupe line-through tabular-nums">
-                        {formatPrice(p.compareAt)}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="truncate text-sm font-medium text-espresso">
+                          {p.name}
+                        </p>
+                        {p.visible === false && (
+                          <Badge variant="muted" size="sm">Hidden</Badge>
+                        )}
+                        {p.featured && (
+                          <Badge variant="warning" size="sm">Featured</Badge>
+                        )}
+                      </div>
+                      <p className="mt-0.5 truncate text-xs text-mocha">
+                        {p.tagline}
                       </p>
-                    )}
-                  </div>
-                  <div className="flex shrink-0 items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={() => setEditor({ mode: "edit", product: p })}
-                      aria-label={`Edit ${p.name}`}
-                      title="Edit"
-                    >
-                      <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M12 20h9" />
-                        <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                      </svg>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={() => toggleVisible(p)}
-                      aria-label={p.visible === false ? "Show on rack" : "Hide from rack"}
-                      title={p.visible === false ? "Show" : "Hide"}
-                      className="hidden sm:flex"
-                    >
-                      {p.visible === false ? (
-                        <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="1.7">
-                          <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
-                          <path d="M2 2l20 20" />
-                        </svg>
-                      ) : (
-                        <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="1.7">
-                          <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
-                          <circle cx="12" cy="12" r="3" />
-                        </svg>
+                      <p className="mt-1 text-xs text-taupe">
+                        {p.category} · {p.sizes.join("/") || "no sizes"}
+                      </p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="text-sm font-semibold tabular-nums text-espresso">
+                        {formatPrice(p.price)}
+                      </p>
+                      {p.compareAt && (
+                        <p className="text-[11px] text-taupe line-through tabular-nums">
+                          {formatPrice(p.compareAt)}
+                        </p>
                       )}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={() => handleDelete(p)}
-                      aria-label={`Delete ${p.name}`}
-                      title="Delete"
-                      className="hidden sm:flex text-mocha hover:bg-sale/10 hover:text-sale"
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={() => setEditor({ mode: "edit", product: p })}
+                        aria-label={`Edit ${p.name}`}
+                        title="Edit"
+                      >
+                        <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M12 20h9" />
+                          <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                        </svg>
+                      </Button>
+                      <a
+                        href={`/product/${p.slug}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="hidden h-9 w-9 items-center justify-center rounded-full text-mocha transition-colors hover:bg-cream hover:text-espresso sm:flex"
+                        aria-label={`View ${p.name} on the rack`}
+                        title="View on rack"
+                      >
+                        <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M14 4h6v6" />
+                          <path d="M20 4l-9 9" />
+                          <path d="M19 13v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h6" />
+                        </svg>
+                      </a>
+                      {/* overflow menu */}
+                      <div className="relative">
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={(e) => {
+                            if (menu?.slug === p.slug) {
+                              setMenu(null);
+                              return;
+                            }
+                            const rect =
+                              e.currentTarget.getBoundingClientRect();
+                            setMenu({
+                              slug: p.slug,
+                              top: rect.bottom + 4,
+                              left: Math.max(8, rect.right - 176),
+                            });
+                          }}
+                          aria-label={`More actions for ${p.name}`}
+                          aria-expanded={menu?.slug === p.slug}
+                          title="More actions"
+                        >
+                          <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="currentColor">
+                            <circle cx="5" cy="12" r="1.6" />
+                            <circle cx="12" cy="12" r="1.6" />
+                            <circle cx="19" cy="12" r="1.6" />
+                          </svg>
+                        </Button>
+                        {menu?.slug === p.slug && (
+                          <>
+                            <div
+                              className="fixed inset-0 z-40"
+                              onClick={() => setMenu(null)}
+                            />
+                            <div
+                              className="fixed z-50 w-44 animate-fade-in overflow-hidden rounded-xl bg-surface py-1 ring-1 ring-border"
+                              style={{ top: menu.top, left: menu.left }}
+                            >
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setMenu(null);
+                                  toggleVisible(p);
+                                }}
+                                className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-sm text-espresso transition-colors hover:bg-cream"
+                              >
+                                <svg viewBox="0 0 24 24" className="h-4 w-4 text-mocha" fill="none" stroke="currentColor" strokeWidth="1.7">
+                                  <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+                                  <circle cx="12" cy="12" r="3" />
+                                </svg>
+                                {p.visible === false ? "Show on rack" : "Hide from rack"}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setMenu(null);
+                                  requestDelete(p);
+                                }}
+                                className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-sm text-sale transition-colors hover:bg-sale/10"
+                              >
+                                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
+                                  <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />
+                                </svg>
+                                Delete piece
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <p className="mt-8 text-center text-xs text-taupe">
+              Admin — changes are saved to the database.
+            </p>
+          </>
+        )}
+
+        {tab === "orders" && (
+          <>
+            {orders.length === 0 ? (
+              <div className="mt-10">
+                <EmptyState
+                  icon={
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="h-7 w-7 text-taupe"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden
                     >
-                      <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
-                        <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />
-                      </svg>
-                    </Button>
+                      <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z" />
+                      <path d="M12 12l8-4.5M12 12L4 7.5M12 12v9" />
+                    </svg>
+                  }
+                  title="No orders yet"
+                  description="Orders will appear here as customers check out."
+                />
+              </div>
+            ) : (
+              <>
+                {/* summary strip */}
+                <div className="mt-8 grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
+                  {[
+                    { label: "Pending", value: orderStats.pending, accent: true },
+                    { label: "Delivered", value: orderStats.delivered, accent: false },
+                    { label: "Failed", value: orderStats.failed, accent: false },
+                    { label: "Revenue", value: formatPrice(orderStats.revenue), accent: false },
+                  ].map((s) => (
+                    <Card key={s.label} padding="sm" className="text-center sm:p-5">
+                      <p className={`font-display text-xl tabular-nums text-espresso sm:text-3xl ${s.accent ? "text-clay" : ""}`}>
+                        {s.value}
+                      </p>
+                      <p className="mt-1 text-[10px] tracking-wide text-mocha sm:text-xs">{s.label}</p>
+                    </Card>
+                  ))}
+                </div>
+
+                {filteredOrders.length === 0 ? (
+                  <div className="mt-10">
+                    <EmptyState
+                      icon={
+                        <svg
+                          viewBox="0 0 24 24"
+                          className="h-7 w-7 text-taupe"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.6"
+                          strokeLinecap="round"
+                          aria-hidden
+                        >
+                          <circle cx="11" cy="11" r="7" />
+                          <path d="m20 20-3.5-3.5" />
+                        </svg>
+                      }
+                      title="No orders match these filters"
+                      description="Try a different status or a wider date range."
+                      action={
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setStatusFilter("all");
+                            setDateRange({ from: "", to: "" });
+                          }}
+                          className="mt-2 rounded-full bg-clay px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-clay-deep"
+                        >
+                          Clear filters
+                        </button>
+                      }
+                    />
                   </div>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          <p className="mt-8 text-center text-xs text-taupe">
-            Admin — changes are saved to the database.
-          </p>
-        </>
-      )}
-
-      {tab === "orders" && (
-        <>
-          {orders.length === 0 ? (
-            <div className="mt-10">
-              <EmptyState
-                icon={
-                  <svg
-                    viewBox="0 0 24 24"
-                    className="h-7 w-7 text-taupe"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden
-                  >
-                    <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z" />
-                    <path d="M12 12l8-4.5M12 12L4 7.5M12 12v9" />
-                  </svg>
-                }
-                title="No orders yet"
-                description="Orders will appear here as customers check out."
-              />
-            </div>
-          ) : (
-            <ul className="mt-6 space-y-3">
-                  {filteredOrders.map((order) => (
+                ) : (
+                  <>
+                <ul className="mt-6 space-y-3">
+                  {pagedOrders.map((order) => (
                     <li
                       key={order.id}
-                      className="rounded-2xl bg-surface ring-1 ring-border/50 p-4 sm:p-5"
+                      className="cursor-pointer rounded-2xl bg-surface p-4 ring-1 ring-border/40 transition-all duration-200 hover:ring-clay/25 sm:p-5"
+                      onClick={() => setActiveOrder(order)}
                     >
-                      {/* order header */}
-                      <div
-                        className="flex flex-wrap items-start justify-between gap-3 cursor-pointer select-none"
-                        onClick={() => toggleOrder(order.id)}
-                      >
+                      <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
                           <div className="flex items-center gap-2">
                             <p className="text-sm font-medium text-espresso">
@@ -1163,69 +1934,152 @@ export function AdminDashboard({
                               {formatOrderDate(order.placedAt)}
                             </p>
                           </div>
-                          <svg viewBox="0 0 24 24" className={`h-4 w-4 text-taupe transition-transform ${expandedOrders.has(order.id) ? "rotate-180" : ""}`} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                            <path d="M6 9l6 6 6-6" />
+                          <svg
+                            viewBox="0 0 24 24"
+                            className="h-4 w-4 text-taupe"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M9 6l6 6-6 6" />
                           </svg>
                         </div>
                       </div>
-
-                      {expandedOrders.has(order.id) && (
-                        <div className="animate-fade-in">
-                          {/* items */}
-                          <ul className="mt-3 divide-y divide-border/50 border-t border-border/50 pt-3">
-                            {order.items.map((item) => (
-                              <li
-                                key={item.id}
-                                className="flex items-center justify-between py-2 text-xs"
-                              >
-                                <span className="text-mocha">
-                                  {item.name}{" "}
-                                  <span className="text-taupe">×{item.qty}</span>
-                                  {item.size && (
-                                    <span className="text-taupe"> · {item.size}</span>
-                                  )}
-                                </span>
-                                <span className="tabular-nums text-espresso">
-                                  {formatPrice(item.price * item.qty)}
-                                </span>
-                              </li>
-                            ))}
-                          </ul>
-
-                          {/* shipping address */}
-                          <div className="mt-3 border-t border-border/50 pt-3 text-[11px] text-taupe">
-                            {order.street}, {order.city}
-                            {order.postal ? ` ${order.postal}` : ""}, {order.country}
-                          </div>
-
-                          {/* status controls */}
-                          <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border/50 pt-3">
-                            <span className="text-[11px] font-medium text-mocha">Status:</span>
-                            {ORDER_STATUSES.map((s) => (
-                              <Button
-                                key={s}
-                                variant={order.status === s ? "primary" : "secondary"}
-                                size="sm"
-                                onClick={() => handleStatusChange(order.id, s)}
-                                disabled={busy || order.status === s}
-                                className="text-[11px] px-3 py-1"
-                              >
-                                {statusLabel[s]}
-                              </Button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
                     </li>
                   ))}
                 </ul>
-              )}
+                <Pagination
+                  page={currentOrdersPage}
+                  totalPages={ordersTotalPages}
+                  onChange={setOrdersPage}
+                />
+                <p className="mt-3 text-center text-xs text-taupe">
+                  Click an order to view details and update its status.
+                </p>
+                <p className="mt-4 text-center text-xs text-taupe">
+                  Showing {ordersStart}–{ordersEnd} of {filteredOrders.length} orders
+                </p>
+                  </>
+                )}
+              </>
+            )}
           </>
-      )}
+        )}
 
-      {tab === "settings" && <SettingsPanel />}
+        {tab === "activity" && (
+          <div className="mt-8">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm text-mocha">
+                {logTotal} {logTotal === 1 ? "entry" : "entries"} — every admin action is recorded.
+              </p>
+              <Button variant="secondary" size="sm" onClick={() => loadLogPage(1)} loading={logLoading}>
+                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                  <path d="M3 3v5h5" />
+                </svg>
+                Refresh
+              </Button>
+            </div>
+            {log.length === 0 ? (
+              <div className="mt-6">
+                <EmptyState
+                  icon={
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="h-7 w-7 text-taupe"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden
+                    >
+                      <path d="M12 8v4l3 3" />
+                      <circle cx="12" cy="12" r="9" />
+                    </svg>
+                  }
+                  title="Nothing recorded yet"
+                  description="Sign-ins, product changes and order updates will appear here."
+                />
+              </div>
+            ) : (
+              <ul className="mt-6 space-y-2">
+                {log.map((entry) => (
+                  <li
+                    key={entry.id}
+                    className="flex items-start gap-4 rounded-2xl bg-surface p-4 ring-1 ring-border/40 transition-colors hover:ring-clay/20"
+                  >
+                    <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-cream">
+                      <span
+                        aria-hidden
+                        className={`h-2 w-2 rounded-full ${
+                          eventBadgeVariant[entry.event] === "danger"
+                            ? "bg-sale"
+                            : eventBadgeVariant[entry.event] === "success"
+                              ? "bg-espresso"
+                              : "bg-taupe"
+                        }`}
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant={eventBadgeVariant[entry.event] ?? "muted"} size="sm">
+                          {entry.event}
+                        </Badge>
+                        <span className="text-[11px] text-taupe">
+                          {formatOrderDate(entry.createdAt)}
+                        </span>
+                      </div>
+                      <p className="mt-1.5 break-words text-sm text-espresso">
+                        {entry.detail}
+                      </p>
+                      {entry.ip && (
+                        <p className="mt-0.5 text-[11px] text-taupe">IP {entry.ip}</p>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <Pagination
+              page={currentLogPage}
+              totalPages={logTotalPages}
+              onChange={loadLogPage}
+            />
+            <p className="mt-4 text-center text-xs text-taupe">
+              Showing {logStart}–{logEnd} of {logTotal} entries
+            </p>
+          </div>
+        )}
+
+        {tab === "settings" && (
+          <SettingsPanel onDirtyChange={setSettingsDirty} />
+        )}
       </div>
 
+      {/* order detail slide-over */}
+      {activeOrder && (
+        <OrderDrawer
+          order={activeOrder}
+          busy={busy}
+          onClose={closeOrder}
+          onStatusChange={handleStatusChange}
+        />
+      )}
+
+      {/* confirm dialog */}
+      {confirm && (
+        <ConfirmDialog
+          confirm={confirm}
+          busy={confirmBusy}
+          onConfirm={handleConfirm}
+          onClose={() => setConfirm(null)}
+        />
+      )}
+
+      {/* editor modal */}
       {editor && (
         <ProductForm
           initial={editor.mode === "edit" ? editor.product : null}
