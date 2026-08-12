@@ -152,12 +152,31 @@ export async function initiatePayment(params: PaymentParams): Promise<PaymentRes
     };
   }
 
+  // Moolre returns status !== 1 on the first call when OTP is required (e.g.
+  // code "TP14"). The charge has NOT been made yet but the OTP was dispatched
+  // and a session ID is present in data.data. We must treat this as a
+  // successful initiation (requiresOtp: true) and capture the session ID so
+  // the subsequent OTP submit can include it — without it Moolre rejects the
+  // charge with sessionid: "".
+  if (data.code === "TP14") {
+    const ref = typeof data.data === "string" ? data.data : "";
+    console.log("[moolre] initiatePayment OTP required:", { code: data.code, sessionId: ref || "(none)" });
+    return {
+      success: true,
+      code: data.code,
+      message: typeof data.message === "string" ? data.message : Array.isArray(data.message) ? data.message.join(", ") : "OTP sent to your phone",
+      transactionId: ref || undefined,
+      sessionId: ref || undefined,
+      requiresOtp: true,
+    };
+  }
+
   console.log("[moolre] initiatePayment failed:", { status: data.status, code: data.code });
   return {
     success: false,
     code: data.code,
     message: typeof data.message === "string" ? data.message : Array.isArray(data.message) ? data.message.join(", ") : "Payment failed",
-    requiresOtp: data.code === "TP14",
+    requiresOtp: false,
   };
 }
 
