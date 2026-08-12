@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { rateLimit, rateLimitGlobal } from "@/lib/rate-limit";
+import { getMoolreBaseUrl, getConfig } from "@/lib/moolre";
 
 /**
  * Payment-provider connectivity probe.
@@ -25,28 +26,33 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
 
-  const base = process.env.MOOLRE_BASE_URL || "(unset — code defaults to https://sandbox.moolre.com)";
-  const user = process.env.MOOLRE_API_USER;
-  const pubKey = process.env.MOOLRE_PUB_KEY;
-  const accountId = process.env.MOOLRE_ACCOUNT_ID;
+  // Mirror the app exactly: same normalized base URL and cleaned credentials.
+  let cfg: { user: string; pubKey: string; accountId: string; secret?: string } | null = null;
+  try {
+    cfg = getConfig();
+  } catch {
+    cfg = null;
+  }
+  const user = cfg?.user;
+  const pubKey = cfg?.pubKey;
+  const accountId = cfg?.accountId;
 
   const env = {
-    baseUrl: base,
+    // The raw stored value (may show stray quotes/whitespace from a paste).
+    baseUrl: process.env.MOOLRE_BASE_URL || "(unset — code defaults to https://sandbox.moolre.com)",
+    // The value the app actually uses after quote/whitespace stripping.
+    effectiveBaseUrl: getMoolreBaseUrl(),
     apiUserSet: Boolean(user),
     pubKeySet: Boolean(pubKey),
     accountIdSet: Boolean(accountId),
-    secretSet: Boolean(process.env.MOOLRE_SECRET),
+    secretSet: Boolean(cfg?.secret),
   };
 
-  const missing = [];
-  if (!user) missing.push("MOOLRE_API_USER");
-  if (!pubKey) missing.push("MOOLRE_PUB_KEY");
-  if (!accountId) missing.push("MOOLRE_ACCOUNT_ID");
-  if (missing.length > 0 || !user || !pubKey || !accountId) {
+  if (!user || !pubKey || !accountId) {
     return NextResponse.json({
       ok: false,
       env,
-      verdict: `Cannot probe: missing env vars: ${missing.join(", ") || "MOOLRE_* credentials"}. Add them in Vercel → Settings → Environment Variables (Production), then redeploy.`,
+      verdict: "Cannot probe: one or more MOOLRE_API_USER / MOOLRE_PUB_KEY / MOOLRE_ACCOUNT_ID are unset. Add them in Vercel → Settings → Environment Variables (Production), then redeploy.",
     });
   }
 
@@ -66,7 +72,7 @@ export async function GET(req: Request) {
   };
 
   try {
-    const res = await fetch(`${base}/open/transact/payment`, {
+    const res = await fetch(`${getMoolreBaseUrl()}/open/transact/payment`, {
       method: "POST",
       headers: {
         "X-API-USER": user,

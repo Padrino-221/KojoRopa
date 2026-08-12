@@ -19,13 +19,18 @@ function cleanEnvValue(raw: string | undefined): string | undefined {
 
 const MOOLRE_BASE = (cleanEnvValue(process.env.MOOLRE_BASE_URL) || "https://sandbox.moolre.com").replace(/\/+$/, "");
 
+/** The effective payment API base URL (quotes/whitespace already stripped). */
+export function getMoolreBaseUrl(): string {
+  return MOOLRE_BASE;
+}
+
 if (MOOLRE_BASE.includes("sandbox")) {
   console.warn(
     "[moolre] WARNING: MOOLRE_BASE_URL points at the Moolre SANDBOX — payments are test-only and no real money moves. To accept live payments set MOOLRE_BASE_URL=https://api.moolre.com and use your production credentials."
   );
 }
 
-function getConfig() {
+export function getConfig() {
   const user = cleanEnvValue(process.env.MOOLRE_API_USER);
   const pubKey = cleanEnvValue(process.env.MOOLRE_PUB_KEY);
   const accountId = cleanEnvValue(process.env.MOOLRE_ACCOUNT_ID);
