@@ -313,6 +313,14 @@ export async function submitOtpAction(
     // swaps to the confirming notice and the status poll takes over).
     return { ok: false, pending: true, error: result.message || "OTP verification failed. Please try again." };
   }
+  // Any other non-success outcome (e.g. TP13 duplicate-reference on the
+  // post-TP17 re-issue, unexpected codes, etc.) is logged with the full
+  // envelope so the admin trail always shows what Moolre answered.
+  await logAudit(
+    "order.payment",
+    `order ${orderId} OTP submit not confirmed (code: ${result.code || "?"}) — no charge made; envelope: ${result.gatewayDetail || "n/a"}`,
+    ip
+  );
   return { ok: false, error: result.message || "OTP verification failed. Please try again." };
 }
 

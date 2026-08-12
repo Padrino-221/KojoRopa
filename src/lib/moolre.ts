@@ -292,6 +292,7 @@ export async function submitOtp(params: {
     return {
       data: parsed,
       gatewayDetail: JSON.stringify({
+        http: res.status,
         status: parsed.status,
         code: parsed.code,
         message: parsed.message,
