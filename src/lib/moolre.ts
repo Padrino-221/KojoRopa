@@ -76,6 +76,8 @@ interface PaymentResult {
   requiresOtp?: boolean;
   /** Internal-only: the raw technical reason when the call failed at the network level. */
   technical?: string;
+  /** The raw Moolre response envelope, for the audit trail (debugging). */
+  gatewayDetail?: string;
 }
 
 /** Normalizes a Ghanaian phone number to local format (0XXXXXXXXX). */
@@ -157,6 +159,12 @@ export async function initiatePayment(params: PaymentParams): Promise<PaymentRes
   }
 
   const ref = typeof data.data === "string" ? data.data : "";
+  const gatewayDetail = JSON.stringify({
+    status: data.status,
+    code: data.code,
+    message: data.message,
+    data: data.data,
+  });
 
   // OTP challenge — Moolre returns code TP14 (often with status 1) when the
   // SMS OTP has been dispatched but NO charge has been made yet. Capture the
@@ -171,6 +179,7 @@ export async function initiatePayment(params: PaymentParams): Promise<PaymentRes
       message: typeof data.message === "string" ? data.message : Array.isArray(data.message) ? data.message.join(", ") : "OTP sent to your phone",
       sessionId: ref || undefined,
       requiresOtp: true,
+      gatewayDetail,
     };
   }
 
@@ -183,6 +192,7 @@ export async function initiatePayment(params: PaymentParams): Promise<PaymentRes
       message: typeof data.message === "string" ? data.message : Array.isArray(data.message) ? data.message.join(", ") : "Payment initiated",
       transactionId: ref || undefined,
       requiresOtp: false,
+      gatewayDetail,
     };
   }
 
@@ -192,6 +202,7 @@ export async function initiatePayment(params: PaymentParams): Promise<PaymentRes
     code: data.code,
     message: typeof data.message === "string" ? data.message : Array.isArray(data.message) ? data.message.join(", ") : "Payment failed",
     requiresOtp: false,
+    gatewayDetail,
   };
 }
 
@@ -254,6 +265,13 @@ export async function submitOtp(params: {
     return { success: false, message: "Unexpected response from the payment provider." };
   }
 
+  const gatewayDetail = JSON.stringify({
+    status: data.status,
+    code: data.code,
+    message: data.message,
+    data: data.data,
+  });
+
   // CRITICAL: Moolre answers an OTP challenge with status 1 AND code TP14 when
   // the submitted code is wrong, expired, or the session id is stale. That is
   // NOT a charge — the money has NOT moved. Only a response that is not an OTP
@@ -265,6 +283,7 @@ export async function submitOtp(params: {
       code: data.code,
       message: "That code was invalid or has expired. Check your phone for the latest code and try again.",
       requiresOtp: true,
+      gatewayDetail,
     };
   }
 
@@ -276,6 +295,7 @@ export async function submitOtp(params: {
       code: data.code,
       message: typeof data.message === "string" ? data.message : Array.isArray(data.message) ? data.message.join(", ") : "Payment confirmed",
       transactionId: ref || undefined,
+      gatewayDetail,
     };
   }
 
@@ -283,6 +303,7 @@ export async function submitOtp(params: {
     success: false,
     code: data.code,
     message: typeof data.message === "string" ? data.message : Array.isArray(data.message) ? data.message.join(", ") : "OTP verification failed",
+    gatewayDetail,
   };
 }
 
@@ -329,6 +350,13 @@ export async function checkPaymentStatus(params: {
     return { success: false, message: "Invalid response" };
   }
 
+  const gatewayDetail = JSON.stringify({
+    status: data.status,
+    code: data.code,
+    message: data.message,
+    data: data.data,
+  });
+
   if (Number(data.status) === 1) {
     const obj = typeof data.data === "object" && data.data !== null ? data.data as Record<string, unknown> : null;
     const paid = String(obj?.txstatus) === "1";
@@ -338,6 +366,7 @@ export async function checkPaymentStatus(params: {
       code: data.code,
       message: typeof data.message === "string" ? data.message : paid ? "Payment successful" : "Payment not yet confirmed",
       transactionId: typeof obj?.transactionid === "string" ? obj.transactionid : undefined,
+      gatewayDetail,
     };
   }
 
@@ -345,6 +374,7 @@ export async function checkPaymentStatus(params: {
     success: false,
     code: data.code,
     message: typeof data.message === "string" ? data.message : "Payment not confirmed",
+    gatewayDetail,
   };
 }
 

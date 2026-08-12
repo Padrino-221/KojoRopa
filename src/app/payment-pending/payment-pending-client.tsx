@@ -78,8 +78,10 @@ export function PaymentPendingClient({
     const res = await retryPaymentAction(orderId, token);
     setRetrying(false);
     if (res.ok) {
+      // A fresh code + prompt was dispatched — return to the OTP form.
       setInitiated(true);
-      setSuccess("A new USSD prompt has been sent to your phone.");
+      setConfirming(false);
+      setSuccess("A new verification code has been sent to your phone.");
     } else {
       setError(res.error);
     }
@@ -152,8 +154,8 @@ export function PaymentPendingClient({
           </h1>
           {initiated ? (
             <p className="mt-2 text-sm text-mocha">
-              A USSD prompt has been sent to <strong>{phone}</strong>.
-              Enter the OTP code you received below.
+              We&apos;ve sent a verification code to <strong>{phone}</strong>.
+              Enter it below to approve the payment.
             </p>
           ) : (
             <p className="mt-2 text-sm text-sale">
@@ -190,11 +192,24 @@ export function PaymentPendingClient({
           <div className="mt-6 flex flex-col items-center gap-3 rounded-xl bg-surface p-5 text-center ring-1 ring-border/50">
             <span className="h-6 w-6 animate-spin rounded-full border-2 border-clay border-t-transparent" />
             <p className="text-sm font-medium text-espresso">
-              Confirming your payment…
+              Approve the payment on your phone
             </p>
-            <p className="text-xs text-mocha">
-              {success || "This usually takes a few seconds."}
+            <p className="text-xs leading-relaxed text-mocha">
+              {success || "We&apos;re confirming your payment with the mobile money provider."}
             </p>
+            <p className="text-xs leading-relaxed text-mocha">
+              Look for the approval prompt on <strong>{phone}</strong> (e.g.{" "}
+              <strong>*170#</strong> for MTN) and approve it with your Mobile
+              Money PIN. We&apos;ll confirm automatically once approved.
+            </p>
+            <button
+              type="button"
+              onClick={handleRetry}
+              disabled={retrying}
+              className="text-xs text-clay underline underline-offset-2 hover:text-clay-deep disabled:opacity-50"
+            >
+              {retrying ? "Sending a new code…" : "No prompt received? Send a new code"}
+            </button>
           </div>
         ) : initiated ? (
           <form onSubmit={handleSubmitOtp} className="mt-6 space-y-4">

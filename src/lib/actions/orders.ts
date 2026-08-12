@@ -184,7 +184,11 @@ export async function createOrderAction(
     : `Order placed but payment could not be initiated: ${payment.message || "Unknown error"}. You can retry payment from your order confirmation.`;
 
   const payDetail = payment.success ? "initiated" : `failed: ${payment.technical || payment.message || "unknown"}`;
-  await logAudit("order.create", `order ${orderId} placed (payment: ${payDetail})`, ip);
+  await logAudit(
+    "order.create",
+    `order ${orderId} placed (payment: ${payDetail}; moolre: ${payment.gatewayDetail || "n/a"})`,
+    ip
+  );
 
   return {
     ok: true,
@@ -268,13 +272,13 @@ export async function submitOtpAction(
         : `status ${verification.code || "pending"}`;
       await logAudit(
         "order.payment",
-        `order ${orderId} OTP accepted but Moolre ${reason} — NOT marked paid yet`,
+        `order ${orderId} OTP accepted (submit code: ${result.code || "?"}) but Moolre ${reason} — NOT marked paid yet; submit envelope: ${result.gatewayDetail || "n/a"}; status envelope: ${verification.gatewayDetail || "n/a"}`,
         ip
       );
       return {
         ok: false,
         pending: true,
-        error: "Payment is being confirmed with the mobile money provider — it will complete automatically.",
+        error: "Approval pending — check your phone for the prompt (e.g. *170# for MTN) and approve it with your Mobile Money PIN.",
       };
     }
     await confirmOrderPayment(orderId, {
@@ -290,7 +294,7 @@ export async function submitOtpAction(
   if (result.code === "TP14") {
     await logAudit(
       "order.payment",
-      `order ${orderId} OTP rejected by Moolre (TP14) — code invalid or expired; no charge made`,
+      `order ${orderId} OTP rejected by Moolre (TP14) — code invalid or expired; no charge made; envelope: ${result.gatewayDetail || "n/a"}`,
       ip
     );
   }
@@ -401,6 +405,12 @@ export async function checkPaymentAction(
 
   if (result.technical) {
     await logAudit("order.payment", `order ${orderId} status check failed: ${result.technical}`, ip);
+  } else {
+    await logAudit(
+      "order.payment",
+      `order ${orderId} status check: ${result.code || "?"} — ${result.message || "not confirmed"}; envelope: ${result.gatewayDetail || "n/a"}`,
+      ip
+    );
   }
   return { ok: false, error: result.message || "Payment not yet confirmed." };
 }
