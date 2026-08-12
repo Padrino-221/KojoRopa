@@ -88,11 +88,11 @@ export function normalizePhone(raw: string): string {
 
 /**
  * Returns the Moolre channel number for a normalized Ghanaian phone number.
- *  1 = MTN Mobile Money      (024, 025, 053, 054, 055, 059)
+ *  13 = MTN Mobile Money      (024, 025, 053, 054, 055, 059)
  *  6 = Telecel/Vodafone Cash (020, 050)
  *  7 = AirtelTigo Money      (026, 027, 056, 057)
  *
- * Defaults to MTN (1) for unrecognised prefixes.
+ * Defaults to MTN (13) for unrecognised prefixes.
  */
 export function getMoolreChannel(normalizedPhone: string): string {
   const prefix3 = normalizedPhone.slice(0, 3);
@@ -100,7 +100,7 @@ export function getMoolreChannel(normalizedPhone: string): string {
   const airteltigoPrefixes = ["026", "027", "056", "057"];
   if (telecelPrefixes.includes(prefix3)) return "6";
   if (airteltigoPrefixes.includes(prefix3)) return "7";
-  return "1"; // MTN
+  return "13"; // MTN
 }
 
 /**
