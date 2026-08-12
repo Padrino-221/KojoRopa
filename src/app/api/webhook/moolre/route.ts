@@ -38,7 +38,7 @@ interface MoolreWebhookPayload {
  */
 const WEBHOOK_ALLOWLIST = (process.env.MOOLRE_WEBHOOK_IPS || "")
   .split(",")
-  .map((s) => s.trim())
+  .map((s) => s.trim().replace(/^"|"$/g, "")) // Vercel stores values literally — strip stray quotes
   .filter(Boolean);
 
 function clientIp(req: Request): string | null {

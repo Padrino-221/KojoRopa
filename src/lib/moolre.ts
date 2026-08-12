@@ -2,7 +2,22 @@ import { createHash, timingSafeEqual } from "node:crypto";
 
 // Sandbox is the safe default for development, but it means NO real money
 // moves. The live production endpoint is https://api.moolre.com.
-const MOOLRE_BASE = process.env.MOOLRE_BASE_URL || "https://sandbox.moolre.com";
+
+/**
+ * Vercel stores env values literally — a value pasted from a .env file arrives
+ * WITH its surrounding quotes ("https://..."). Strip quotes and whitespace so
+ * a misconfigured copy-paste can't silently break payments or webhooks.
+ */
+function cleanEnvValue(raw: string | undefined): string | undefined {
+  if (!raw) return raw;
+  let v = raw.trim();
+  if (v.length >= 2 && v.startsWith("\"") && v.endsWith("\"")) {
+    v = v.slice(1, -1).trim();
+  }
+  return v;
+}
+
+const MOOLRE_BASE = (cleanEnvValue(process.env.MOOLRE_BASE_URL) || "https://sandbox.moolre.com").replace(/\/+$/, "");
 
 if (MOOLRE_BASE.includes("sandbox")) {
   console.warn(
@@ -11,10 +26,10 @@ if (MOOLRE_BASE.includes("sandbox")) {
 }
 
 function getConfig() {
-  const user = process.env.MOOLRE_API_USER;
-  const pubKey = process.env.MOOLRE_PUB_KEY;
-  const accountId = process.env.MOOLRE_ACCOUNT_ID;
-  const secret = process.env.MOOLRE_SECRET;
+  const user = cleanEnvValue(process.env.MOOLRE_API_USER);
+  const pubKey = cleanEnvValue(process.env.MOOLRE_PUB_KEY);
+  const accountId = cleanEnvValue(process.env.MOOLRE_ACCOUNT_ID);
+  const secret = cleanEnvValue(process.env.MOOLRE_SECRET);
 
   if (!user || !pubKey || !accountId) {
     throw new Error("Missing Moolre environment variables: MOOLRE_API_USER, MOOLRE_PUB_KEY, MOOLRE_ACCOUNT_ID");
