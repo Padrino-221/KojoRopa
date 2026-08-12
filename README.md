@@ -106,3 +106,25 @@ serverless-specific shims are needed.
   `next.config.ts`.
 - Product prices and totals are recomputed from the database on every order —
   the client-provided values are ignored.
+
+## Activating live Moolre payments
+
+The store ships in Moolre **sandbox** mode by default: the full checkout, OTP
+and confirmation flow works end-to-end, but **no real money moves**. To accept
+live payments:
+
+1. Get **production** API credentials from your Moolre merchant dashboard
+   (`MOOLRE_API_USER`, `MOOLRE_PUB_KEY`, `MOOLRE_ACCOUNT_ID`, `MOOLRE_SECRET`).
+2. Set `MOOLRE_BASE_URL="https://api.moolre.com"` (the live endpoint) in your
+   environment — the sandbox default (`https://sandbox.moolre.com`) is test-only.
+3. Register the webhook `https://<your-domain>/api/webhook/moolre` in the
+   Moolre dashboard and make sure `MOOLRE_SECRET` matches what you set there.
+4. Set `MOOLRE_WEBHOOK_IPS` to Moolre's documented callback IPs
+   (`192.241.135.134` for wallet callbacks, `174.138.44.22` for POS) so forged
+   callbacks are rejected outright.
+5. Place a low-value test order and confirm the money actually moves and the
+   order flips to **Paid** in the admin dashboard before opening to customers.
+
+Orders stay `pending` until payment is confirmed (webhook / OTP / status
+poll), flip to `paid` once confirmed, and only become `delivered` when you
+mark them fulfilled in the admin dashboard.

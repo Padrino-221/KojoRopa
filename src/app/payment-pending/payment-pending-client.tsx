@@ -14,7 +14,6 @@ interface PaymentPendingClientProps {
   token: string;
   amount: number;
   phone: string;
-  paymentMessage: string;
   paymentInitiated: boolean;
   initialStatus: string;
 }
@@ -24,7 +23,6 @@ export function PaymentPendingClient({
   token,
   amount,
   phone,
-  paymentMessage,
   paymentInitiated,
   initialStatus,
 }: PaymentPendingClientProps) {
@@ -35,21 +33,23 @@ export function PaymentPendingClient({
   const [retrying, setRetrying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  // "paid" tracks whether the payment went through. The order itself stays
-  // "pending" until the admin marks it delivered — so we can't use the order
-  // status as the payment-confirmed signal anymore.
-  const [paid, setPaid] = useState(initialStatus === "delivered");
+  // "paid" tracks whether the payment went through. The order stays "paid"
+  // until the admin marks it "delivered", so both statuses mean the payment
+  // was confirmed.
+  const [paid, setPaid] = useState(
+    initialStatus === "paid" || initialStatus === "delivered"
+  );
   const [initiated, setInitiated] = useState(paymentInitiated);
 
   const handleCheckStatus = useCallback(async () => {
     setChecking(true);
-    const res = await checkPaymentAction(orderId);
+    const res = await checkPaymentAction(orderId, token);
     if (res.ok && res.paid) {
       setPaid(true);
       setSuccess("Payment confirmed!");
     }
     setChecking(false);
-  }, [orderId]);
+  }, [orderId, token]);
 
   // Auto-check payment status every 10 seconds until paid
   useEffect(() => {
@@ -72,7 +72,7 @@ export function PaymentPendingClient({
     if (retrying) return;
     setRetrying(true);
     setError(null);
-    const res = await retryPaymentAction(orderId);
+    const res = await retryPaymentAction(orderId, token);
     setRetrying(false);
     if (res.ok) {
       setInitiated(true);
@@ -89,8 +89,7 @@ export function PaymentPendingClient({
     setError(null);
 
     try {
-      const res = await submitOtpAction(orderId, otp.trim());
-      console.log("[payment-pending] submitOtp result:", res);
+      const res = await submitOtpAction(orderId, token, otp.trim());
       setSubmitting(false);
 
       if (res.ok) {

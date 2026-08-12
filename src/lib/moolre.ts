@@ -1,4 +1,14 @@
+import { createHash, timingSafeEqual } from "node:crypto";
+
+// Sandbox is the safe default for development, but it means NO real money
+// moves. The live production endpoint is https://api.moolre.com.
 const MOOLRE_BASE = process.env.MOOLRE_BASE_URL || "https://sandbox.moolre.com";
+
+if (MOOLRE_BASE.includes("sandbox")) {
+  console.warn(
+    "[moolre] WARNING: MOOLRE_BASE_URL points at the Moolre SANDBOX — payments are test-only and no real money moves. To accept live payments set MOOLRE_BASE_URL=https://api.moolre.com and use your production credentials."
+  );
+}
 
 function getConfig() {
   const user = process.env.MOOLRE_API_USER;
@@ -37,7 +47,8 @@ interface PaymentResult {
   requiresOtp?: boolean;
 }
 
-function normalizePhone(raw: string): string {
+/** Normalizes a Ghanaian phone number to local format (0XXXXXXXXX). */
+export function normalizePhone(raw: string): string {
   const digits = raw.replace(/\D/g, "");
   if (digits.startsWith("233")) return "0" + digits.slice(3);
   if (digits.startsWith("0")) return digits;
@@ -78,31 +89,24 @@ export async function initiatePayment(params: PaymentParams): Promise<PaymentRes
       body: JSON.stringify(body),
     });
   } catch (err) {
-    console.error("[moolre] fetch error:", err);
-    return {
-      success: false,
-      message: `Network error: ${String(err)}`,
-    };
+    console.error("[moolre] initiatePayment fetch error:", String(err));
+    return { success: false, message: "Network error talking to the payment provider." };
   }
 
   const text = await res.text();
-  console.log(`[moolre] initiatePayment raw response (HTTP ${res.status}): ${text}`);
   let data: MoolreResponse;
   try {
     data = JSON.parse(text);
   } catch {
-    console.error("[moolre] non-JSON response:", text);
-    return {
-      success: false,
-      message: `Unexpected response from Moolre: ${text.slice(0, 200)}`,
-    };
+    console.error(`[moolre] initiatePayment non-JSON response (HTTP ${res.status})`);
+    return { success: false, message: "Unexpected response from the payment provider." };
   }
 
   if (data.status === 1) {
     // data is a plain string transaction reference (UUID), not an object
     const ref = typeof data.data === "string" ? data.data : "";
     const requiresOtp = data.code === "TP14";
-    console.log("[moolre] initiatePayment success:", { code: data.code, ref });
+    console.log("[moolre] initiatePayment success:", { code: data.code, requiresOtp });
     return {
       success: true,
       code: data.code,
@@ -113,7 +117,7 @@ export async function initiatePayment(params: PaymentParams): Promise<PaymentRes
     };
   }
 
-  console.log("[moolre] initiatePayment failed:", { status: data.status, code: data.code, message: data.message, fullData: data });
+  console.log("[moolre] initiatePayment failed:", { status: data.status, code: data.code });
   return {
     success: false,
     code: data.code,
@@ -162,11 +166,8 @@ export async function submitOtp(params: {
       body: JSON.stringify(body),
     });
   } catch (err) {
-    console.error("[moolre] submitOtp fetch error:", err);
-    return {
-      success: false,
-      message: `Network error: ${String(err)}`,
-    };
+    console.error("[moolre] submitOtp fetch error:", String(err));
+    return { success: false, message: "Network error talking to the payment provider." };
   }
 
   const text = await res.text();
@@ -174,16 +175,13 @@ export async function submitOtp(params: {
   try {
     data = JSON.parse(text);
   } catch {
-    console.error("[moolre] submitOtp non-JSON response:", text);
-    return {
-      success: false,
-      message: `Unexpected response: ${text.slice(0, 200)}`,
-    };
+    console.error("[moolre] submitOtp non-JSON response");
+    return { success: false, message: "Unexpected response from the payment provider." };
   }
 
   if (data.status === 1) {
     const ref = typeof data.data === "string" ? data.data : "";
-    console.log("[moolre] submitOtp success:", { code: data.code, ref });
+    console.log("[moolre] submitOtp success:", { code: data.code });
     return {
       success: true,
       code: data.code,
@@ -201,6 +199,8 @@ export async function submitOtp(params: {
 
 /**
  * Check payment status via Moolre using the order's external reference.
+ * The result is trusted as the server-to-server source of truth for whether a
+ * transaction is actually paid.
  */
 export async function checkPaymentStatus(params: {
   externalRef: string;
@@ -224,8 +224,8 @@ export async function checkPaymentStatus(params: {
       }),
     });
   } catch (err) {
-    console.error("[moolre] checkStatus fetch error:", err);
-    return { success: false, message: `Network error: ${String(err)}` };
+    console.error("[moolre] checkStatus fetch error:", String(err));
+    return { success: false, message: "Network error talking to the payment provider." };
   }
 
   const text = await res.text();
@@ -239,7 +239,7 @@ export async function checkPaymentStatus(params: {
   if (data.status === 1) {
     const obj = typeof data.data === "object" && data.data !== null ? data.data as Record<string, unknown> : null;
     const paid = String(obj?.txstatus) === "1";
-    console.log("[moolre] checkPaymentStatus:", { code: data.code, paid, data: data.data });
+    console.log("[moolre] checkPaymentStatus:", { code: data.code, paid });
     return {
       success: paid,
       code: data.code,
@@ -256,12 +256,20 @@ export async function checkPaymentStatus(params: {
 }
 
 /**
- * Verify webhook authenticity by checking the secret field.
+ * Verify webhook authenticity by checking the account secret Moolre includes
+ * in the callback body. Compared in constant time.
+ *
+ * Note: this is Moolre's only callback credential, and it travels inside the
+ * payload — so it must never be exposed anywhere else. Combine it with the
+ * MOOLRE_WEBHOOK_IPS allow-list and the server-side status re-verification in
+ * the webhook handler.
  */
 export function verifyWebhookSecret(webhookSecret: string): boolean {
   const { secret } = getConfig();
-  if (!secret) return false;
-  return webhookSecret === secret;
+  if (!secret || !webhookSecret) return false;
+  const a = createHash("sha256").update(String(webhookSecret)).digest();
+  const b = createHash("sha256").update(secret).digest();
+  return timingSafeEqual(a, b);
 }
 
 export type { PaymentParams, PaymentResult };

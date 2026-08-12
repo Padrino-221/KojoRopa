@@ -1,21 +1,16 @@
 "use server";
 
 import { randomUUID } from "node:crypto";
-import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { rateLimit, rateLimitGlobal } from "@/lib/rate-limit";
 import { getClientIp } from "@/lib/request";
 import { logAudit } from "@/lib/audit";
-import { createOrderNumber, markOrderProductsSold } from "@/lib/order";
+import { createOrderNumber, confirmOrderPayment } from "@/lib/order";
 import { orderSchema } from "@/lib/validators";
 import type { OrderInput } from "@/lib/validators";
 import { ORDER_STATUSES, type OrderStatus } from "@/lib/order-status";
 import { initiatePayment, submitOtp, checkPaymentStatus } from "@/lib/moolre";
-import {
-  sendOrderConfirmation,
-  sendAdminOrderNotification,
-  sendDeliveryUpdate,
-} from "@/lib/email";
+import { sendDeliveryUpdate } from "@/lib/email";
 import type { EmailOrder } from "@/lib/email";
 
 export type { OrderStatus };
@@ -210,28 +205,42 @@ export type SubmitOtpResult =
   | { ok: false; error: string };
 
 /**
- * Submit OTP code for a pending Moolre payment.
- * Updates the order status based on payment result.
+ * Loads an order and verifies the caller presents its unguessable token.
+ * Payment-mutating actions must only ever be driven by the buyer who holds
+ * the order token — the order id alone is too guessable to authorize changes.
+ */
+async function findOrderForAction(orderId: string, token: string) {
+  const order = await prisma.order.findUnique({ where: { id: orderId } });
+  if (!order || !order.token || order.token !== token) return null;
+  return order;
+}
+
+/**
+ * Submit OTP code for a pending Moolre payment (requires the order token).
+ * On success the order is flipped to "paid"; it only becomes "delivered"
+ * once the admin marks it fulfilled.
  */
 export async function submitOtpAction(
   orderId: string,
+  token: string,
   otpCode: string
 ): Promise<SubmitOtpResult> {
   const ip = await getClientIp();
-  console.log(`[submitOtp] orderId=${orderId}, ip=${ip}`);
 
-  if (!rateLimit(`otp:${orderId}`, 5, 60_000)) {
-    console.log("[submitOtp] rate limited");
+  if (
+    !rateLimit(`otp:${orderId}`, 5, 60_000) ||
+    !rateLimitGlobal("otp", 120, 60_000)
+  ) {
     return { ok: false, error: "Too many attempts. Please wait a moment." };
   }
 
-  const order = await prisma.order.findUnique({ where: { id: orderId } });
+  const order = await findOrderForAction(orderId, token);
   if (!order) {
-    console.log("[submitOtp] order not found");
     return { ok: false, error: "Order not found." };
   }
-
-  console.log(`[submitOtp] order found: sessionId=${order.moolreSessionId}, transactionId=${order.moolreTransactionId}, phone=${order.phone}`);
+  if (order.status === "paid" || order.status === "delivered") {
+    return { ok: true, message: "This order is already paid." };
+  }
 
   // Use sessionId if available, otherwise fall back to transactionId
   const sessionId = order.moolreSessionId || order.moolreTransactionId || "";
@@ -245,44 +254,11 @@ export async function submitOtpAction(
     transactionId: order.moolreTransactionId || undefined,
   });
 
-  console.log("[submitOtp] moolre result:", result);
-
   if (result.success) {
-    // Payment confirmed — the order stays "pending" until the admin marks it
-    // "delivered", so the status reflects fulfilment, not payment.
-    await prisma.order.update({
-      where: { id: orderId },
-      data: {
-        moolreTransactionId: result.transactionId || order.moolreTransactionId,
-      },
+    await confirmOrderPayment(orderId, {
+      ip,
+      transactionId: result.transactionId || order.moolreTransactionId || undefined,
     });
-
-    // One-of-one pieces in this order are now sold — retire them from the rack.
-    await markOrderProductsSold(orderId, ip);
-    revalidatePath("/", "layout");
-
-    await logAudit("order.payment", `order ${orderId} payment confirmed`, ip);
-
-    // Send the receipt to the buyer and a heads-up to the shop owner.
-    // Fire-and-forget: failures are logged in the email layer, never thrown.
-    const full = await prisma.order.findUnique({
-      where: { id: orderId },
-      include: { items: true },
-    });
-    if (full) {
-      const orderForEmail = toEmailOrder(full);
-      const [customer, admin] = await Promise.all([
-        sendOrderConfirmation(orderForEmail),
-        sendAdminOrderNotification(orderForEmail),
-      ]);
-      if (customer) {
-        await logAudit("email.order_confirmation", `receipt emailed for order ${orderId}`, ip);
-      }
-      if (admin) {
-        await logAudit("email.admin_notification", `new-order notification for ${orderId}`, ip);
-      }
-    }
-
     return { ok: true, message: result.message || "Payment confirmed!" };
   }
 
@@ -294,16 +270,29 @@ export type CheckPaymentResult =
   | { ok: false; error: string };
 
 /**
- * Re-initiate a Moolre payment for an existing pending order.
- * Used when the initial payment initiation failed or the USSD prompt expired.
+ * Re-initiate a Moolre payment for an existing pending order (requires the
+ * order token). Used when the initial initiation failed or the USSD prompt
+ * expired. Blocked once an order is already paid — no double-charging.
  */
 export async function retryPaymentAction(
-  orderId: string
+  orderId: string,
+  token: string
 ): Promise<CheckPaymentResult> {
   const ip = await getClientIp();
-  const order = await prisma.order.findUnique({ where: { id: orderId } });
+
+  if (
+    !rateLimit(`retry:${orderId}`, 3, 60_000) ||
+    !rateLimitGlobal("payment-retry", 30, 60_000)
+  ) {
+    return { ok: false, error: "Too many retries. Please wait a moment." };
+  }
+
+  const order = await findOrderForAction(orderId, token);
   if (!order) {
     return { ok: false, error: "Order not found." };
+  }
+  if (order.status === "paid" || order.status === "delivered") {
+    return { ok: false, error: "This order is already paid — no retry needed." };
   }
   if (!order.phone) {
     return { ok: false, error: "No phone number on this order." };
@@ -333,14 +322,28 @@ export async function retryPaymentAction(
 }
 
 /**
- * Check the payment status for an order via Moolre.
+ * Check the payment status for an order via Moolre (requires the order token).
+ * Confirms the order (flips it to "paid") when Moolre reports it paid.
  */
 export async function checkPaymentAction(
-  orderId: string
+  orderId: string,
+  token: string
 ): Promise<CheckPaymentResult> {
-  const order = await prisma.order.findUnique({ where: { id: orderId } });
+  const ip = await getClientIp();
+
+  if (
+    !rateLimit(`check:${orderId}`, 30, 60_000) ||
+    !rateLimitGlobal("payment-check", 600, 60_000)
+  ) {
+    return { ok: false, error: "Too many requests. Please wait a moment." };
+  }
+
+  const order = await findOrderForAction(orderId, token);
   if (!order) {
     return { ok: false, error: "Order not found." };
+  }
+  if (order.status === "paid" || order.status === "delivered") {
+    return { ok: true, paid: true, status: order.status };
   }
 
   if (!order.moolreSessionId && !order.moolreTransactionId) {
@@ -352,11 +355,11 @@ export async function checkPaymentAction(
   });
 
   if (result.success) {
-    // Payment confirmed — keep the order "pending"; only the admin marks it
-    // "delivered" once it's actually fulfilled. The pieces are now sold.
-    await markOrderProductsSold(orderId);
-    revalidatePath("/", "layout");
-    return { ok: true, paid: true, status: "pending" };
+    await confirmOrderPayment(orderId, {
+      ip,
+      transactionId: result.transactionId || order.moolreTransactionId || undefined,
+    });
+    return { ok: true, paid: true, status: "paid" };
   }
 
   return { ok: false, error: result.message || "Payment not yet confirmed." };

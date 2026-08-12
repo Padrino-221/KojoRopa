@@ -89,11 +89,14 @@ NEXT_PUBLIC_MAX_QTY=99
 CLOUDINARY_CLOUD_NAME=""
 CLOUDINARY_API_KEY=""
 CLOUDINARY_API_SECRET=""
-MOOLRE_BASE_URL="https://sandbox.moolre.com"
+# Live payments endpoint (switch to https://sandbox.moolre.com for testing only)
+MOOLRE_BASE_URL="https://api.moolre.com"
 MOOLRE_API_USER=""
 MOOLRE_PUB_KEY=""
 MOOLRE_ACCOUNT_ID=""
 MOOLRE_SECRET=""
+# Moolre webhook server IP allow-list (wallet callbacks + POS callbacks)
+MOOLRE_WEBHOOK_IPS="192.241.135.134,174.138.44.22"
 EOF
   chown "$APP_USER:$APP_USER" "$APP_DIR/.env"
   echo "    -> generated ADMIN_PASSWORD=${ADMIN_PASSWORD}"

@@ -1,6 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/db";
 import { dbToProduct } from "@/lib/product-mapper";
+import type { OrderStatus } from "@/lib/order-status";
 
 /** Visible, unsold products, featured first, newest first — the public rack. */
 export async function getPublicProducts() {
@@ -60,7 +61,7 @@ export async function getAdminOrders() {
   });
   return rows.map((row) => ({
     ...row,
-    status: row.status as "pending" | "delivered" | "failed",
+    status: row.status as OrderStatus,
   }));
 }
 

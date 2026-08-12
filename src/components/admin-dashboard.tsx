@@ -775,12 +775,14 @@ function SettingsPanel({
 
 const statusBadgeVariant: Record<OrderStatus, "muted" | "success" | "danger"> = {
   pending: "muted",
+  paid: "success",
   delivered: "success",
   failed: "danger",
 };
 
 const statusLabel: Record<OrderStatus, string> = {
   pending: "Pending",
+  paid: "Paid",
   delivered: "Delivered",
   failed: "Failed",
 };
@@ -1186,6 +1188,7 @@ export function AdminDashboard({
   const orderStats = useMemo(
     () => ({
       pending: pendingCount,
+      paid: orders.filter((o) => o.status === "paid").length,
       delivered: orders.filter((o) => o.status === "delivered").length,
       failed: orders.filter((o) => o.status === "failed").length,
       revenue: orders
@@ -1597,6 +1600,7 @@ export function AdminDashboard({
               options={[
                 { value: "all", label: "All statuses" },
                 { value: "pending", label: "Pending" },
+                { value: "paid", label: "Paid" },
                 { value: "delivered", label: "Delivered" },
                 { value: "failed", label: "Failed" },
               ]}
@@ -1953,9 +1957,10 @@ export function AdminDashboard({
             ) : (
               <>
                 {/* summary strip */}
-                <div className="mt-8 grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
+                <div className="mt-8 grid grid-cols-2 gap-2 sm:grid-cols-5 sm:gap-3">
                   {[
                     { label: "Pending", value: orderStats.pending, accent: true },
+                    { label: "Paid", value: orderStats.paid, accent: false },
                     { label: "Delivered", value: orderStats.delivered, accent: false },
                     { label: "Failed", value: orderStats.failed, accent: false },
                     { label: "Revenue", value: formatPrice(orderStats.revenue), accent: false },

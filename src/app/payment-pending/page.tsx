@@ -26,7 +26,8 @@ export default async function PaymentPendingPage(
   }
 
   // If payment already confirmed, go straight to confirmation
-  if (order.status === "delivered") {
+  // (status is "paid" until the admin marks the order "delivered")
+  if (order.status === "paid" || order.status === "delivered") {
     redirect(`/confirmation?token=${token}`);
   }
 
@@ -44,7 +45,6 @@ export default async function PaymentPendingPage(
       token={token}
       amount={order.total}
       phone={order.phone}
-      paymentMessage="A USSD prompt has been sent to your phone. Enter the OTP code to confirm payment."
       paymentInitiated={paymentInitiated}
       initialStatus={order.status}
     />
