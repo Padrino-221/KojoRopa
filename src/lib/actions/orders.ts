@@ -183,7 +183,8 @@ export async function createOrderAction(
     ? (payment.message || "Check your phone for the payment prompt.")
     : `Order placed but payment could not be initiated: ${payment.message || "Unknown error"}. You can retry payment from your order confirmation.`;
 
-  await logAudit("order.create", `order ${orderId} placed (payment: ${payment.success ? "initiated" : "failed"})`, ip);
+  const payDetail = payment.success ? "initiated" : `failed: ${payment.technical || payment.message || "unknown"}`;
+  await logAudit("order.create", `order ${orderId} placed (payment: ${payDetail})`, ip);
 
   return {
     ok: true,
@@ -262,6 +263,9 @@ export async function submitOtpAction(
     return { ok: true, message: result.message || "Payment confirmed!" };
   }
 
+  if (result.technical) {
+    await logAudit("order.payment", `order ${orderId} OTP submit failed: ${result.technical}`, ip);
+  }
   return { ok: false, error: result.message || "OTP verification failed. Please try again." };
 }
 
@@ -306,6 +310,11 @@ export async function retryPaymentAction(
   });
 
   if (!payment.success) {
+    await logAudit(
+      "order.payment",
+      `order ${orderId} retry failed: ${payment.technical || payment.message || "unknown"}`,
+      ip
+    );
     return { ok: false, error: payment.message || "Payment could not be initiated." };
   }
 
@@ -362,6 +371,9 @@ export async function checkPaymentAction(
     return { ok: true, paid: true, status: "paid" };
   }
 
+  if (result.technical) {
+    await logAudit("order.payment", `order ${orderId} status check failed: ${result.technical}`, ip);
+  }
   return { ok: false, error: result.message || "Payment not yet confirmed." };
 }
 

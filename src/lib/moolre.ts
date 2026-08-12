@@ -31,6 +31,15 @@ interface MoolreResponse {
   go: unknown;
 }
 
+/** Extracts a safe, PII-free technical description from a thrown fetch error. */
+function fetchErrorDetail(err: unknown): string {
+  const primary = err instanceof Error ? err.message : String(err);
+  const cause = err instanceof Error ? (err as { cause?: unknown }).cause : undefined;
+  if (!cause) return primary;
+  const detail = typeof cause === "object" && cause !== null ? JSON.stringify(cause) : String(cause);
+  return `${primary} — ${detail}`;
+}
+
 interface PaymentParams {
   phone: string;
   amount: number;
@@ -45,6 +54,8 @@ interface PaymentResult {
   transactionId?: string;
   sessionId?: string;
   requiresOtp?: boolean;
+  /** Internal-only: the raw technical reason when the call failed at the network level. */
+  technical?: string;
 }
 
 /** Normalizes a Ghanaian phone number to local format (0XXXXXXXXX). */
@@ -90,7 +101,11 @@ export async function initiatePayment(params: PaymentParams): Promise<PaymentRes
     });
   } catch (err) {
     console.error("[moolre] initiatePayment fetch error:", String(err));
-    return { success: false, message: "Network error talking to the payment provider." };
+    return {
+      success: false,
+      message: "Network error talking to the payment provider.",
+      technical: fetchErrorDetail(err),
+    };
   }
 
   const text = await res.text();
@@ -167,7 +182,11 @@ export async function submitOtp(params: {
     });
   } catch (err) {
     console.error("[moolre] submitOtp fetch error:", String(err));
-    return { success: false, message: "Network error talking to the payment provider." };
+    return {
+      success: false,
+      message: "Network error talking to the payment provider.",
+      technical: fetchErrorDetail(err),
+    };
   }
 
   const text = await res.text();
@@ -225,7 +244,11 @@ export async function checkPaymentStatus(params: {
     });
   } catch (err) {
     console.error("[moolre] checkStatus fetch error:", String(err));
-    return { success: false, message: "Network error talking to the payment provider." };
+    return {
+      success: false,
+      message: "Network error talking to the payment provider.",
+      technical: fetchErrorDetail(err),
+    };
   }
 
   const text = await res.text();
