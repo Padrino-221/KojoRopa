@@ -87,20 +87,20 @@ export function normalizePhone(raw: string): string {
 }
 
 /**
- * Returns the Moolre channel ID for a normalized Ghanaian phone number.
- *  13 = MTN Mobile Money      (024, 025, 053, 054, 055, 059)
- *  14 = Vodafone/Telecel Cash (020, 050)
- *  15 = AirtelTigo Money      (026, 027, 056, 057)
+ * Returns the Moolre network code for a normalized Ghanaian phone number.
+ *  "MTN" = MTN Mobile Money      (024, 025, 053, 054, 055, 059)
+ *  "VOD" = Vodafone/Telecel Cash  (020, 050)
+ *  "ATM" = AirtelTigo Money       (026, 027, 056, 057)
  *
- * Defaults to MTN (13) for unrecognised prefixes.
+ * Defaults to "MTN" for unrecognised prefixes.
  */
 export function getMoolreChannel(normalizedPhone: string): string {
   const prefix3 = normalizedPhone.slice(0, 3);
   const vodafonePrefixes = ["020", "050"];
   const airteltigoPrefixes = ["026", "027", "056", "057"];
-  if (vodafonePrefixes.includes(prefix3)) return "14";
-  if (airteltigoPrefixes.includes(prefix3)) return "15";
-  return "13"; // MTN: 024, 025, 053, 054, 055, 059
+  if (vodafonePrefixes.includes(prefix3)) return "VOD";
+  if (airteltigoPrefixes.includes(prefix3)) return "ATM";
+  return "MTN";
 }
 
 /**
@@ -156,7 +156,7 @@ export async function initiatePayment(params: PaymentParams): Promise<PaymentRes
     return { success: false, message: "Unexpected response from the payment provider." };
   }
 
-  if (data.status === 1) {
+  if (Number(data.status) === 1) {
     // data is a plain string transaction reference (UUID), not an object
     const ref = typeof data.data === "string" ? data.data : "";
     const requiresOtp = data.code === "TP14";
@@ -258,7 +258,7 @@ export async function submitOtp(params: {
     return { success: false, message: "Unexpected response from the payment provider." };
   }
 
-  if (data.status === 1) {
+  if (Number(data.status) === 1) {
     const ref = typeof data.data === "string" ? data.data : "";
     console.log("[moolre] submitOtp success:", { code: data.code });
     return {
@@ -319,7 +319,7 @@ export async function checkPaymentStatus(params: {
     return { success: false, message: "Invalid response" };
   }
 
-  if (data.status === 1) {
+  if (Number(data.status) === 1) {
     const obj = typeof data.data === "object" && data.data !== null ? data.data as Record<string, unknown> : null;
     const paid = String(obj?.txstatus) === "1";
     console.log("[moolre] checkPaymentStatus:", { code: data.code, paid });
