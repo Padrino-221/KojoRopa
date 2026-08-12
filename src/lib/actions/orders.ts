@@ -203,7 +203,7 @@ export type OrderActionResult =
 
 export type SubmitOtpResult =
   | { ok: true; message: string }
-  | { ok: false; error: string };
+  | { ok: false; error: string; pending?: boolean };
 
 /**
  * Loads an order and verifies the caller presents its unguessable token.
@@ -256,15 +256,43 @@ export async function submitOtpAction(
   });
 
   if (result.success) {
+    // Trust, but verify: a successful OTP response must ALSO be confirmed by
+    // Moolre's status endpoint before the order flips to "paid". Moolre can
+    // answer status:1 with code TP14 (OTP invalid/expired) — which is NOT a
+    // charge. The status endpoint is the server-to-server source of truth, so
+    // this mirrors the webhook's re-verification rule.
+    const verification = await checkPaymentStatus({ externalRef: order.id });
+    if (!verification.success) {
+      const reason = verification.technical
+        ? `status check errored: ${verification.technical}`
+        : `status ${verification.code || "pending"}`;
+      await logAudit(
+        "order.payment",
+        `order ${orderId} OTP accepted but Moolre ${reason} — NOT marked paid yet`,
+        ip
+      );
+      return {
+        ok: false,
+        pending: true,
+        error: "Payment is being confirmed with the mobile money provider — it will complete automatically.",
+      };
+    }
     await confirmOrderPayment(orderId, {
       ip,
-      transactionId: result.transactionId || order.moolreTransactionId || undefined,
+      transactionId: verification.transactionId || result.transactionId || order.moolreTransactionId || undefined,
     });
     return { ok: true, message: result.message || "Payment confirmed!" };
   }
 
   if (result.technical) {
     await logAudit("order.payment", `order ${orderId} OTP submit failed: ${result.technical}`, ip);
+  }
+  if (result.code === "TP14") {
+    await logAudit(
+      "order.payment",
+      `order ${orderId} OTP rejected by Moolre (TP14) — code invalid or expired; no charge made`,
+      ip
+    );
   }
   return { ok: false, error: result.message || "OTP verification failed. Please try again." };
 }

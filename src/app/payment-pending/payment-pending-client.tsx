@@ -33,6 +33,9 @@ export function PaymentPendingClient({
   const [retrying, setRetrying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  // True once the OTP was accepted but Moolre hasn't settled yet — the form
+  // is swapped for a confirming notice and the 10s status poll takes over.
+  const [confirming, setConfirming] = useState(false);
   // "paid" tracks whether the payment went through. The order stays "paid"
   // until the admin marks it "delivered", so both statuses mean the payment
   // was confirmed.
@@ -95,6 +98,11 @@ export function PaymentPendingClient({
       if (res.ok) {
         setSuccess(res.message);
         setPaid(true);
+      } else if (res.pending) {
+        // OTP accepted but Moolre hasn't settled yet — swap the form for a
+        // confirming notice; the 10s status poll below confirms and redirects.
+        setConfirming(true);
+        setSuccess(res.error);
       } else {
         setError(res.error);
       }
@@ -178,7 +186,17 @@ export function PaymentPendingClient({
           </p>
         )}
 
-        {initiated ? (
+        {confirming ? (
+          <div className="mt-6 flex flex-col items-center gap-3 rounded-xl bg-surface p-5 text-center ring-1 ring-border/50">
+            <span className="h-6 w-6 animate-spin rounded-full border-2 border-clay border-t-transparent" />
+            <p className="text-sm font-medium text-espresso">
+              Confirming your payment…
+            </p>
+            <p className="text-xs text-mocha">
+              {success || "This usually takes a few seconds."}
+            </p>
+          </div>
+        ) : initiated ? (
           <form onSubmit={handleSubmitOtp} className="mt-6 space-y-4">
             <div>
               <label htmlFor="otp" className="block text-sm font-medium text-espresso">

@@ -156,37 +156,33 @@ export async function initiatePayment(params: PaymentParams): Promise<PaymentRes
     return { success: false, message: "Unexpected response from the payment provider." };
   }
 
-  if (Number(data.status) === 1) {
-    // data is a plain string transaction reference (UUID), not an object
-    const ref = typeof data.data === "string" ? data.data : "";
-    const requiresOtp = data.code === "TP14";
-    console.log("[moolre] initiatePayment success:", { code: data.code, requiresOtp });
-    return {
-      success: true,
-      code: data.code,
-      message: typeof data.message === "string" ? data.message : Array.isArray(data.message) ? data.message.join(", ") : "Payment initiated",
-      transactionId: ref || undefined,
-      sessionId: ref || undefined,
-      requiresOtp,
-    };
-  }
+  const ref = typeof data.data === "string" ? data.data : "";
 
-  // Moolre returns status !== 1 on the first call when OTP is required (e.g.
-  // code "TP14"). The charge has NOT been made yet but the OTP was dispatched
-  // and a session ID is present in data.data. We must treat this as a
-  // successful initiation (requiresOtp: true) and capture the session ID so
-  // the subsequent OTP submit can include it — without it Moolre rejects the
-  // charge with sessionid: "".
+  // OTP challenge — Moolre returns code TP14 (often with status 1) when the
+  // SMS OTP has been dispatched but NO charge has been made yet. Capture the
+  // session id so the subsequent OTP submit can include it, and never record
+  // it as a transaction id. This branch must run BEFORE the status-1 check,
+  // because TP14 itself arrives with status: 1.
   if (data.code === "TP14") {
-    const ref = typeof data.data === "string" ? data.data : "";
     console.log("[moolre] initiatePayment OTP required:", { code: data.code, sessionId: ref || "(none)" });
     return {
       success: true,
       code: data.code,
       message: typeof data.message === "string" ? data.message : Array.isArray(data.message) ? data.message.join(", ") : "OTP sent to your phone",
-      transactionId: ref || undefined,
       sessionId: ref || undefined,
       requiresOtp: true,
+    };
+  }
+
+  if (Number(data.status) === 1) {
+    // data is a plain string transaction reference (UUID), not an object
+    console.log("[moolre] initiatePayment success:", { code: data.code });
+    return {
+      success: true,
+      code: data.code,
+      message: typeof data.message === "string" ? data.message : Array.isArray(data.message) ? data.message.join(", ") : "Payment initiated",
+      transactionId: ref || undefined,
+      requiresOtp: false,
     };
   }
 
@@ -256,6 +252,20 @@ export async function submitOtp(params: {
   } catch {
     console.error("[moolre] submitOtp non-JSON response");
     return { success: false, message: "Unexpected response from the payment provider." };
+  }
+
+  // CRITICAL: Moolre answers an OTP challenge with status 1 AND code TP14 when
+  // the submitted code is wrong, expired, or the session id is stale. That is
+  // NOT a charge — the money has NOT moved. Only a response that is not an OTP
+  // challenge counts as a successful payment.
+  if (data.code === "TP14") {
+    console.log("[moolre] submitOtp OTP rejected:", { code: data.code });
+    return {
+      success: false,
+      code: data.code,
+      message: "That code was invalid or has expired. Check your phone for the latest code and try again.",
+      requiresOtp: true,
+    };
   }
 
   if (Number(data.status) === 1) {
