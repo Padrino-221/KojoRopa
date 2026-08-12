@@ -51,6 +51,17 @@ interface MoolreResponse {
   go: unknown;
 }
 
+/**
+ * Moolre's TP14/TP17 envelopes put the literal placeholder string "all" in
+ * the `data` field — it is NOT a session token. Echoing it back as
+ * `sessionid` makes Moolre treat the request as a USSD-session call: it
+ * verifies the phone (TP17) and skips creating the charge. Only accept a
+ * `data` value that actually looks like a real reference (UUID etc).
+ */
+function isUsableToken(v: string | undefined): v is string {
+  return !!v && v !== "all" && v.length >= 8;
+}
+
 /** Extracts a safe, PII-free technical description from a thrown fetch error. */
 function fetchErrorDetail(err: unknown): string {
   const primary = err instanceof Error ? err.message : String(err);
@@ -167,17 +178,16 @@ export async function initiatePayment(params: PaymentParams): Promise<PaymentRes
   });
 
   // OTP challenge — Moolre returns code TP14 (often with status 1) when the
-  // SMS OTP has been dispatched but NO charge has been made yet. Capture the
-  // session id so the subsequent OTP submit can include it, and never record
-  // it as a transaction id. This branch must run BEFORE the status-1 check,
-  // because TP14 itself arrives with status: 1.
+  // SMS OTP has been dispatched but NO charge has been made yet. This branch
+  // must run BEFORE the status-1 check, because TP14 itself arrives with
+  // status: 1. TP14's `data` is the placeholder "all" — never record it as a
+  // session or transaction id (echoing it back breaks the OTP flow).
   if (data.code === "TP14") {
-    console.log("[moolre] initiatePayment OTP required:", { code: data.code, sessionId: ref || "(none)" });
+    console.log("[moolre] initiatePayment OTP required:", { code: data.code });
     return {
       success: true,
       code: data.code,
       message: typeof data.message === "string" ? data.message : Array.isArray(data.message) ? data.message.join(", ") : "OTP sent to your phone",
-      sessionId: ref || undefined,
       requiresOtp: true,
       gatewayDetail,
     };
@@ -190,7 +200,7 @@ export async function initiatePayment(params: PaymentParams): Promise<PaymentRes
       success: true,
       code: data.code,
       message: typeof data.message === "string" ? data.message : Array.isArray(data.message) ? data.message.join(", ") : "Payment initiated",
-      transactionId: ref || undefined,
+      transactionId: isUsableToken(ref) ? ref : undefined,
       requiresOtp: false,
       gatewayDetail,
     };
@@ -208,6 +218,21 @@ export async function initiatePayment(params: PaymentParams): Promise<PaymentRes
 
 /**
  * Submit OTP code for a Moolre payment.
+ *
+ * Per Moolre's docs, the OTP flow is: POST /open/transact/payment WITHOUT an
+ * OTP → TP14 (SMS sent) → POST the SAME request with `otpcode` filled and
+ * `sessionid` empty → TR099 (charge created, transaction UUID in `data`).
+ *
+ * Passing a non-empty sessionid here makes Moolre treat the call as a
+ * USSD-session request: it verifies the phone (TP17) and skips creating the
+ * charge. So we deliberately submit with an EMPTY sessionid unless the caller
+ * provides a genuine token (never the TP14 placeholder "all").
+ *
+ * Belt-and-braces: if Moolre still answers TP17 (phone verified, no charge),
+ * we immediately re-issue the same payment request without an OTP — the phone
+ * is now verified, so the charge should be created on the second attempt. If
+ * that also fails, the result stays unsuccessful so the order is never marked
+ * paid without a real transaction.
  */
 export async function submitOtp(params: {
   phone: string;
@@ -223,22 +248,25 @@ export async function submitOtp(params: {
 
   const channel = getMoolreChannel(phone);
 
-  const body = {
-    type: 1,
-    channel,
-    currency: "GHS",
-    payer: phone,
-    amount: params.amount.toFixed(2),
-    externalref: params.externalRef,
-    reference: `Order ${params.externalRef}`,
-    otpcode: params.otpCode,
-    sessionid: params.sessionId,
-    accountnumber: accountId,
-  };
+  // Only a genuine token (real UUID etc) is forwarded as sessionid; the TP14
+  // placeholder "all" and empty values are sent as empty.
+  const sessionId = isUsableToken(params.sessionId) ? params.sessionId : "";
 
-  let res: Response;
-  try {
-    res = await fetch(`${MOOLRE_BASE}/open/transact/payment`, {
+  const makeRequest = async (otpcode: string): Promise<{ data: MoolreResponse; gatewayDetail: string; httpOk: boolean }> => {
+    const body = {
+      type: 1,
+      channel,
+      currency: "GHS",
+      payer: phone,
+      amount: params.amount.toFixed(2),
+      externalref: params.externalRef,
+      reference: `Order ${params.externalRef}`,
+      otpcode,
+      sessionid: sessionId,
+      accountnumber: accountId,
+    };
+
+    const res = await fetch(`${MOOLRE_BASE}/open/transact/payment`, {
       method: "POST",
       headers: {
         "X-API-USER": user,
@@ -247,6 +275,47 @@ export async function submitOtp(params: {
       },
       body: JSON.stringify(body),
     });
+
+    const text = await res.text();
+    let parsed: MoolreResponse;
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      parsed = {
+        status: 0,
+        code: "",
+        message: `Non-JSON response (HTTP ${res.status})`,
+        data: null,
+        go: null,
+      };
+    }
+    return {
+      data: parsed,
+      gatewayDetail: JSON.stringify({
+        status: parsed.status,
+        code: parsed.code,
+        message: parsed.message,
+        data: parsed.data,
+      }),
+      httpOk: res.ok,
+    };
+  };
+
+  // Moolre's documented charge response is TR099 ("Payment request initiated
+  // successfully") — the ONLY code we treat as a charge. Its `message` is often
+  // null, so the caller supplies a friendly fallback.
+  const isCharge = (r: { data: MoolreResponse; httpOk: boolean }) => r.data.code === "TR099";
+
+  const envelopeMessage = (data: MoolreResponse) =>
+    typeof data.message === "string"
+      ? data.message
+      : Array.isArray(data.message)
+        ? data.message.join(", ")
+        : "";
+
+  let first: { data: MoolreResponse; gatewayDetail: string; httpOk: boolean };
+  try {
+    first = await makeRequest(params.otpCode);
   } catch (err) {
     console.error("[moolre] submitOtp fetch error:", String(err));
     return {
@@ -256,54 +325,84 @@ export async function submitOtp(params: {
     };
   }
 
-  const text = await res.text();
-  let data: MoolreResponse;
-  try {
-    data = JSON.parse(text);
-  } catch {
-    console.error("[moolre] submitOtp non-JSON response");
-    return { success: false, message: "Unexpected response from the payment provider." };
-  }
-
-  const gatewayDetail = JSON.stringify({
-    status: data.status,
-    code: data.code,
-    message: data.message,
-    data: data.data,
-  });
-
-  // CRITICAL: Moolre answers an OTP challenge with status 1 AND code TP14 when
-  // the submitted code is wrong, expired, or the session id is stale. That is
-  // NOT a charge — the money has NOT moved. Only a response that is not an OTP
-  // challenge counts as a successful payment.
-  if (data.code === "TP14") {
-    console.log("[moolre] submitOtp OTP rejected:", { code: data.code });
+  // OTP rejected — Moolre answers status 1 with TP14 when the submitted code
+  // is wrong or expired. That is NOT a charge; no money has moved.
+  if (first.data.code === "TP14") {
+    console.log("[moolre] submitOtp OTP rejected:", { code: first.data.code });
     return {
       success: false,
-      code: data.code,
+      code: first.data.code,
       message: "That code was invalid or has expired. Check your phone for the latest code and try again.",
       requiresOtp: true,
-      gatewayDetail,
+      gatewayDetail: first.gatewayDetail,
     };
   }
 
-  if (Number(data.status) === 1) {
-    const ref = typeof data.data === "string" ? data.data : "";
-    console.log("[moolre] submitOtp success:", { code: data.code });
+  // The documented charge success code. `data` holds the transaction UUID.
+  if (isCharge(first)) {
+    const ref = typeof first.data.data === "string" ? first.data.data : "";
+    console.log("[moolre] submitOtp success:", { code: first.data.code });
     return {
       success: true,
-      code: data.code,
-      message: typeof data.message === "string" ? data.message : Array.isArray(data.message) ? data.message.join(", ") : "Payment confirmed",
-      transactionId: ref || undefined,
-      gatewayDetail,
+      code: first.data.code,
+      message: envelopeMessage(first.data) || "Payment confirmed",
+      transactionId: isUsableToken(ref) ? ref : undefined,
+      gatewayDetail: first.gatewayDetail,
+    };
+  }
+
+  // TP17 = "Phone no. Verification Successful." — the OTP was accepted but NO
+  // charge was created. The phone is now verified, so re-issue the payment
+  // request without the OTP to actually create the transaction. This is safe:
+  // Moolre rejects duplicate externalrefs (TP13), so the re-issue cannot
+  // double-charge — worst case it is refused and we surface the failure.
+  if (first.data.code === "TP17") {
+    console.log("[moolre] submitOtp TP17 (phone verified, no charge) — re-issuing payment request");
+    let second: { data: MoolreResponse; gatewayDetail: string; httpOk: boolean };
+    try {
+      second = await makeRequest("");
+    } catch (err) {
+      console.error("[moolre] submitOtp (post-TP17) fetch error:", String(err));
+      return {
+        success: false,
+        code: "TP17",
+        message: "Your phone was verified but the charge has not completed. Please try again in a moment.",
+        technical: fetchErrorDetail(err),
+        gatewayDetail: first.gatewayDetail,
+      };
+    }
+
+    if (isCharge(second)) {
+      const ref = typeof second.data.data === "string" ? second.data.data : "";
+      console.log("[moolre] submitOtp success after TP17:", { code: second.data.code });
+      return {
+        success: true,
+        code: second.data.code,
+        message: envelopeMessage(second.data) || "Payment confirmed",
+        transactionId: isUsableToken(ref) ? ref : undefined,
+        gatewayDetail: second.gatewayDetail,
+      };
+    }
+
+    // The re-issue asked for a fresh OTP (TP14) or still created no charge.
+    console.log("[moolre] submitOtp TP17 re-issue did not create a charge:", { code: second.data.code });
+    const needsNewCode = second.data.code === "TP14";
+    return {
+      success: false,
+      code: needsNewCode ? "TP14" : second.data.code || "TP17",
+      message: needsNewCode
+        ? "A new verification code was sent to your phone — enter it to continue."
+        : "Your phone was verified but the charge could not be completed. Please try again — no money has been taken.",
+      requiresOtp: needsNewCode,
+      gatewayDetail: `${first.gatewayDetail} | ${second.gatewayDetail}`,
     };
   }
 
   return {
     success: false,
-    code: data.code,
-    message: typeof data.message === "string" ? data.message : Array.isArray(data.message) ? data.message.join(", ") : "OTP verification failed",
-    gatewayDetail,
+    code: first.data.code,
+    message: envelopeMessage(first.data) || "Payment could not be confirmed.",
+    gatewayDetail: first.gatewayDetail,
   };
 }
 

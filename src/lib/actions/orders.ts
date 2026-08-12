@@ -248,6 +248,7 @@ export async function submitOtpAction(
   }
 
   // Use sessionId if available, otherwise fall back to transactionId
+  // (submitOtp itself ignores placeholder values like "all").
   const sessionId = order.moolreSessionId || order.moolreTransactionId || "";
 
   const result = await submitOtp({
@@ -262,9 +263,9 @@ export async function submitOtpAction(
   if (result.success) {
     // Trust, but verify: a successful OTP response must ALSO be confirmed by
     // Moolre's status endpoint before the order flips to "paid". Moolre can
-    // answer status:1 with code TP14 (OTP invalid/expired) — which is NOT a
-    // charge. The status endpoint is the server-to-server source of truth, so
-    // this mirrors the webhook's re-verification rule.
+    // answer status:1 with codes that are NOT a charge (TP14/TP17), so the
+    // status endpoint is the server-to-server source of truth — this mirrors
+    // the webhook's re-verification rule.
     const verification = await checkPaymentStatus({ externalRef: order.id });
     if (!verification.success) {
       const reason = verification.technical
@@ -291,12 +292,26 @@ export async function submitOtpAction(
   if (result.technical) {
     await logAudit("order.payment", `order ${orderId} OTP submit failed: ${result.technical}`, ip);
   }
-  if (result.code === "TP14") {
+  if (result.code === "TP14" && result.requiresOtp) {
+    // Two ways to land here: the entered code was wrong/expired, or the
+    // post-TP17 re-issue asked for a fresh code. Either way a new SMS has
+    // been (or will be) dispatched and no charge was made.
     await logAudit(
       "order.payment",
-      `order ${orderId} OTP rejected by Moolre (TP14) — code invalid or expired; no charge made; envelope: ${result.gatewayDetail || "n/a"}`,
+      `order ${orderId} OTP rejected by Moolre (TP14) — new code required; no charge made; envelope: ${result.gatewayDetail || "n/a"}`,
       ip
     );
+    return { ok: false, error: result.message || "OTP verification failed. Please try again." };
+  }
+  if (result.code === "TP17") {
+    await logAudit(
+      "order.payment",
+      `order ${orderId} phone verified (TP17) but Moolre did not create a charge — order stays pending; envelope: ${result.gatewayDetail || "n/a"}`,
+      ip
+    );
+    // Phone verified but no transaction yet — treat as pending (the client
+    // swaps to the confirming notice and the status poll takes over).
+    return { ok: false, pending: true, error: result.message || "OTP verification failed. Please try again." };
   }
   return { ok: false, error: result.message || "OTP verification failed. Please try again." };
 }
