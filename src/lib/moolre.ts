@@ -188,6 +188,11 @@ export async function initiatePayment(params: PaymentParams): Promise<PaymentRes
       success: true,
       code: data.code,
       message: typeof data.message === "string" ? data.message : Array.isArray(data.message) ? data.message.join(", ") : "OTP sent to your phone",
+      // Use a placeholder so the order record signals "payment was initiated"
+      // without risking this value being echoed back to Moolre. isUsableToken
+      // rejects strings shorter than 8 chars, so "pending" is safely ignored
+      // by submitOtp — it collapses to an empty sessionid.
+      sessionId: "pending",
       requiresOtp: true,
       gatewayDetail,
     };
@@ -253,7 +258,11 @@ export async function submitOtp(params: {
   const sessionId = isUsableToken(params.sessionId) ? params.sessionId : "";
 
   const makeRequest = async (otpcode: string): Promise<{ data: MoolreResponse; gatewayDetail: string; httpOk: boolean }> => {
-    const body = {
+    // Only include otpcode and sessionid when they have values. Sending
+    // empty strings makes Moolre treat them as "field present but empty"
+    // which can re-trigger OTP verification (TP14) instead of creating
+    // the charge (TR099) after phone verification (TP17).
+    const body: Record<string, string | number> = {
       type: 1,
       channel,
       currency: "GHS",
@@ -261,10 +270,10 @@ export async function submitOtp(params: {
       amount: params.amount.toFixed(2),
       externalref: params.externalRef,
       reference: `Order ${params.externalRef}`,
-      otpcode,
-      sessionid: sessionId,
       accountnumber: accountId,
     };
+    if (otpcode) body.otpcode = otpcode;
+    if (sessionId) body.sessionid = sessionId;
 
     const res = await fetch(`${MOOLRE_BASE}/open/transact/payment`, {
       method: "POST",

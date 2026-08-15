@@ -192,15 +192,11 @@ export function PaymentPendingClient({
           <div className="mt-6 flex flex-col items-center gap-3 rounded-xl bg-surface p-5 text-center ring-1 ring-border/50">
             <span className="h-6 w-6 animate-spin rounded-full border-2 border-clay border-t-transparent" />
             <p className="text-sm font-medium text-espresso">
-              Approve the payment on your phone
+              Waiting for approval
             </p>
             <p className="text-xs leading-relaxed text-mocha">
-              {success || "We&apos;re confirming your payment with the mobile money provider."}
-            </p>
-            <p className="text-xs leading-relaxed text-mocha">
-              Look for the approval prompt on <strong>{phone}</strong> (e.g.{" "}
-              <strong>*170#</strong> for MTN) and approve it with your Mobile
-              Money PIN. We&apos;ll confirm automatically once approved.
+              Check <strong>{phone}</strong> for the payment prompt and approve with your PIN.
+              We&apos;ll confirm automatically.
             </p>
             <button
               type="button"
@@ -208,7 +204,7 @@ export function PaymentPendingClient({
               disabled={retrying}
               className="text-xs text-clay underline underline-offset-2 hover:text-clay-deep disabled:opacity-50"
             >
-              {retrying ? "Sending a new code…" : "No prompt received? Send a new code"}
+              {retrying ? "Sending a new code…" : "No prompt? Send a new code"}
             </button>
           </div>
         ) : initiated ? (

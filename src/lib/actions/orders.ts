@@ -279,7 +279,7 @@ export async function submitOtpAction(
       return {
         ok: false,
         pending: true,
-        error: "Approval pending — check your phone for the prompt (e.g. *170# for MTN) and approve it with your Mobile Money PIN.",
+        error: "Check your phone for the payment prompt and approve with your Mobile Money PIN.",
       };
     }
     await confirmOrderPayment(orderId, {

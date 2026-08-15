@@ -78,11 +78,12 @@ export default async function ConfirmationPage(
           </svg>
         </div>
         <h1 className="font-display text-2xl text-espresso sm:text-3xl">
-          Payment not yet confirmed
+          Payment pending
         </h1>
         <p className="max-w-sm text-sm text-mocha">
-          This order hasn&rsquo;t been paid yet, so there&rsquo;s no receipt to
-          show. Complete the Mobile Money prompt on your phone to confirm it.
+          Your order is placed but waiting for payment. We don&rsquo;t have a
+          phone number on file to send the Mobile Money prompt &mdash; please
+          contact us to complete your order.
         </p>
         <Link
           href="/#shop"
