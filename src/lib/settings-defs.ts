@@ -35,7 +35,7 @@ export const SETTING_SECTIONS = [
       { key: "cartEmptyHeading", label: "Cart — empty heading", default: "Your bag is empty" },
       { key: "cartEmptyBody", label: "Cart — empty body", default: "Every piece is one of one — when it's gone, it's gone." },
       { key: "deliveryFee", label: "Delivery — fee", default: "30", type: "number" },
-      { key: "receiptGreetingSuffix", label: "Confirmation — greeting suffix", default: "your pieces are being wrapped in tissue as we speak." },
+      { key: "receiptGreetingSuffix", label: "Confirmation — greeting suffix", default: "your pieces are being packaged as we speak." },
       { key: "receiptCta", label: "Confirmation — CTA button text", default: "Keep browsing the rack" },
       { key: "receiptFooter", label: "Confirmation — footer text", default: "Thank you for shopping with Kojosropa." },
     ],

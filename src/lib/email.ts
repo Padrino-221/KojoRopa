@@ -188,7 +188,7 @@ export async function sendOrderConfirmation(order: EmailOrder): Promise<boolean>
   const link = receiptLink(order);
   const body = `
     <p style="margin:0 0 18px;font-size:15px;line-height:1.7;">Hi ${esc(order.name.split(" ")[0] || "there")},</p>
-    <p style="margin:0 0 24px;font-size:14px;line-height:1.7;color:#525252;">Payment confirmed — your pieces are being wrapped in tissue as we speak. Here's your receipt for <strong style="color:#111111;">order ${order.id}</strong>:</p>
+    <p style="margin:0 0 24px;font-size:14px;line-height:1.7;color:#525252;">Payment confirmed — your pieces are being packaged as we speak. Here's your receipt for <strong style="color:#111111;">order ${order.id}</strong>:</p>
     ${orderItemsHtml(order)}
     ${
       link
@@ -217,7 +217,7 @@ export async function sendAdminOrderNotification(
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;background:#f5f5f5;border-radius:12px;">
       <tr>
         <td style="padding:16px;font-size:13px;line-height:1.7;color:#525252;">
-          <strong style="color:#111111;">Ship to</strong><br />
+          <strong style="color:#111111;">Deliver to</strong><br />
           ${esc(order.name)} · ${esc(order.phone) || "no phone"}<br />
           ${esc(order.street)}, ${order.postal ? `${esc(order.postal)}, ` : ""}${esc(order.city)}, ${esc(order.country)}<br />
           Buyer email: ${esc(order.email)}
@@ -242,7 +242,7 @@ export async function sendDeliveryUpdate(order: EmailOrder): Promise<boolean> {
   const link = receiptLink(order);
   const body = `
     <p style="margin:0 0 18px;font-size:15px;line-height:1.7;">Hi ${esc(order.name.split(" ")[0] || "there")},</p>
-    <p style="margin:0 0 24px;font-size:14px;line-height:1.7;color:#525252;">Good news — your order <strong style="color:#111111;">${order.id}</strong> has been marked <strong style="color:#c8102e;">delivered</strong>. Wear it well.</p>
+    <p style="margin:0 0 24px;font-size:14px;line-height:1.7;color:#525252;">Good news — your order <strong style="color:#111111;">${order.id}</strong> has been delivered. Wear it well.</p>
     ${orderItemsHtml(order)}
     ${
       link

@@ -123,7 +123,7 @@ export const FREE_DELIVERY_TEXT = env(
 
 export const RECEIPT_GREETING_SUFFIX = env(
   "NEXT_PUBLIC_RECEIPT_GREETING_SUFFIX",
-  "your pieces are being wrapped in tissue as we speak."
+  "your pieces are being packaged as we speak."
 );
 export const RECEIPT_CTA = env(
   "NEXT_PUBLIC_RECEIPT_CTA",
