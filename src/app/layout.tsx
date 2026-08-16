@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Unbounded, Plus_Jakarta_Sans } from "next/font/google";
+import "@phosphor-icons/web/duotone";
 import "./globals.css";
 import { CartProvider } from "@/components/cart-provider";
 import { Navbar } from "@/components/navbar";
@@ -55,10 +56,6 @@ export default async function RootLayout(props: LayoutProps<"/">) {
       className={`no-js ${unbounded.variable} ${plusJakarta.variable} h-full antialiased`}
     >
       <head>
-        <link
-          rel="stylesheet"
-          href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/duotone/style.css"
-        />
         {/* Marks JS as available so scroll-reveals can hide content; without
             JS everything stays visible. Injected into the initial HTML before
             hydration (avoids React's inline-script hydration warning). */}
