@@ -121,44 +121,47 @@ export async function Footer() {
 
         {/* columns */}
         <div className="mt-12 grid gap-10 sm:grid-cols-3">
-          <div>
-            <p className="text-[11px] font-semibold tracking-[0.18em] text-white/50 uppercase">
-              Shop
-            </p>
-            <ul className="mt-4 space-y-3 text-sm text-white/75">
-              <li>
-                <Link href="/#shop" className="transition-colors hover:text-white">
-                  The rack
-                </Link>
-              </li>
-              <li>
-                <Link href="/about" className="transition-colors hover:text-white">
-                  Our story
-                </Link>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <p className="text-[11px] font-semibold tracking-[0.18em] text-white/50 uppercase">
-              Contact
-            </p>
-            <ul className="mt-4 space-y-3 text-sm text-white/75">
-              {socials.map((social) => (
-                <li key={social.href}>
-                  <a
-                    href={social.href}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="group inline-flex items-center gap-2.5 text-sm text-white/75 transition-colors hover:text-white"
-                  >
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-white ring-1 ring-white/20 transition-colors group-hover:bg-clay group-hover:text-white group-hover:ring-clay">
-                      {social.icon}
-                    </span>
-                    {social.label}
-                  </a>
+          {/* Shop + Contact sit side by side on mobile to keep the footer short */}
+          <div className="grid grid-cols-2 gap-10 sm:contents">
+            <div>
+              <p className="text-[11px] font-semibold tracking-[0.18em] text-white/50 uppercase">
+                Shop
+              </p>
+              <ul className="mt-4 space-y-3 text-sm text-white/75">
+                <li>
+                  <Link href="/#shop" className="transition-colors hover:text-white">
+                    The rack
+                  </Link>
                 </li>
-              ))}
-            </ul>
+                <li>
+                  <Link href="/about" className="transition-colors hover:text-white">
+                    Our story
+                  </Link>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold tracking-[0.18em] text-white/50 uppercase">
+                Contact
+              </p>
+              <ul className="mt-4 space-y-3 text-sm text-white/75">
+                {socials.map((social) => (
+                  <li key={social.href}>
+                    <a
+                      href={social.href}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="group inline-flex items-center gap-2.5 text-sm text-white/75 transition-colors hover:text-white"
+                    >
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-white ring-1 ring-white/20 transition-colors group-hover:bg-clay group-hover:text-white group-hover:ring-clay">
+                        {social.icon}
+                      </span>
+                      {social.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
           <div>
             <p className="text-[11px] font-semibold tracking-[0.18em] text-white/50 uppercase">

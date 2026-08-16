@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Order #1248 — Kojosropa Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+--font-display:'Unbounded',sans-serif;--font-body:'Plus Jakarta Sans',sans-serif;
+--clay:#c8102e;--clay-deep:#a80d24;--clay-light:#fef2f2;
+--white:#ffffff;--cream:#f5f5f5;--sand:#e5e5e5;--sand-deep:#d4d4d4;
+--espresso:#111111;--mocha:#525252;--taupe:#8a8a8a;
+--green:#16a34a;--green-light:#f0fdf4;--amber:#d97706;--amber-light:#fffbeb;
+--r-sm:8px;--r-md:12px;--r-lg:16px;--r-xl:20px;--r-full:9999px;
+}
+html{font-size:16px}
+body{font-family:var(--font-body);background:var(--cream);color:var(--espresso);line-height:1.5;overflow-x:hidden}
+
+/* Sidebar */
+.sidebar{position:fixed;top:0;left:0;width:240px;height:100vh;background:var(--white);border-right:1px solid var(--sand);display:flex;flex-direction:column;z-index:100;transition:transform .3s ease}
+.sidebar-brand{padding:20px 24px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--sand)}
+.sidebar-brand h1{font-family:var(--font-display);font-size:1rem;font-weight:600;color:var(--espresso);letter-spacing:-.02em}
+.sidebar-brand .badge{font-size:.625rem;font-weight:600;background:var(--clay);color:var(--white);padding:2px 8px;border-radius:var(--r-full);letter-spacing:.04em}
+.sidebar-nav{flex:1;padding:16px 12px;overflow-y:auto}
+.nav-section{margin-bottom:20px}
+.nav-section-label{font-size:.6875rem;font-weight:600;color:var(--taupe);text-transform:uppercase;letter-spacing:.06em;padding:0 12px;margin-bottom:6px}
+.nav-link{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--r-sm);font-size:.875rem;font-weight:500;color:var(--mocha);text-decoration:none;transition:all .15s ease}
+.nav-link:hover{background:var(--cream);color:var(--espresso)}
+.nav-link.active{background:var(--clay-light);color:var(--clay);font-weight:600}
+.nav-link svg{width:18px;height:18px;flex-shrink:0;opacity:.7}
+.nav-link.active svg{opacity:1}
+.nav-link .count{margin-left:auto;font-size:.75rem;font-weight:600;background:var(--clay);color:var(--white);padding:1px 7px;border-radius:var(--r-full);min-width:22px;text-align:center}
+.sidebar-footer{padding:16px;border-top:1px solid var(--sand);display:flex;align-items:center;gap:10px}
+.sidebar-footer .avatar{width:36px;height:36px;border-radius:var(--r-full);background:var(--clay);display:flex;align-items:center;justify-content:center;color:var(--white);font-size:.8125rem;font-weight:600;flex-shrink:0}
+.sidebar-footer .user-info{display:flex;flex-direction:column}
+.sidebar-footer .user-name{font-size:.8125rem;font-weight:600;color:var(--espresso)}
+.sidebar-footer .user-role{font-size:.6875rem;color:var(--taupe)}
+.sidebar-toggle{display:none;position:fixed;top:14px;left:14px;z-index:200;width:40px;height:40px;border-radius:var(--r-sm);background:var(--white);border:1px solid var(--sand);cursor:pointer;align-items:center;justify-content:center}
+.sidebar-toggle svg{width:20px;height:20px;color:var(--espresso)}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:90}
+
+/* Main */
+.main{margin-left:240px;min-height:100vh;padding:0}
+.topbar{position:sticky;top:0;background:var(--white);border-bottom:1px solid var(--sand);padding:14px 32px;display:flex;align-items:center;gap:12px;z-index:50}
+.topbar-back{width:36px;height:36px;border-radius:var(--r-sm);border:1px solid var(--sand);background:var(--white);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s}
+.topbar-back:hover{background:var(--cream)}
+.topbar-back svg{width:18px;height:18px;color:var(--mocha)}
+.topbar-title{font-family:var(--font-display);font-size:1.125rem;font-weight:600;color:var(--espresso)}
+.topbar-status{margin-left:8px;font-size:.75rem;font-weight:600;padding:4px 12px;border-radius:var(--r-full);background:var(--green-light);color:var(--green)}
+.topbar-actions{margin-left:auto;display:flex;gap:8px}
+
+.content{padding:28px 32px}
+.grid{display:grid;grid-template-columns:1fr 380px;gap:24px;align-items:start}
+
+/* Cards */
+.card{background:var(--white);border-radius:var(--r-lg);box-shadow:0 1px 3px rgba(0,0,0,.06);border:1px solid var(--sand)}
+.card-header{padding:18px 22px 0;font-size:.8125rem;font-weight:600;color:var(--espresso);text-transform:uppercase;letter-spacing:.04em}
+.card-body{padding:18px 22px 22px}
+
+/* Order Info */
+.order-info{display:flex;gap:18px}
+.order-thumb{width:100px;height:120px;border-radius:var(--r-md);background:var(--espresso);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.order-thumb svg{width:40px;height:40px;color:var(--taupe)}
+.order-details{display:flex;flex-direction:column;gap:4px}
+.order-name{font-family:var(--font-display);font-size:1rem;font-weight:600;color:var(--espresso)}
+.order-category{font-size:.8125rem;color:var(--taupe);margin-bottom:4px}
+.order-attrs{display:flex;gap:12px;flex-wrap:wrap}
+.order-attr{font-size:.8125rem;color:var(--mocha)}
+.order-attr strong{font-weight:600;color:var(--espresso)}
+.order-price{margin-top:auto;font-family:var(--font-display);font-size:1.25rem;font-weight:600;color:var(--clay)}
+
+/* Timeline */
+.timeline{display:flex;flex-direction:column;position:relative}
+.timeline-item{display:flex;gap:16px;position:relative;padding-bottom:28px}
+.timeline-item:last-child{padding-bottom:0}
+.timeline-line{position:absolute;left:11px;top:24px;bottom:0;width:2px;background:var(--sand)}
+.timeline-item:last-child .timeline-line{display:none}
+.timeline-dot{width:24px;height:24px;border-radius:var(--r-full);flex-shrink:0;display:flex;align-items:center;justify-content:center;z-index:1}
+.timeline-dot.done{background:var(--green)}
+.timeline-dot.done svg{width:12px;height:12px;color:var(--white)}
+.timeline-dot.active{background:var(--clay)}
+.timeline-dot.active::after{content:'';width:8px;height:8px;border-radius:var(--r-full);background:var(--white)}
+.timeline-dot.pending{background:var(--sand)}
+.timeline-text{display:flex;flex-direction:column;gap:2px}
+.timeline-label{font-size:.875rem;font-weight:600;color:var(--espresso)}
+.timeline-label.pending-text{color:var(--taupe)}
+.timeline-date{font-size:.75rem;color:var(--taupe)}
+
+/* Customer / Delivery / Actions */
+.customer-info{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.customer-avatar{width:44px;height:44px;border-radius:var(--r-full);background:var(--clay-light);color:var(--clay);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:.9375rem;flex-shrink:0}
+.customer-name{font-size:.9375rem;font-weight:600;color:var(--espresso)}
+.customer-detail{font-size:.8125rem;color:var(--taupe);display:flex;align-items:center;gap:6px;margin-top:2px}
+.customer-detail svg{width:14px;height:14px;flex-shrink:0;opacity:.5}
+.delivery-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--sand)}
+.delivery-row:last-child{border-bottom:none}
+.delivery-label{font-size:.8125rem;color:var(--taupe)}
+.delivery-value{font-size:.8125rem;font-weight:600;color:var(--espresso)}
+.actions{display:flex;flex-direction:column;gap:10px}
+.btn{padding:12px 20px;border-radius:var(--r-sm);font-size:.875rem;font-weight:600;font-family:var(--font-body);cursor:pointer;transition:all .15s;text-align:center;border:none}
+.btn-clay{background:var(--clay);color:var(--white)}
+.btn-clay:hover{background:var(--clay-deep)}
+.btn-outline{background:var(--white);color:var(--clay);border:1px solid var(--sand)}
+.btn-outline:hover{background:var(--clay-light);border-color:var(--clay)}
+
+/* Responsive */
+@media(max-width:1024px){
+.grid{grid-template-columns:1fr;gap:20px}
+}
+@media(max-width:768px){
+.sidebar{transform:translateX(-100%)}
+.sidebar.open{transform:translateX(0)}
+.sidebar-toggle{display:flex}
+.sidebar-overlay.show{display:block}
+.main{margin-left:0}
+.topbar{padding:14px 16px 14px 64px}
+.content{padding:20px 16px}
+}
+@media(max-width:480px){
+.topbar-title{font-size:1rem}
+.order-info{flex-direction:column}
+.order-thumb{width:100%;height:160px}
+.content{padding:16px 12px}
+}
+@media(max-width:360px){
+.topbar{padding:12px 12px 12px 56px}
+.topbar-title{font-size:.875rem}
+.topbar-status{font-size:.6875rem;padding:3px 8px}
+.card-body{padding:14px 16px 16px}
+}
+</style>
+</head>
+<body>
+
+<button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+</button>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <h1>Kojosropa</h1>
+    <span class="badge">Admin</span>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section">
+      <div class="nav-section-label">Overview</div>
+      <a href="#" class="nav-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-section-label">Catalog</div>
+      <a href="#" class="nav-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.38 3.46 16 2 12 3.46 8 2 3.62 3.46a2 2 0 0 0-1.34 1.89v13.3a2 2 0 0 0 2.66 1.89L8 19l4-1.46L16 19l4.38-1.46a2 2 0 0 0 1.34-1.89V5.35a2 2 0 0 0-1.34-1.89z"/><line x1="12" y1="2" x2="12" y2="17.54"/></svg>
+        Pieces
+      </a>
+      <a href="#" class="nav-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+        Categories
+      </a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-section-label">Sales</div>
+      <a href="#" class="nav-link active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        Orders
+        <span class="count">8</span>
+      </a>
+      <a href="#" class="nav-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Customers
+      </a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-section-label">Settings</div>
+      <a href="#" class="nav-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        Settings
+      </a>
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="avatar">KA</div>
+    <div class="user-info">
+      <div class="user-name">Kwame A.</div>
+      <div class="user-role">Admin</div>
+    </div>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <button class="topbar-back" onclick="history.back()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <h2 class="topbar-title">Order #1248</h2>
+    <span class="topbar-status">Paid</span>
+  </div>
+
+  <div class="content">
+    <div class="grid">
+      <!-- Left Column -->
+      <div style="display:flex;flex-direction:column;gap:24px">
+        <!-- Order Info -->
+        <div class="card">
+          <div class="card-header">Order Details</div>
+          <div class="card-body">
+            <div class="order-info">
+              <div class="order-thumb">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.38 3.46 16 2 12 3.46 8 2 3.62 3.46a2 2 0 0 0-1.34 1.89v13.3a2 2 0 0 0 2.66 1.89L8 19l4-1.46L16 19l4.38-1.46a2 2 0 0 0 1.34-1.89V5.35a2 2 0 0 0-1.34-1.89z"/></svg>
+              </div>
+              <div class="order-details">
+                <div class="order-name">Essential Black Tee</div>
+                <div class="order-category">Tees</div>
+                <div class="order-attrs">
+                  <span class="order-attr"><strong>Size</strong> M</span>
+                  <span class="order-attr"><strong>Fit</strong> Relaxed</span>
+                  <span class="order-attr"><strong>Condition</strong> New</span>
+                </div>
+                <div class="order-price">GH₵ 120</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="card">
+          <div class="card-header">Order Timeline</div>
+          <div class="card-body">
+            <div class="timeline">
+              <div class="timeline-item">
+                <div class="timeline-dot done">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                <div class="timeline-text">
+                  <div class="timeline-label">Order placed</div>
+                  <div class="timeline-date">Aug 14, 2026</div>
+                </div>
+                <div class="timeline-line"></div>
+              </div>
+              <div class="timeline-item">
+                <div class="timeline-dot done">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                <div class="timeline-text">
+                  <div class="timeline-label">Payment confirmed</div>
+                  <div class="timeline-date">Aug 14, 2026</div>
+                </div>
+                <div class="timeline-line"></div>
+              </div>
+              <div class="timeline-item">
+                <div class="timeline-dot active"></div>
+                <div class="timeline-text">
+                  <div class="timeline-label" style="color:var(--clay)">Preparing for pickup</div>
+                  <div class="timeline-date">In progress</div>
+                </div>
+                <div class="timeline-line"></div>
+              </div>
+              <div class="timeline-item">
+                <div class="timeline-dot pending"></div>
+                <div class="timeline-text">
+                  <div class="timeline-label pending-text">Delivered</div>
+                  <div class="timeline-date">—</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column -->
+      <div style="display:flex;flex-direction:column;gap:24px">
+        <!-- Customer -->
+        <div class="card">
+          <div class="card-header">Customer</div>
+          <div class="card-body">
+            <div class="customer-info">
+              <div class="customer-avatar">AK</div>
+              <div class="customer-name">Ama K.</div>
+            </div>
+            <div class="customer-detail">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              ama@example.com
+            </div>
+            <div class="customer-detail">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+              +233 55 123 4567
+            </div>
+          </div>
+        </div>
+
+        <!-- Delivery -->
+        <div class="card">
+          <div class="card-header">Delivery</div>
+          <div class="card-body">
+            <div class="delivery-row">
+              <span class="delivery-label">Type</span>
+              <span class="delivery-value">Pickup</span>
+            </div>
+            <div class="delivery-row">
+              <span class="delivery-label">Location</span>
+              <span class="delivery-value">East Legon</span>
+            </div>
+            <div class="delivery-row">
+              <span class="delivery-label">Address</span>
+              <span class="delivery-value">14 Mensah Wood Rd, East Legon, Accra</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="card">
+          <div class="card-header">Actions</div>
+          <div class="card-body">
+            <div class="actions">
+              <button class="btn btn-clay">Mark as shipped</button>
+              <button class="btn btn-outline">Cancel order</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+const sidebar=document.getElementById('sidebar');
+const toggle=document.getElementById('sidebarToggle');
+const overlay=document.getElementById('sidebarOverlay');
+function openSidebar(){sidebar.classList.add('open');overlay.classList.add('show')}
+function closeSidebar(){sidebar.classList.remove('open');overlay.classList.remove('show')}
+toggle.addEventListener('click',()=>{sidebar.classList.contains('open')?closeSidebar():openSidebar()});
+overlay.addEventListener('click',closeSidebar);
+</script>
+</body>
+</html>

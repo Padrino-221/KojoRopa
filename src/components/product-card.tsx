@@ -1,15 +1,25 @@
 "use client";
 
 import { useState } from "react";
+import type { MouseEvent } from "react";
 import Link from "next/link";
 import { ShirtArt } from "@/components/shirt-art";
 import { useCart } from "@/components/cart-provider";
 import { formatPrice, formatSavings } from "@/lib/format";
 import type { Product } from "@/lib/products";
 
-export function ProductCard({ product }: { product: Product }) {
+type CardTone = "default" | "clay";
+
+export function ProductCard({
+  product,
+  tone = "default",
+}: {
+  product: Product;
+  tone?: CardTone;
+}) {
   const { addItem } = useCart();
   const [added, setAdded] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   const handleQuickAdd = () => {
     addItem(product, product.sizes[0]);
@@ -17,122 +27,153 @@ export function ProductCard({ product }: { product: Product }) {
     setTimeout(() => setAdded(false), 1200);
   };
 
+  // Rack badge — matches the one-of-one concept from the prototype.
+  const badge =
+    product.condition === "Deadstock"
+      ? { text: "Deadstock", solid: true }
+      : product.compareAt
+        ? { text: formatSavings(product.price, product.compareAt), solid: false }
+        : { text: "One of One", solid: true };
+
+  // Buttons inside the card <Link> must not trigger navigation.
+  const stop = (e: MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const clay = tone === "clay";
+
   return (
-    <div className="group">
-      <div className="relative overflow-hidden rounded-2xl bg-surface ring-1 ring-border/40 transition-all duration-300 ease-out group-hover:-translate-y-1 group-hover:ring-clay/25">
-        <Link
-          href={`/product/${product.slug}`}
-          className="block focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-clay"
-          aria-label={product.name}
-        >
-          <div className="aspect-square bg-gradient-to-br from-cream to-linen">
-            {product.image ? (
-              <img
-                src={product.image}
-                alt={product.name}
-                className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.05]"
-              />
-            ) : (
-              <ShirtArt
-                art={product.art}
-                className="h-full w-full transition-transform duration-700 ease-out group-hover:scale-[1.05]"
-              />
-            )}
-          </div>
+    <Link
+      href={`/product/${product.slug}`}
+      className={`group flex h-full flex-col overflow-hidden rounded-2xl transition-all duration-300 hover:-translate-y-1 ${
+        clay
+          ? "bg-clay hover:shadow-[0_18px_40px_-16px_rgba(200,16,46,0.55)]"
+          : "bg-white shadow-sm hover:shadow-lg"
+      }`}
+    >
+      {/* image */}
+      <div
+        className={`relative aspect-square overflow-hidden ${
+          clay
+            ? "bg-gradient-to-br from-clay-deep to-clay"
+            : "bg-gradient-to-br from-cream to-linen"
+        }`}
+      >
+        {product.image ? (
+          <img
+            src={product.image}
+            alt={product.name}
+            className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
+          />
+        ) : (
+          <ShirtArt
+            art={product.art}
+            className="h-full w-full transition-transform duration-700 ease-out group-hover:scale-[1.04]"
+          />
+        )}
 
-          {/* badges */}
-          <div className="absolute top-3 left-3 flex flex-col items-start gap-1.5">
-            {product.condition === "Deadstock" && (
-              <span className="rounded-full bg-clay px-2.5 py-1 text-[10px] font-semibold tracking-wide uppercase text-white">
-                Deadstock
-              </span>
-            )}
-            {product.compareAt && (
-              <span className="rounded-full bg-clay px-2.5 py-1 text-[10px] font-semibold tracking-wide uppercase text-white">
-                {formatSavings(product.price, product.compareAt)}
-              </span>
-            )}
-          </div>
-        </Link>
-
-        {/* mobile: simple + button always visible */}
-        <div
-          className="absolute right-3 bottom-3 md:hidden"
-          onClick={(e) => e.stopPropagation()}
+        {/* badge */}
+        <span
+          className={`absolute top-2.5 left-2.5 rounded-md px-2 py-1 text-[9px] font-bold tracking-[0.06em] uppercase ${
+            badge.solid
+              ? clay
+                ? "bg-white text-clay"
+                : "bg-espresso text-white"
+              : clay
+                ? "bg-white/15 text-white"
+                : "bg-white text-espresso ring-1 ring-sand"
+          }`}
         >
+          {badge.text}
+        </span>
+
+        {/* save */}
+        <button
+          type="button"
+          onClick={(e) => {
+            stop(e);
+            setSaved((v) => !v);
+          }}
+          aria-label={saved ? "Remove from saved" : "Save piece"}
+          aria-pressed={saved}
+          className={`absolute top-2 right-2 flex h-7 w-7 items-center justify-center rounded-full transition-all hover:scale-105 ${
+            clay ? "bg-white/20 hover:bg-white/30" : "bg-white/90 shadow-sm hover:bg-white"
+          }`}
+        >
+          <i
+            className={`ph-duotone ph-heart h-3.5 w-3.5 ${
+              saved ? "text-clay" : clay ? "text-white" : "text-taupe"
+            }`}
+          />
+        </button>
+
+        {/* quick add */}
+        <div className="absolute right-2 bottom-2 z-[1]" onClick={stop}>
           <button
             type="button"
             aria-label={`Add ${product.name} to bag`}
-            onClick={handleQuickAdd}
-            className={`flex h-10 w-10 items-center justify-center rounded-full transition-all duration-200 ${
+            onClick={(e) => {
+              stop(e);
+              handleQuickAdd();
+            }}
+            className={`flex h-8 w-8 items-center justify-center rounded-full transition-all duration-200 ${
               added
-                ? "bg-olive text-white"
-                : "bg-white/95 text-clay backdrop-blur hover:bg-clay hover:text-white"
+                ? "bg-white text-clay"
+                : clay
+                  ? "bg-white/20 text-white backdrop-blur hover:bg-white hover:text-clay"
+                  : "bg-white/95 text-clay shadow-sm backdrop-blur hover:bg-clay hover:text-white"
             }`}
           >
             {added ? (
-              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M5 13l4 4L19 7" />
-              </svg>
+              <i className="ph-duotone ph-check h-4 w-4" />
             ) : (
-              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <path d="M12 5v14M5 12h14" />
-              </svg>
+              <i className="ph-duotone ph-shopping-bag h-4 w-4" />
             )}
           </button>
         </div>
-
-        {/* desktop: size pills + add on hover */}
-        <div
-          className="absolute right-3 bottom-3 hidden translate-y-0 opacity-100 transition-all duration-300 md:translate-y-12 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="flex items-center gap-1 rounded-full bg-white/95 p-1 ring-1 ring-border/40 backdrop-blur">
-            <div className="flex items-center gap-0.5 px-1">
-              {product.sizes.map((size) => (
-                <button
-                  key={size}
-                  type="button"
-                  aria-label={`Add ${product.name} in size ${size} to bag`}
-                  onClick={() => addItem(product, size)}
-                  className="rounded-full px-2 py-1 text-[11px] font-medium text-mocha transition-colors hover:bg-clay hover:text-white"
-                >
-                  {size}
-                </button>
-              ))}
-            </div>
-            <button
-              type="button"
-              aria-label={`Add ${product.name} to bag`}
-              onClick={() => addItem(product, product.sizes[0])}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-clay text-white transition-colors hover:bg-clay-deep"
-            >
-              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <path d="M12 5v14M5 12h14" />
-              </svg>
-            </button>
-          </div>
-        </div>
       </div>
 
-      <div className="mt-3 px-0.5">
-        <Link
-          href={`/product/${product.slug}`}
-          className="block truncate text-[15px] font-medium text-espresso transition-colors group-hover:text-clay"
+      {/* body */}
+      <div className={`flex flex-1 flex-col p-3 ${clay ? "text-white" : ""}`}>
+        <p
+          className={`text-[9px] font-semibold tracking-[0.06em] uppercase ${
+            clay ? "text-white/70" : "text-clay"
+          }`}
+        >
+          {product.category}
+        </p>
+        <h3
+          className={`mt-1 line-clamp-2 font-display text-[13px] leading-snug font-semibold transition-colors ${
+            clay ? "text-white" : "text-espresso group-hover:text-clay"
+          }`}
         >
           {product.name}
-        </Link>
-        <div className="mt-1 flex items-center gap-1.5">
-          <p className="text-[15px] font-semibold tabular-nums text-espresso">
-            {formatPrice(product.price)}
+        </h3>
+        {product.sizes.length > 0 && (
+          <p className={`mt-1 text-[11px] ${clay ? "text-white/60" : "text-taupe"}`}>
+            Size {product.sizes.join(", ")}
           </p>
+        )}
+        <div className="mt-auto flex items-baseline justify-between gap-2 pt-2">
+          <span
+            className={`font-display text-[15px] font-bold tabular-nums ${
+              clay ? "text-white" : "text-espresso"
+            }`}
+          >
+            {formatPrice(product.price)}
+          </span>
           {product.compareAt && (
-            <p className="text-xs text-taupe line-through tabular-nums">
+            <span
+              className={`truncate text-[11px] line-through tabular-nums ${
+                clay ? "text-white/50" : "text-taupe"
+              }`}
+            >
               {formatPrice(product.compareAt)}
-            </p>
+            </span>
           )}
         </div>
       </div>
-    </div>
+    </Link>
   );
 }

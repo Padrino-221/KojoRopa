@@ -8,6 +8,7 @@ import { submitOtpAction, checkPaymentAction, retryPaymentAction } from "@/lib/a
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { CheckoutSteps } from "@/components/checkout-steps";
 
 interface PaymentPendingClientProps {
   orderId: string;
@@ -118,8 +119,8 @@ export function PaymentPendingClient({
   if (paid) {
     return (
       <div className="mx-auto flex max-w-lg flex-col items-center gap-4 px-4 py-24 text-center">
-        <div className="flex h-16 w-16 animate-pop items-center justify-center rounded-full bg-clay/10 text-3xl text-clay">
-          ✓
+        <div className="flex h-16 w-16 animate-pop items-center justify-center rounded-full bg-teal-light">
+          <i className="ph-duotone ph-check h-8 w-8 text-clay" />
         </div>
         <h1 className="font-display text-2xl text-espresso sm:text-3xl">
           Payment Confirmed
@@ -132,22 +133,14 @@ export function PaymentPendingClient({
   }
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-12 sm:py-20">
+    <div className="mx-auto max-w-lg px-4 pb-16 sm:px-6">
+      <h1 className="sr-only">Complete Payment</h1>
+      <CheckoutSteps step="checkout" />
+
       <Card padding="lg">
         <div className="text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-sand">
-            <svg
-              viewBox="0 0 24 24"
-              className="h-7 w-7 text-taupe"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <rect x="7" y="2.5" width="10" height="19" rx="2.5" />
-              <path d="M11 18.5h2" />
-            </svg>
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-teal-light">
+            <i className="ph-duotone ph-device-mobile h-7 w-7 text-clay" />
           </div>
           <h1 className="mt-4 font-display text-2xl text-espresso">
             Complete Payment
@@ -164,7 +157,7 @@ export function PaymentPendingClient({
           )}
         </div>
 
-        <div className="mt-6 rounded-xl bg-surface p-4 ring-1 ring-border/50">
+        <div className="mt-6 rounded-xl bg-cream p-4">
           <div className="flex items-center justify-between text-sm">
             <span className="text-mocha">Order</span>
             <span className="font-medium text-espresso">{orderId}</span>
@@ -189,7 +182,7 @@ export function PaymentPendingClient({
         )}
 
         {confirming ? (
-          <div className="mt-6 flex flex-col items-center gap-3 rounded-xl bg-surface p-5 text-center ring-1 ring-border/50">
+          <div className="mt-6 flex flex-col items-center gap-3 rounded-xl bg-cream p-5 text-center">
             <span className="h-6 w-6 animate-spin rounded-full border-2 border-clay border-t-transparent" />
             <p className="text-sm font-medium text-espresso">
               Waiting for approval

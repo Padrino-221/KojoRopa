@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import Script from "next/script";
-import { Fraunces, Inter } from "next/font/google";
+import { Unbounded, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "@/components/cart-provider";
 import { Navbar } from "@/components/navbar";
@@ -17,14 +16,14 @@ import {
   SITE_KEYWORDS,
 } from "@/lib/site-config";
 
-const fraunces = Fraunces({
-  variable: "--font-fraunces",
+const unbounded = Unbounded({
+  variable: "--font-unbounded",
   subsets: ["latin"],
   display: "swap",
 });
 
-const inter = Inter({
-  variable: "--font-inter",
+const plusJakarta = Plus_Jakarta_Sans({
+  variable: "--font-plus-jakarta",
   subsets: ["latin"],
   display: "swap",
 });
@@ -53,21 +52,23 @@ export default async function RootLayout(props: LayoutProps<"/">) {
     <html
       lang="en"
       suppressHydrationWarning
-      className={`no-js ${fraunces.variable} ${inter.variable} h-full antialiased`}
+      className={`no-js ${unbounded.variable} ${plusJakarta.variable} h-full antialiased`}
     >
       <head>
+        <link
+          rel="stylesheet"
+          href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/duotone/style.css"
+        />
         {/* Marks JS as available so scroll-reveals can hide content; without
             JS everything stays visible. Injected into the initial HTML before
             hydration (avoids React's inline-script hydration warning). */}
-        <Script
-          id="remove-no-js"
-          strategy="beforeInteractive"
+        <script
           dangerouslySetInnerHTML={{
             __html: "document.documentElement.classList.remove('no-js');",
           }}
         />
       </head>
-      <body className="flex min-h-full flex-col bg-linen">
+      <body className="flex min-h-full flex-col bg-cream">
         <SiteSettingsProvider settings={settings}>
           <ToastProvider>
             <CartProvider>

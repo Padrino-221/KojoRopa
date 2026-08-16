@@ -95,9 +95,9 @@ function CustomSelect({
         onClick={() => setOpen((o) => !o)}
         onKeyDown={onKey}
         className={[
-          "flex w-full items-center justify-between gap-2 rounded-xl bg-surface px-3.5 py-2.5 text-sm text-left",
-          "ring-1 ring-border transition-colors",
-          open ? "ring-2 ring-clay/20" : "",
+          "flex w-full items-center justify-between gap-2 rounded-xl border border-sand bg-surface px-3.5 py-2.5 text-sm text-left",
+          "transition-colors",
+          open ? "border-clay ring-2 ring-clay/15" : "",
           !selected && "text-taupe",
         ].join(" ")}
       >
@@ -123,7 +123,7 @@ function CustomSelect({
           ref={listRef}
           id="listbox-options"
           role="listbox"
-          className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-xl bg-surface py-1 ring-2 ring-border animate-fade-in"
+          className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-xl border border-sand bg-surface py-1 shadow-[var(--shadow-md)] animate-fade-in"
         >
           {options.map((opt, i) => (
             <li

@@ -4,13 +4,12 @@ import { useEffect, useState } from "react";
 import { useCart } from "@/components/cart-provider";
 import { formatPrice } from "@/lib/format";
 import type { Product } from "@/lib/products";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 
 export function ProductActions({ product }: { product: Product }) {
   const { addItem } = useCart();
   const [size, setSize] = useState<string | null>(product.sizes[0] ?? null);
   const [justAdded, setJustAdded] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     if (!justAdded) return;
@@ -25,50 +24,68 @@ export function ProductActions({ product }: { product: Product }) {
   };
 
   return (
-    <div className="mt-5">
-      {/* sizes */}
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-espresso">Size</p>
-        <p className="text-xs text-taupe">All pieces measured honestly</p>
-      </div>
+    <div>
+      <p className="font-display text-[13px] font-semibold text-espresso">
+        This piece{" "}
+        <span className="font-normal text-taupe">— choose your size</span>
+      </p>
       <div className="mt-3 flex flex-wrap gap-2">
         {product.sizes.map((s) => (
-          <Badge
+          <button
             key={s}
-            variant={size === s ? "primary" : "default"}
-            size="md"
-            className="min-w-12 cursor-pointer select-none"
+            type="button"
             onClick={() => setSize(s)}
-            role="button"
             aria-pressed={size === s}
+            className={`inline-flex min-w-12 items-center justify-center rounded-xl border px-4 py-2.5 text-[13px] font-semibold transition-colors ${
+              size === s
+                ? "border-clay bg-teal-light text-clay"
+                : "border-sand bg-white text-mocha hover:border-clay/50 hover:text-clay"
+            }`}
           >
             {s}
-          </Badge>
+          </button>
         ))}
       </div>
+      <p className="mt-2 text-xs text-taupe">
+        {product.condition} · all pieces measured honestly
+      </p>
 
-      {/* add to cart */}
-      <div className="mt-5">
-        <Button
+      {/* action row */}
+      <div className="mt-4 flex items-stretch gap-3">
+        <button
+          type="button"
           onClick={handleAdd}
           disabled={!size}
-          className={`relative flex h-12 w-full overflow-hidden px-4 sm:px-6 text-xs sm:text-sm tracking-wide ${
-            justAdded ? "bg-espresso hover:bg-espresso" : ""
+          className={`flex-1 rounded-xl px-6 py-4 font-display text-sm font-semibold tracking-wide text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+            justAdded ? "bg-espresso" : "bg-clay hover:bg-clay-deep"
           }`}
         >
           {justAdded ? (
-            <span className="flex animate-pop items-center gap-2">
-              <svg viewBox="0 0 24 24" className="h-4 w-4 text-clay" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M5 13l4 4L19 7" />
-              </svg>
+            <span className="flex animate-pop items-center justify-center gap-2">
+              <i className="ph-duotone ph-check h-4 w-4 text-white" />
               Added to bag
             </span>
           ) : (
-            <>
-              Add to Cart · {formatPrice(product.price)}
-            </>
+            <>Claim this piece — {formatPrice(product.price)}</>
           )}
-        </Button>
+        </button>
+        <button
+          type="button"
+          onClick={() => setSaved((v) => !v)}
+          aria-label={saved ? "Remove from saved" : "Save piece"}
+          aria-pressed={saved}
+          className={`flex w-12 shrink-0 items-center justify-center rounded-xl border transition-colors ${
+            saved
+              ? "border-clay bg-teal-light"
+              : "border-sand bg-white hover:border-clay hover:bg-teal-light"
+          }`}
+        >
+          <i
+            className={`ph-duotone ph-heart h-5 w-5 ${
+              saved ? "text-clay" : "text-mocha"
+            }`}
+          />
+        </button>
       </div>
 
       <p className="mt-4 text-[13px] text-mocha">

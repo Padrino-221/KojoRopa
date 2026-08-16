@@ -25,9 +25,15 @@
   --color-border-light: #f0f0f0;
 
   /* ——— Typography ——— */
-  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+  --font-display: var(--font-unbounded), ui-sans-serif, system-ui, -apple-system,
     "Segoe UI", sans-serif;
+  --font-sans: var(--font-plus-jakarta), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", sans-serif;
+
+  /* ——— Shadows ——— */
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
 
   /* ——— Motion ——— */
   --animate-fade-up: fade-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
@@ -96,12 +102,30 @@
 html {
   scroll-behavior: smooth;
   scroll-padding-top: 88px;
+  overflow-x: hidden;
 }
 
 body {
-  @apply bg-linen font-sans text-espresso antialiased;
+  @apply bg-cream font-sans text-espresso antialiased;
+  overflow-x: hidden;
 }
 
+/* ——— Phosphor duotone icon size ——— */
+/* The w-/h- size utilities only size the icon's box; the glyph is drawn at
+   font-size. Match font-size to the box so admin icons render full-size. */
+.ph-duotone {
+  display: inline-block;
+  line-height: 1;
+  font-size: 1.25rem;
+}
+.ph-duotone.h-3.w-3 { font-size: 0.75rem; }
+.ph-duotone.h-3\.5.w-3\.5 { font-size: 0.875rem; }
+.ph-duotone.h-4.w-4 { font-size: 1rem; }
+.ph-duotone.h-5.w-5 { font-size: 1.25rem; }
+.ph-duotone.h-7.w-7 { font-size: 1.75rem; }
+.ph-duotone.h-8.w-8 { font-size: 2rem; }
+.ph-duotone.h-10.w-10 { font-size: 2.5rem; }
+.ph-duotone.h-\[18px\].w-\[18px\] { font-size: 18px; }
 /* ——— Scroll reveal ——— */
 /* Without JS (html.no-js) everything stays visible. */
 html.no-js .reveal {
@@ -156,20 +180,98 @@ html.no-js .reveal {
   }
 }
 
+/* ——— Custom brand scrollbar ——— */
+/* Applied to every scrollable element so the whole site shares one look. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-clay) var(--color-cream);
+}
+*::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+*::-webkit-scrollbar-track {
+  background: var(--color-cream);
+}
+*::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--color-clay), var(--color-clay-deep));
+  border: 3px solid var(--color-cream);
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--color-clay-deep);
+}
+*::-webkit-scrollbar-corner {
+  background: var(--color-cream);
+}
 .thin-scroll {
   scrollbar-width: thin;
-  scrollbar-color: var(--color-sand-deep) transparent;
+  scrollbar-color: var(--color-clay) transparent;
 }
 .thin-scroll::-webkit-scrollbar {
   width: 5px;
   height: 5px;
 }
 .thin-scroll::-webkit-scrollbar-thumb {
-  background: var(--color-sand-deep);
+  background: var(--color-clay);
   border-radius: 999px;
 }
 .thin-scroll::-webkit-scrollbar-track {
   background: transparent;
+}
+
+/* ——— Dual range slider (storefront price filter) ——— */
+/* Two stacked range inputs share one track; the inputs capture pointer
+   events only on their thumbs so the fill and labels stay clickable. */
+.dual-range {
+  position: relative;
+  height: 4px;
+  background: var(--color-sand);
+  border-radius: 999px;
+}
+.dual-range-fill {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  background: var(--color-clay);
+  border-radius: 999px;
+}
+.dual-range input[type="range"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  margin: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  pointer-events: none;
+}
+.dual-range input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-espresso);
+  border: 3px solid var(--color-white);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  cursor: grab;
+  pointer-events: auto;
+}
+.dual-range input[type="range"]::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--color-espresso);
+  border: 3px solid var(--color-white);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  cursor: grab;
+  pointer-events: auto;
+}
+
+/* ——— Hide the floating bottom nav while the filter drawer is open ——— */
+body.filter-drawer-open .bottom-nav {
+  display: none;
 }
 
 ::selection {

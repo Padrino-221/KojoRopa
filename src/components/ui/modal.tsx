@@ -33,7 +33,7 @@ function Modal({ open, onClose, children, className = "", size = "lg", ...props 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
       <div
         className="fixed inset-0 animate-fade-in bg-espresso/40 backdrop-blur-sm"
         onClick={onClose}

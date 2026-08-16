@@ -15,7 +15,7 @@ function Card({ padding = "md", className = "", ...props }: CardProps) {
   return (
     <div
       className={[
-        "rounded-2xl bg-surface ring-1 ring-border/50",
+        "rounded-2xl bg-surface",
         paddingClasses[padding],
         className,
       ].join(" ")}

@@ -10,12 +10,12 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
       <input
         ref={ref}
         className={[
-          "w-full rounded-xl bg-surface px-3.5 py-2.5 text-sm text-espresso",
-          "ring-1 ring-border placeholder:text-taupe",
+          "w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-espresso",
+          "border-sand placeholder:text-taupe",
           "transition-colors",
           error
-            ? "ring-sale focus:ring-sale/30"
-            : "focus:border-clay focus:ring-2 focus:ring-clay/20",
+            ? "border-clay focus:border-clay"
+            : "focus:border-clay",
           "focus:outline-none",
           className,
         ].join(" ")}

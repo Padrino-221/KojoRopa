@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
+import { useState, type FormEvent } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCart } from "@/components/cart-provider";
 import { useSiteSetting } from "@/components/site-settings-provider";
 import { Brand } from "@/components/brand";
@@ -11,52 +11,65 @@ export function Navbar() {
   const { count, isHydrated, openCart } = useCart();
   const siteName = useSiteSetting("siteName", "Kojosropa");
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
+  const [search, setSearch] = useState(searchParams.get("q") ?? "");
 
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  // Keep the topbar search in sync with the current URL query — render-phase
+  // adjustment, since the URL is the source of truth after navigation.
+  const urlQ = searchParams.get("q") ?? "";
+  if (urlQ !== search) setSearch(urlQ);
+
+  const submitSearch = (e: FormEvent) => {
+    e.preventDefault();
+    const query = search.trim();
+    router.push(query ? `/?q=${encodeURIComponent(query)}` : "/");
+    setMenuOpen(false);
+  };
 
   return (
-    <header
-      className={`sticky top-0 z-40 border-b backdrop-blur-xl transition-colors duration-300 ${
-        scrolled ? "border-border bg-surface/95" : "border-transparent bg-surface/80"
-      }`}
-    >
-      <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
-        {/* mobile menu toggle */}
+    <header className="sticky top-0 z-40 border-b border-sand bg-white">
+      <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 max-lg:justify-between sm:px-6 lg:px-8">
+        {/* logo */}
+        <Brand
+          href="/"
+          name={siteName}
+          className="shrink-0 md:flex-none"
+        />
+
+        {/* mobile menu toggle — right edge on mobile, hidden on desktop */}
         <button
           type="button"
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-espresso transition-colors hover:bg-cream md:hidden"
           aria-label="Toggle menu"
           onClick={() => setMenuOpen((v) => !v)}
         >
-          <svg
-            viewBox="0 0 24 24"
-            className="h-5 w-5"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-          >
-            {menuOpen ? (
-              <path d="M6 6l12 12M18 6L6 18" />
-            ) : (
-              <path d="M4 7h16M4 12h16M4 17h10" />
-            )}
-          </svg>
+          <i
+            className={`ph-duotone h-5 w-5 ${
+              menuOpen ? "ph-x" : "ph-list"
+            }`}
+          />
         </button>
 
-        {/* logo — centered on mobile, left-aligned on desktop */}
-        <Brand
-          href="/"
-          name={siteName}
-          className="flex-1 justify-center md:flex-none md:justify-start"
-        />
+        {/* search — desktop only, like the prototype topbar */}
+        <form
+          onSubmit={submitSearch}
+          className="ml-1 hidden md:block"
+          role="search"
+        >
+          <div className="relative flex items-center gap-2 rounded-full bg-cream px-3.5">
+            <i className="ph-duotone ph-magnifying-glass h-[18px] w-[18px] shrink-0 text-taupe" />
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search..."
+              aria-label="Search pieces"
+              className="w-36 bg-transparent py-2 text-[13px] text-espresso outline-none placeholder:text-taupe lg:w-44"
+            />
+          </div>
+        </form>
 
         {/* desktop nav */}
         <nav className="ml-auto hidden items-center gap-1 md:flex">
@@ -92,25 +105,14 @@ export function Navbar() {
           </Link>
         </nav>
 
-        {/* cart */}
+        {/* cart — hidden on mobile where the bottom nav has one */}
         <button
           type="button"
           onClick={openCart}
-          className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-espresso transition-colors hover:bg-cream"
+          className="relative hidden h-10 w-10 shrink-0 items-center justify-center rounded-full text-espresso transition-colors hover:bg-cream lg:flex"
           aria-label={`Open bag, ${isHydrated ? count : 0} items`}
         >
-          <svg
-            viewBox="0 0 24 24"
-            className="h-5 w-5"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.7"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M6 7h12l1 13H5L6 7Z" />
-            <path d="M9 7V6a3 3 0 0 1 6 0v1" />
-          </svg>
+          <i className="ph-duotone ph-shopping-bag h-5 w-5" />
           {isHydrated && count > 0 && (
             <span className="absolute -top-0.5 -right-0.5 flex h-5 min-w-5 animate-pop items-center justify-center rounded-full bg-clay px-1 text-[10px] font-semibold text-white">
               {count}
@@ -121,7 +123,7 @@ export function Navbar() {
 
       {/* mobile menu */}
       {menuOpen && (
-        <nav className="animate-fade-in border-t border-border bg-surface px-4 py-3 md:hidden">
+        <nav className="animate-fade-in border-t border-sand bg-white px-4 py-3 md:hidden">
           <div className="flex flex-col gap-0.5">
             <Link
               href="/#shop"

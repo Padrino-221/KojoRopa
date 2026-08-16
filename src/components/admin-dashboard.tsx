@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
 
 import { ShirtArt } from "@/components/shirt-art";
+import { AdminSidebar } from "@/components/admin-sidebar";
 import { compressImage } from "@/lib/image";
 import {
   CONDITIONS,
@@ -26,10 +27,8 @@ import {
 import { uploadProductImageAction } from "@/lib/actions/upload";
 import { updateOrderStatusAction, type OrderStatus } from "@/lib/actions/orders";
 import { ORDER_STATUSES } from "@/lib/order-status";
-import { logoutAction } from "@/lib/actions/auth";
 import { useSiteSetting } from "@/components/site-settings-provider";
 import { ChangePassword } from "@/components/admin-change-password";
-import { Brand } from "@/components/brand";
 import {
   getDbSettings,
   saveSettingsAction,
@@ -254,10 +253,10 @@ function ProductForm({
           <div className="flex items-start justify-between gap-4">
             <div>
               <h2 className="font-display text-2xl tracking-tight text-espresso">
-                {initial ? "Edit piece" : "Add a piece"}
+                {initial ? "Edit piece" : "Add New Piece"}
               </h2>
               <p className="mt-1 text-sm text-mocha">
-                Changes update the rack immediately.
+                {initial ? "Update the details below." : "Fill in the details to list a new piece."}
               </p>
             </div>
             <div className="h-24 w-20 shrink-0 overflow-hidden rounded-xl bg-cream">
@@ -268,93 +267,202 @@ function ProductForm({
 
         {/* ——— Scrollable body ——— */}
         <div className="flex-1 min-h-0 overflow-y-auto px-6 py-6 sm:px-8">
+
+          {/* upload zone */}
+          {form.images.length === 0 && (
+            <label className="mb-6 flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-sand-deep bg-cream/50 px-6 py-12 text-center transition-colors hover:border-clay/40 hover:bg-clay-light/30 disabled:pointer-events-none disabled:opacity-50">
+              {uploading > 0 ? (
+                <Spinner className="mb-3 h-10 w-10 text-taupe" />
+              ) : (
+                <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-cream">
+                  <i className="ph-duotone ph-image h-7 w-7 text-taupe" />
+                </div>
+              )}
+              <p className="text-sm font-semibold text-espresso">
+                {uploading > 0 ? "Uploading…" : "Upload photos"}
+              </p>
+              <p className="mt-1 text-xs text-taupe">JPG, PNG. Max 5MB each</p>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                disabled={uploading > 0}
+                className="sr-only"
+                onChange={async (e) => {
+                  const files = Array.from(e.target.files ?? []);
+                  if (files.length === 0) return;
+                  const remaining = maxProductImages - form.images.length;
+                  const toAdd = files.slice(0, remaining);
+                  setUploading((n) => n + toAdd.length);
+                  setUploadError(null);
+                  const fresh: string[] = [];
+                  for (const file of toAdd) {
+                    try {
+                      const dataUrl = await compressImage(file);
+                      const res = await uploadProductImageAction(dataUrl);
+                      if (res.ok) {
+                        fresh.push(res.url);
+                      } else {
+                        setUploadError(res.error);
+                      }
+                    } catch {
+                      /* skip unreadable files */
+                    }
+                    setUploading((n) => n - 1);
+                  }
+                  if (fresh.length > 0)
+                    set("images", [...form.images, ...fresh]);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+          )}
+
+          {/* uploaded photos grid */}
+          {form.images.length > 0 && (
+            <div className="mb-6">
+              <Label>
+                Product Photos{" "}
+                <span className="font-normal normal-case text-taupe">
+                  (first photo is the cover — use the arrows to reorder)
+                </span>
+              </Label>
+              {uploadError && (
+                <p role="alert" className="mb-2 w-full text-xs text-sale">
+                  {uploadError}
+                </p>
+              )}
+              <div className="flex flex-wrap gap-3">
+                {form.images.map((src, i) => (
+                  <div
+                    key={i}
+                    className="relative h-28 w-28 shrink-0 overflow-hidden rounded-xl bg-cream ring-1 ring-border/50"
+                  >
+                    <img
+                      src={src}
+                      alt={`Product photo ${i + 1}`}
+                      className="h-full w-full object-cover"
+                    />
+                    {i === 0 && (
+                      <Badge
+                        variant="primary"
+                        size="sm"
+                        className="absolute bottom-1 left-1 bg-espresso/70 normal-case"
+                      >
+                        Cover
+                      </Badge>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        set(
+                          "images",
+                          form.images.filter((_, idx) => idx !== i)
+                        )
+                      }
+                      aria-label={`Remove photo ${i + 1}`}
+                      className="absolute top-1 right-1 flex h-6 w-6 items-center justify-center rounded-full bg-espresso/60 text-white transition-colors hover:bg-espresso"
+                    >
+                      <i className="ph-duotone ph-x h-3 w-3" />
+                    </button>
+                    {form.images.length > 1 && (
+                      <div className="absolute bottom-1 right-1 flex gap-1">
+                        <button
+                          type="button"
+                          disabled={i === 0}
+                          onClick={() => moveImage(i, -1)}
+                          aria-label="Move photo earlier"
+                          className="flex h-6 w-6 items-center justify-center rounded-full bg-espresso/60 text-white transition-colors hover:bg-espresso disabled:pointer-events-none disabled:opacity-40"
+                        >
+                          <i className="ph-duotone ph-caret-up h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={i === form.images.length - 1}
+                          onClick={() => moveImage(i, 1)}
+                          aria-label="Move photo later"
+                          className="flex h-6 w-6 items-center justify-center rounded-full bg-espresso/60 text-white transition-colors hover:bg-espresso disabled:pointer-events-none disabled:opacity-40"
+                        >
+                          <i className="ph-duotone ph-caret-down h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+                {form.images.length < maxProductImages && (
+                  <label className="flex h-28 w-28 shrink-0 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-sand-deep bg-cream/50 transition-colors hover:border-clay/40 hover:bg-cream disabled:pointer-events-none disabled:opacity-50">
+                    {uploading > 0 ? (
+                      <Spinner className="h-7 w-7 text-taupe" />
+                    ) : (
+                      <i className="ph-duotone ph-image h-8 w-8 text-taupe" />
+                    )}
+                    <span className="mt-1 text-[10px] font-medium text-taupe">
+                      {uploading > 0 ? "Uploading…" : "Add photo"}
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      disabled={uploading > 0}
+                      className="sr-only"
+                      onChange={async (e) => {
+                        const files = Array.from(e.target.files ?? []);
+                        if (files.length === 0) return;
+                        const remaining = maxProductImages - form.images.length;
+                        const toAdd = files.slice(0, remaining);
+                        setUploading((n) => n + toAdd.length);
+                        setUploadError(null);
+                        const fresh: string[] = [];
+                        for (const file of toAdd) {
+                          try {
+                            const dataUrl = await compressImage(file);
+                            const res = await uploadProductImageAction(dataUrl);
+                            if (res.ok) {
+                              fresh.push(res.url);
+                            } else {
+                              setUploadError(res.error);
+                            }
+                          } catch {
+                            /* skip unreadable files */
+                          }
+                          setUploading((n) => n - 1);
+                        }
+                        if (fresh.length > 0)
+                          set("images", [...form.images, ...fresh]);
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 gap-x-8 gap-y-5 lg:grid-cols-2">
           {/* ——— Left column: identity & classification ——— */}
           <div className="space-y-4">
-            <div>
-              <Label htmlFor="f-name" required>Name</Label>
+            <div className="lg:col-span-2">
+              <Label htmlFor="f-name" required>Piece name</Label>
               <Input
                 id="f-name"
                 value={form.name}
                 onChange={(e) => set("name", e.target.value)}
-                placeholder="e.g. Vintage Tour Tee"
+                placeholder="e.g. Hand-dyed Kente Scarf"
               />
             </div>
             <div>
-              <Label htmlFor="f-tagline">Tagline</Label>
-              <Input
-                id="f-tagline"
-                value={form.tagline}
-                onChange={(e) => set("tagline", e.target.value)}
-                placeholder="One honest line that sells the story"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Category</Label>
-                <CustomSelect
-                  value={form.category}
-                  onChange={(v) => set("category", v)}
-                  options={categoryOptions.map((c) => ({
-                    value: c.value,
-                    label: c.label,
-                  }))}
-                />
-              </div>
-              <div>
-                <Label>Condition</Label>
-                <CustomSelect
-                  value={form.condition}
-                  onChange={(v) => set("condition", v)}
-                  options={CONDITIONS.map((c) => ({
-                    value: c,
-                    label: c,
-                  }))}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* ——— Right column: pricing, story & options ——— */}
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="f-price" required>Price</Label>
-                <Input
-                  id="f-price"
-                  type="number"
-                  min="1"
-                  step="any"
-                  value={form.price}
-                  onChange={(e) => set("price", e.target.value)}
-                  placeholder="e.g. 85"
-                />
-              </div>
-              <div>
-                <Label htmlFor="f-compare">Compare-at</Label>
-                <Input
-                  id="f-compare"
-                  type="number"
-                  min="0"
-                  step="any"
-                  value={form.compareAt}
-                  onChange={(e) => set("compareAt", e.target.value)}
-                  placeholder="Optional"
-                />
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="f-story">Story</Label>
-              <Textarea
-                id="f-story"
-                rows={3}
-                value={form.story}
-                onChange={(e) => set("story", e.target.value)}
-                placeholder="Where it came from, what it's been through"
+              <Label>Category</Label>
+              <CustomSelect
+                value={form.category}
+                onChange={(v) => set("category", v)}
+                options={categoryOptions.map((c) => ({
+                  value: c.value,
+                  label: c.label,
+                }))}
               />
             </div>
             <div>
-              <Label>Sizes</Label>
+              <Label>Size</Label>
               <div className="flex flex-wrap gap-2">
                 {sizeOptions.map((s) => (
                   <Badge
@@ -371,145 +479,75 @@ function ProductForm({
                 ))}
               </div>
             </div>
-            <div className="flex flex-wrap gap-6">
-              <Checkbox
-                label="Featured"
-                checked={form.featured}
-                onChange={(e) => set("featured", e.target.checked)}
-              />
-              <Checkbox
-                label="Visible on the rack"
-                checked={form.visible}
-                onChange={(e) => set("visible", e.target.checked)}
+            <div>
+              <Label>Condition</Label>
+              <CustomSelect
+                value={form.condition}
+                onChange={(v) => set("condition", v)}
+                options={CONDITIONS.map((c) => ({
+                  value: c,
+                  label: c,
+                }))}
               />
             </div>
           </div>
 
-          {/* ——— Full width: photos ——— */}
+          {/* ——— Right column: pricing, story & options ——— */}
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="f-price" required>Price</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-mocha pointer-events-none">GH₵</span>
+                <Input
+                  id="f-price"
+                  type="number"
+                  min="1"
+                  step="any"
+                  value={form.price}
+                  onChange={(e) => set("price", e.target.value)}
+                  placeholder="0.00"
+                  className="pl-12"
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="f-story">Description</Label>
+              <Textarea
+                id="f-story"
+                rows={4}
+                value={form.story}
+                onChange={(e) => set("story", e.target.value)}
+                placeholder="Describe the piece — fabric, origin, story..."
+              />
+            </div>
+            <div>
+              <Label htmlFor="f-tagline">Tagline</Label>
+              <Input
+                id="f-tagline"
+                value={form.tagline}
+                onChange={(e) => set("tagline", e.target.value)}
+                placeholder="e.g. kente, handmade, unisex (comma separated)"
+              />
+            </div>
+          </div>
+
+          {/* ——— Full width: feature toggle ——— */}
           <div className="lg:col-span-2">
-            <Label>
-              Product Photos{" "}
-              <span className="font-normal normal-case text-taupe">
-                (first photo is the cover — use the arrows to reorder)
-              </span>
-            </Label>
-            <div className="flex flex-wrap gap-3">
-              {uploadError && (
-                <p role="alert" className="w-full text-xs text-sale">
-                  {uploadError}
-                </p>
-              )}
-              {form.images.map((src, i) => (
-                <div
-                  key={i}
-                  className="relative h-28 w-28 shrink-0 overflow-hidden rounded-xl bg-cream ring-1 ring-border/50"
-                >
-                  <img
-                    src={src}
-                    alt={`Product photo ${i + 1}`}
-                    className="h-full w-full object-cover"
-                  />
-                  {i === 0 && (
-                    <Badge
-                      variant="primary"
-                      size="sm"
-                      className="absolute bottom-1 left-1 bg-espresso/70 normal-case"
-                    >
-                      Cover
-                    </Badge>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() =>
-                      set(
-                        "images",
-                        form.images.filter((_, idx) => idx !== i)
-                      )
-                    }
-                    aria-label={`Remove photo ${i + 1}`}
-                    className="absolute top-1 right-1 flex h-6 w-6 items-center justify-center rounded-full bg-espresso/60 text-white transition-colors hover:bg-espresso"
-                  >
-                    <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                      <path d="M6 6l12 12M18 6L6 18" />
-                    </svg>
-                  </button>
-                  {form.images.length > 1 && (
-                    <div className="absolute bottom-1 right-1 flex gap-1">
-                      <button
-                        type="button"
-                        disabled={i === 0}
-                        onClick={() => moveImage(i, -1)}
-                        aria-label="Move photo earlier"
-                        className="flex h-6 w-6 items-center justify-center rounded-full bg-espresso/60 text-white transition-colors hover:bg-espresso disabled:pointer-events-none disabled:opacity-40"
-                      >
-                        <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M18 15l-6-6-6 6" />
-                        </svg>
-                      </button>
-                      <button
-                        type="button"
-                        disabled={i === form.images.length - 1}
-                        onClick={() => moveImage(i, 1)}
-                        aria-label="Move photo later"
-                        className="flex h-6 w-6 items-center justify-center rounded-full bg-espresso/60 text-white transition-colors hover:bg-espresso disabled:pointer-events-none disabled:opacity-40"
-                      >
-                        <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M6 9l6 6 6-6" />
-                        </svg>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))}
-              {form.images.length < maxProductImages && (
-                <label className="flex h-28 w-28 shrink-0 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-sand-deep bg-cream/50 transition-colors hover:border-clay/40 hover:bg-cream disabled:pointer-events-none disabled:opacity-50">
-                  {uploading > 0 ? (
-                    <Spinner className="h-7 w-7 text-taupe" />
-                  ) : (
-                    <svg viewBox="0 0 24 24" className="h-8 w-8 text-taupe" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="3" y="3" width="18" height="18" rx="2" />
-                      <circle cx="8.5" cy="8.5" r="1.5" />
-                      <path d="M21 15l-5-5L5 21" />
-                    </svg>
-                  )}
-                  <span className="mt-1 text-[10px] font-medium text-taupe">
-                    {uploading > 0 ? "Uploading…" : "Add photo"}
-                  </span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    disabled={uploading > 0}
-                    className="sr-only"
-                    onChange={async (e) => {
-                      const files = Array.from(e.target.files ?? []);
-                      if (files.length === 0) return;
-                      const remaining = maxProductImages - form.images.length;
-                      const toAdd = files.slice(0, remaining);
-                      setUploading((n) => n + toAdd.length);
-                      setUploadError(null);
-                      const fresh: string[] = [];
-                      for (const file of toAdd) {
-                        try {
-                          const dataUrl = await compressImage(file);
-                          const res = await uploadProductImageAction(dataUrl);
-                          if (res.ok) {
-                            fresh.push(res.url);
-                          } else {
-                            setUploadError(res.error);
-                          }
-                        } catch {
-                          /* skip unreadable files */
-                        }
-                        setUploading((n) => n - 1);
-                      }
-                      if (fresh.length > 0)
-                        set("images", [...form.images, ...fresh]);
-                      e.target.value = "";
-                    }}
-                  />
-                </label>
-              )}
+            <div className="flex items-center justify-between rounded-xl border border-sand bg-white px-4 py-4">
+              <div>
+                <p className="text-[13px] font-semibold text-espresso">Feature this piece</p>
+                <p className="text-xs text-taupe">Display on homepage spotlight</p>
+              </div>
+              <label className="relative h-6 w-11 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.featured}
+                  onChange={(e) => set("featured", e.target.checked)}
+                  className="peer sr-only"
+                />
+                <span className="absolute inset-0 rounded-full bg-sand-deep transition-colors peer-checked:bg-clay" />
+                <span className="absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5" />
+              </label>
             </div>
           </div>
 
@@ -517,14 +555,19 @@ function ProductForm({
         </div>
 
         {/* ——— Fixed footer ——— */}
-        <div className="relative z-10 shrink-0 border-t border-border px-6 py-4 sm:px-8">
+        <div className="relative z-10 shrink-0 border-t border-sand px-6 py-4 sm:px-8">
           <div className="flex items-center justify-between gap-3">
             <Button type="button" variant="secondary" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={!valid || saving}>
-              {saving ? "Uploading photos…" : initial ? "Save changes" : "Add to the rack"}
-            </Button>
+            <div className="flex gap-2">
+              <Button type="button" variant="secondary" onClick={onClose}>
+                Save as draft
+              </Button>
+              <Button type="submit" disabled={!valid || saving}>
+                {saving ? "Uploading photos…" : initial ? "Save changes" : "List piece"}
+              </Button>
+            </div>
           </div>
           {!valid && (
             <p className="mt-2 text-xs text-sale">
@@ -686,9 +729,7 @@ function SettingsPanel({
                   collapsed[section.title] ? "" : "rotate-180"
                 }`}
               >
-                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="m6 9 6 6 6-6" />
-                </svg>
+                <i className="ph-duotone ph-caret-down h-4 w-4" />
               </span>
             </button>
           </CardHeader>
@@ -740,10 +781,7 @@ function SettingsPanel({
                       onClick={() => handleReset(s.key)}
                       title="Reset to default"
                     >
-                      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                        <path d="M3 3v5h5" />
-                      </svg>
+                      <i className="ph-duotone ph-arrow-clockwise h-4 w-4" />
                     </Button>
                   )}
                 </div>
@@ -828,9 +866,7 @@ function ConfirmDialog({
     <Modal open onClose={onClose} size="sm">
       <div className="p-6 sm:p-8">
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-sale/10 text-sale">
-          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
-            <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />
-          </svg>
+          <i className="ph-duotone ph-trash h-5 w-5" />
         </div>
         <h2 className="mt-4 font-display text-xl tracking-tight text-espresso">
           {confirm.title}
@@ -886,12 +922,16 @@ function OrderDrawer({
   }, [order, onClose]);
 
   if (!order) return null;
-  const paymentInitiated = Boolean(
-    order.moolreSessionId || order.moolreTransactionId
-  );
+  const paymentConfirmed =
+    order.status === "paid" || order.status === "delivered";
+
+  // Current position of the red-dot indicator. It advances as the item
+  // progresses and stays on "Delivered" once complete so the dot never vanishes.
+  const currentStep =
+    order.status === "paid" ? 2 : order.status === "delivered" ? 3 : 0;
 
   return (
-    <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label={`Order ${order.id}`}>
+    <div className="fixed inset-0 z-[150]" role="dialog" aria-modal="true" aria-label={`Order ${order.id}`}>
       {/* overlay */}
       <button
         type="button"
@@ -904,124 +944,181 @@ function OrderDrawer({
       <aside
         ref={panelRef}
         tabIndex={-1}
-        className="absolute right-0 top-0 flex h-full w-full max-w-md animate-slide-in flex-col border-l border-border bg-linen focus:outline-none"
+        className="absolute right-0 top-0 flex h-full w-full max-w-[720px] animate-slide-in flex-col border-l border-sand bg-cream focus:outline-none"
       >
-        {/* header */}
-        <div className="flex items-center justify-between border-b border-border px-6 py-4">
-          <div>
-            <h2 className="font-display text-xl tracking-tight text-espresso">
-              Order
-            </h2>
-            <p className="mt-0.5 text-xs tabular-nums text-taupe">{order.id}</p>
-          </div>
-          <Button variant="ghost" size="icon-sm" onClick={onClose} aria-label="Close">
-            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-              <path d="M6 6l12 12M18 6L6 18" />
-            </svg>
+        {/* topbar */}
+        <div className="flex items-center gap-3 border-b border-sand bg-white px-6 py-3.5">
+          <Button variant="ghost" size="icon-sm" onClick={onClose} aria-label="Go back">
+            <i className="ph-duotone ph-caret-left h-4 w-4" />
           </Button>
+          <h2 className="font-display text-[17px] font-bold tracking-tight text-espresso">
+            Order #{order.id.slice(-4)}
+          </h2>
+          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
+            order.status === "paid" ? "bg-green-light text-green" :
+            order.status === "delivered" ? "bg-green-light text-green" :
+            order.status === "pending" ? "bg-amber-light text-amber" :
+            "bg-red-50 text-red-600"
+          }`}>
+            {statusLabel[order.status]}
+          </span>
         </div>
 
-        {/* body */}
-        <div className="thin-scroll flex-1 space-y-6 overflow-y-auto px-6 py-5">
-          {/* customer */}
-          <section>
-            <p className="text-[11px] font-semibold tracking-[0.18em] text-taupe uppercase">
-              Customer
-            </p>
-            <p className="mt-2 text-sm font-medium text-espresso">{order.name}</p>
-            <p className="mt-0.5 text-sm text-mocha">{order.email}</p>
-            {order.phone && (
-              <p className="mt-0.5 text-sm text-mocha">{order.phone}</p>
-            )}
-            <p className="mt-1 text-xs text-taupe">{formatOrderDate(order.placedAt)}</p>
-          </section>
+        {/* body — two-column grid */}
+        <div className="thin-scroll flex-1 overflow-y-auto p-6">
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_380px]">
+            {/* left column */}
+            <div className="flex flex-col gap-5">
+              {/* order details card */}
+              <div className="overflow-hidden rounded-xl border border-sand bg-white">
+                <div className="border-b border-sand px-5 py-4">
+                  <h3 className="text-[13px] font-semibold uppercase tracking-wide text-espresso">Order Details</h3>
+                </div>
+                <div className="p-5">
+                  <div className="flex gap-4">
+                    <div className="flex h-[120px] w-[100px] shrink-0 items-center justify-center rounded-xl bg-espresso">
+                      {order.items[0] ? (
+                        <i className="ph-duotone ph-t-shirt h-10 w-10 text-taupe" />
+                      ) : (
+                        <i className="ph-duotone ph-package h-10 w-10 text-taupe" />
+                      )}
+                    </div>
+                    <div className="flex min-w-0 flex-1 flex-col">
+                      <p className="font-display text-base font-semibold text-espresso">
+                        {order.items[0]?.name ?? "Order"}
+                      </p>
+                      <p className="text-[13px] text-taupe">{order.items[0]?.size ? `Size ${order.items[0].size}` : ""}</p>
+                      <div className="mt-2 flex flex-wrap gap-3 text-[13px] text-mocha">
+                        {order.items[0]?.size && (
+                          <span><strong className="font-semibold text-espresso">Size</strong> {order.items[0].size}</span>
+                        )}
+                      </div>
+                      <p className="mt-auto font-display text-xl font-semibold text-clay">
+                        {formatPrice(order.total)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-          {/* status + payment */}
-          <section>
-            <p className="text-[11px] font-semibold tracking-[0.18em] text-taupe uppercase">
-              Status
-            </p>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <Badge variant={statusBadgeVariant[order.status]}>
-                {statusLabel[order.status]}
-              </Badge>
-              <Badge variant={paymentInitiated ? "muted" : "warning"}>
-                {paymentInitiated ? "Payment initiated" : "No payment session"}
-              </Badge>
+              {/* timeline card */}
+              <div className="overflow-hidden rounded-xl border border-sand bg-white">
+                <div className="border-b border-sand px-5 py-4">
+                  <h3 className="text-[13px] font-semibold uppercase tracking-wide text-espresso">Order Timeline</h3>
+                </div>
+                <div className="p-5">
+                  <div className="flex flex-col">
+                    {[
+                      { label: "Order placed", date: formatOrderDate(order.placedAt) },
+                      { label: "Payment confirmed", date: paymentConfirmed ? formatOrderDate(order.placedAt) : "—" },
+                      { label: "Preparing for pickup", date: order.status === "paid" ? "In progress" : order.status === "delivered" ? formatOrderDate(order.placedAt) : "—" },
+                      { label: "Delivered", date: order.status === "delivered" ? formatOrderDate(order.placedAt) : "—" },
+                    ].map((step, i) => {
+                      const isCurrent = i === currentStep;
+                      const done = i < currentStep;
+                      return (
+                        <div key={i} className="flex gap-4 pb-6 last:pb-0">
+                          <div className="flex flex-col items-center">
+                            <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
+                              isCurrent ? "bg-clay" : done ? "bg-green" : "bg-sand"
+                            }`}>
+                              {isCurrent ? (
+                                <div className="h-2 w-2 rounded-full bg-white" />
+                              ) : done ? (
+                                <i className="ph-duotone ph-check h-3 w-3 text-white" />
+                              ) : null}
+                            </div>
+                            {i < 3 && <div className={`mt-1 w-0.5 flex-1 ${i < currentStep ? "bg-green" : isCurrent ? "bg-clay" : "bg-sand"}`} />}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className={`text-sm font-semibold ${isCurrent ? "text-clay" : done ? "text-espresso" : "text-taupe"}`}>
+                              {isCurrent ? <span className="text-clay">{step.label}</span> : step.label}
+                            </p>
+                            <p className="text-xs text-taupe">{step.date}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
             </div>
-          </section>
 
-          {/* items */}
-          <section>
-            <p className="text-[11px] font-semibold tracking-[0.18em] text-taupe uppercase">
-              Items
-            </p>
-            <ul className="mt-2 divide-y divide-border border-y border-border">
-              {order.items.map((item) => (
-                <li key={item.id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
-                  <span className="min-w-0 flex-1 truncate text-espresso">
-                    {item.name}
-                    <span className="text-taupe">
-                      {" "}×{item.qty}
-                      {item.size ? ` · ${item.size}` : ""}
+            {/* right column */}
+            <div className="flex flex-col gap-5">
+              {/* customer card */}
+              <div className="overflow-hidden rounded-xl border border-sand bg-white">
+                <div className="border-b border-sand px-5 py-4">
+                  <h3 className="text-[13px] font-semibold uppercase tracking-wide text-espresso">Customer</h3>
+                </div>
+                <div className="p-5">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-clay-light text-sm font-bold text-clay">
+                      {order.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="text-[15px] font-semibold text-espresso">{order.name}</p>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex items-center gap-2 text-[13px] text-mocha">
+                    <i className="ph-duotone ph-envelope h-4 w-4 shrink-0 text-taupe" />
+                    {order.email}
+                  </div>
+                  {order.phone && (
+                    <div className="mt-1.5 flex items-center gap-2 text-[13px] text-mocha">
+                      <i className="ph-duotone ph-phone h-4 w-4 shrink-0 text-taupe" />
+                      {order.phone}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* delivery card */}
+              <div className="overflow-hidden rounded-xl border border-sand bg-white">
+                <div className="border-b border-sand px-5 py-4">
+                  <h3 className="text-[13px] font-semibold uppercase tracking-wide text-espresso">Delivery</h3>
+                </div>
+                <div className="divide-y divide-cream p-5">
+                  <div className="flex justify-between py-2">
+                    <span className="text-[13px] text-taupe">Type</span>
+                    <span className="text-[13px] font-semibold text-espresso">Delivery</span>
+                  </div>
+                  <div className="flex justify-between py-2">
+                    <span className="text-[13px] text-taupe">Location</span>
+                    <span className="text-[13px] font-semibold text-espresso">{order.city}</span>
+                  </div>
+                  <div className="flex justify-between py-2">
+                    <span className="text-[13px] text-taupe">Address</span>
+                    <span className="text-right text-[13px] font-semibold text-espresso">
+                      {order.street}{order.postal ? `, ${order.postal}` : ""}, {order.country}
                     </span>
-                  </span>
-                  <span className="shrink-0 tabular-nums text-espresso">
-                    {formatPrice(item.price * item.qty)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </section>
+                  </div>
+                </div>
+              </div>
 
-          {/* delivery */}
-          <section>
-            <p className="text-[11px] font-semibold tracking-[0.18em] text-taupe uppercase">
-              Delivery to
-            </p>
-            <p className="mt-2 rounded-xl bg-cream p-3 text-sm leading-relaxed text-mocha">
-              {order.street}, {order.city}
-              {order.postal ? ` ${order.postal}` : ""}, {order.country}
-            </p>
-          </section>
-
-          {/* totals */}
-          <dl className="space-y-2 border-t border-border pt-4 text-sm">
-            <div className="flex justify-between text-mocha">
-              <dt>Subtotal</dt>
-              <dd className="tabular-nums">{formatPrice(order.subtotal)}</dd>
+              {/* actions card */}
+              <div className="overflow-hidden rounded-xl border border-sand bg-white">
+                <div className="border-b border-sand px-5 py-4">
+                  <h3 className="text-[13px] font-semibold uppercase tracking-wide text-espresso">Actions</h3>
+                </div>
+                <div className="flex flex-col gap-2.5 p-5">
+                  <Button
+                    onClick={() => onStatusChange(order.id, order.status === "paid" ? "delivered" : "paid")}
+                    disabled={busy || order.status === "delivered"}
+                    className="w-full"
+                  >
+                    {order.status === "paid" ? "Mark as delivered" : order.status === "pending" ? "Mark as paid" : "Completed"}
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={onClose}
+                    className="w-full"
+                  >
+                    Close
+                  </Button>
+                </div>
+              </div>
             </div>
-            <div className="flex justify-between text-mocha">
-              <dt>Delivery</dt>
-              <dd className="tabular-nums">{formatPrice(order.deliveryFee)}</dd>
-            </div>
-            <div className="flex justify-between border-t border-border pt-3 text-base font-semibold text-espresso">
-              <dt>Total</dt>
-              <dd className="font-display text-xl tabular-nums">
-                {formatPrice(order.total)}
-              </dd>
-            </div>
-          </dl>
-        </div>
-
-        {/* footer: status controls */}
-        <div className="shrink-0 border-t border-border px-6 py-5">
-          <p className="text-[11px] font-semibold tracking-[0.18em] text-taupe uppercase">
-            Update status
-          </p>
-          <div className="mt-3 grid grid-cols-3 gap-2">
-            {ORDER_STATUSES.map((s) => (
-              <Button
-                key={s}
-                variant={order.status === s ? "primary" : "secondary"}
-                size="sm"
-                onClick={() => onStatusChange(order.id, s)}
-                disabled={busy || order.status === s}
-                className="px-2"
-              >
-                {statusLabel[s]}
-              </Button>
-            ))}
           </div>
         </div>
       </aside>
@@ -1064,9 +1161,7 @@ function Pagination({
         aria-label="Previous page"
         className={arrow}
       >
-        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M15 18l-6-6 6-6" />
-        </svg>
+        <i className="ph-duotone ph-caret-left h-4 w-4" />
       </button>
       {items.map((item, i) =>
         item === "…" ? (
@@ -1096,9 +1191,7 @@ function Pagination({
         aria-label="Next page"
         className={arrow}
       >
-        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M9 6l6 6-6 6" />
-        </svg>
+        <i className="ph-duotone ph-caret-right h-4 w-4" />
       </button>
     </nav>
   );
@@ -1106,16 +1199,10 @@ function Pagination({
 
 /* ————— dashboard ————— */
 
-type AdminTab = "products" | "orders" | "settings" | "activity";
+type AdminView = "dashboard" | "products" | "orders" | "settings" | "activity";
 
 const ORDERS_PAGE_SIZE = 10;
 const LOG_PAGE_SIZE = 20;
-const TABS: { value: AdminTab; label: string }[] = [
-  { value: "products", label: "Products" },
-  { value: "orders", label: "Orders" },
-  { value: "activity", label: "Activity" },
-  { value: "settings", label: "Settings" },
-];
 
 export function AdminDashboard({
   initialProducts,
@@ -1135,7 +1222,7 @@ export function AdminDashboard({
   const [orders, setOrders] = useState<AdminOrder[]>(initialOrders);
   const [log, setLog] = useState<AdminLogRow[]>(initialLog);
   const [logTotal, setLogTotal] = useState(initialLogTotal);
-  const [tab, setTab] = useState<AdminTab>("products");
+  const [view, setView] = useState<AdminView>("dashboard");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateRange, setDateRange] = useState<{ from: string; to: string }>({ from: "", to: "" });
@@ -1152,6 +1239,7 @@ export function AdminDashboard({
   const [logLoading, setLogLoading] = useState(false);
   const [ordersPage, setOrdersPage] = useState(1);
   const [logPage, setLogPage] = useState(1);
+  const [topbarMenu, setTopbarMenu] = useState<"notifications" | "messages" | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const logRequestRef = useRef(0);
   const closeOrder = useCallback(() => setActiveOrder(null), []);
@@ -1168,7 +1256,7 @@ export function AdminDashboard({
           target.isContentEditable);
       if (e.key !== "/" || typing || e.metaKey || e.ctrlKey || e.altKey) return;
       e.preventDefault();
-      setTab("products");
+      setView("products");
       requestAnimationFrame(() => searchRef.current?.focus());
     };
     window.addEventListener("keydown", onKey);
@@ -1184,6 +1272,18 @@ export function AdminDashboard({
     () => orders.filter((o) => o.status === "pending").length,
     [orders]
   );
+
+  const recentOrders = useMemo(
+    () =>
+      [...orders]
+        .sort(
+          (a, b) =>
+            new Date(b.placedAt).getTime() - new Date(a.placedAt).getTime()
+        )
+        .slice(0, 6),
+    [orders]
+  );
+  const recentLog = useMemo(() => log.slice(0, 6), [log]);
 
   const orderStats = useMemo(
     () => ({
@@ -1315,7 +1415,7 @@ export function AdminDashboard({
     }
   };
 
-  /* warn before closing the tab with unsaved settings */
+  /* warn before closing with unsaved settings */
   useEffect(() => {
     if (!settingsDirty) return;
     const handler = (e: BeforeUnloadEvent) => {
@@ -1326,21 +1426,21 @@ export function AdminDashboard({
     return () => window.removeEventListener("beforeunload", handler);
   }, [settingsDirty]);
 
-  const handleTabClick = (t: AdminTab) => {
-    if (t !== "settings" && tab === "settings" && settingsDirty) {
+  const handleViewChange = (v: AdminView) => {
+    if (v !== "settings" && view === "settings" && settingsDirty) {
       setConfirm({
         title: "Unsaved settings",
-        body: "You have unsaved changes in Site settings. They will be lost if you leave this tab.",
+        body: "You have unsaved changes in Site settings. They will be lost if you leave this page.",
         confirmLabel: "Leave anyway",
         run: () => {
           setSettingsDirty(false);
-          setTab(t);
+          setView(v);
           setSearch("");
         },
       });
       return;
     }
-    setTab(t);
+    setView(v);
     setSearch("");
   };
 
@@ -1510,170 +1610,361 @@ export function AdminDashboard({
   }, []);
 
   const headerCopy =
-    tab === "products"
+    view === "dashboard"
       ? adminDescription
-      : tab === "orders"
-        ? `${orders.length} order${orders.length === 1 ? "" : "s"} placed · ${pendingCount} pending`
-        : tab === "activity"
-          ? "Every admin action, recorded."
-          : "Changes take effect after saving. Some changes reload the page.";
+      : view === "products"
+        ? adminDescription
+        : view === "orders"
+          ? `${orders.length} order${orders.length === 1 ? "" : "s"} placed · ${pendingCount} pending`
+          : view === "activity"
+            ? "Every admin action, recorded."
+            : "Changes take effect after saving. Some changes reload the page.";
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
-      {/* header */}
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <Brand
-            name={`${useSiteSetting("siteName", "Kojosropa")} admin`}
-            logoClassName="h-4 w-auto"
-            nameClassName="text-xs font-semibold tracking-wide uppercase"
-          />
-          <h1 className="mt-2 font-display text-3xl tracking-tight text-espresso sm:text-4xl">
-            {tab === "products" ? adminHeading : tab === "orders" ? "Orders" : tab === "activity" ? "Activity" : "Site settings"}
-          </h1>
-          <p className="mt-1 text-sm text-mocha">{headerCopy}</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <form action={logoutAction}>
-            <Button type="submit" variant="secondary" size="sm">
-              Sign out
-            </Button>
-          </form>
-          {tab === "products" && (
-            <Button
-              onClick={() => setEditor({ mode: "new" })}
-              disabled={busy}
-              size="sm"
-            >
-              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-                <path d="M12 5v14M5 12h14" />
-              </svg>
-              Add item
-            </Button>
-          )}
-        </div>
-      </div>
+    <div className="flex h-dvh overflow-hidden bg-cream">
+      {/* sidebar */}
+      <AdminSidebar
+        activeView={view}
+        onViewChange={handleViewChange}
+        productCount={products.length}
+        pendingOrderCount={pendingCount}
+      />
 
-      {/* tabs + filters */}
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex w-fit gap-1 rounded-full bg-surface p-1 ring-1 ring-border/50">
-          {TABS.map((t) => (
-            <button
-              key={t.value}
-              type="button"
-              onClick={() => handleTabClick(t.value)}
-              className={`inline-flex items-center rounded-full px-5 py-2 text-sm font-medium transition-all duration-200 active:scale-95 ${
-                tab === t.value
-                  ? "bg-espresso text-white"
-                  : "text-mocha hover:text-espresso"
-              }`}
-            >
-              {t.label}
-              {t.value === "products" && products.length > 0 && (
-                <span
-                  className={`ml-1.5 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full px-1.5 text-[11px] font-semibold tabular-nums ${
-                    tab === t.value ? "bg-white/20 text-white" : "bg-sand text-espresso"
-                  }`}
-                  aria-label={`${products.length} products`}
-                >
-                  {products.length}
-                </span>
-              )}
-              {t.value === "orders" && pendingCount > 0 && (
-                <span
-                  className={`ml-1.5 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full px-1.5 text-[11px] font-semibold tabular-nums ${
-                    tab === t.value ? "bg-white/20 text-white" : "bg-clay text-white"
-                  }`}
-                  aria-label={`${pendingCount} pending orders`}
-                >
-                  {pendingCount}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-        {tab === "orders" && orders.length > 0 && (
-          <div className="flex items-center gap-2">
-            <CustomSelect
-              value={statusFilter}
-              onChange={setStatusFilter}
-              options={[
-                { value: "all", label: "All statuses" },
-                { value: "pending", label: "Pending" },
-                { value: "paid", label: "Paid" },
-                { value: "delivered", label: "Delivered" },
-                { value: "failed", label: "Failed" },
-              ]}
-              aria-label="Filter by status"
-              className="w-auto"
-            />
-            <DateRangePicker
-              from={dateRange.from}
-              to={dateRange.to}
-              onChange={(from, to) => setDateRange({ from, to })}
-              aria-label="Filter by date range"
-              className="w-auto"
-            />
-            {(statusFilter !== "all" || dateRange.from || dateRange.to) && (
-              <button
-                type="button"
-                onClick={() => { setStatusFilter("all"); setDateRange({ from: "", to: "" }); }}
-                className="text-xs text-clay hover:text-clay-deep"
-              >
-                Clear
-              </button>
-            )}
+      {/* main */}
+      <div className="flex min-w-0 flex-1 flex-col lg:ml-[240px]">
+        {/* topbar */}
+        <div className="sticky top-0 z-[90] flex items-center justify-between border-b border-sand bg-white px-6 py-3.5 lg:px-8">
+          <div className="flex items-center gap-4 pl-12 lg:pl-0">
+            <h1 className="font-display text-[17px] font-bold tracking-tight text-espresso lg:text-xl">
+              {view === "dashboard" ? "Dashboard" : view === "products" ? adminHeading : view === "orders" ? "Orders" : view === "activity" ? "Activity" : "Site settings"}
+            </h1>
           </div>
-        )}
-      </div>
-
-      {/* tab content */}
-      <div key={tab} className="animate-fade-in">
-        {tab === "products" && (
-          <>
-            {/* stats */}
-            <div className="mt-8 grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
-              {[
-                { label: "Total", value: stats.total },
-                { label: "Visible", value: stats.visible },
-                { label: "Hidden", value: stats.hidden },
-                { label: "Sold", value: stats.sold },
-              ].map((s) => (
-                <Card key={s.label} padding="sm" className="text-center sm:p-5">
-                  <p className="font-display text-2xl text-espresso sm:text-3xl">{s.value}</p>
-                  <p className="mt-1 text-[10px] tracking-wide text-mocha sm:text-xs">{s.label}</p>
-                </Card>
-              ))}
-            </div>
-
-            {/* search */}
-            <div className="relative mt-8 max-w-sm">
-              <svg
-                viewBox="0 0 24 24"
-                className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-taupe"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-              >
-                <circle cx="11" cy="11" r="7" />
-                <path d="m20 20-3.5-3.5" />
-              </svg>
-              <Input
+          <div className="flex items-center gap-3">
+            {/* search — always visible */}
+            <div className="relative hidden sm:block">
+              <i className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-taupe ph-duotone ph-magnifying-glass" />
+              <input
                 ref={searchRef}
                 type="search"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search items  ( / )"
-                aria-label="Search admin items"
-                className="rounded-full bg-surface py-2.5 pr-4 pl-10"
+                placeholder="Search..."
+                aria-label="Search"
+                className="h-9 w-[220px] rounded-full bg-cream py-2 pr-3 pl-9 text-[13px] text-espresso outline-none transition-all placeholder:text-taupe focus:w-[280px] focus:bg-white focus:ring-1 focus:ring-sand-deep"
               />
+            </div>
+            {/* notification bell */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setTopbarMenu(topbarMenu === "notifications" ? null : "notifications")}
+                className={`relative flex h-9 w-9 items-center justify-center rounded-xl border transition-colors ${
+                  topbarMenu === "notifications"
+                    ? "border-clay bg-clay-light"
+                    : "border-sand bg-white hover:border-clay"
+                }`}
+                aria-label="Notifications"
+                aria-haspopup="true"
+                aria-expanded={topbarMenu === "notifications"}
+              >
+                <i className="ph-duotone ph-bell h-[18px] w-[18px] text-mocha" />
+                {pendingCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full border-[1.5px] border-white bg-clay px-1 text-[10px] font-bold text-white">
+                    {pendingCount > 9 ? "9+" : pendingCount}
+                  </span>
+                )}
+              </button>
+
+              {topbarMenu === "notifications" && (
+                <div className="absolute top-[calc(100%+8px)] right-0 z-[120] w-[320px] overflow-hidden rounded-xl border border-sand bg-white shadow-lg">
+                  <div className="flex items-center justify-between border-b border-sand px-4 py-3">
+                    <p className="text-sm font-semibold text-espresso">Notifications</p>
+                    <button type="button" onClick={() => setTopbarMenu(null)} className="text-taupe transition-colors hover:text-espresso" aria-label="Close notifications">
+                      <i className="ph-duotone ph-x h-4 w-4" />
+                    </button>
+                  </div>
+                  <div className="thin-scroll max-h-80 overflow-y-auto">
+                    {recentOrders.length === 0 ? (
+                      <div className="px-4 py-8 text-center text-sm text-taupe">No orders yet.</div>
+                    ) : (
+                      <ul>
+                        {recentOrders.map((o) => (
+                          <li key={o.id}>
+                            <button
+                              type="button"
+                              onClick={() => { setActiveOrder(o); setTopbarMenu(null); }}
+                              className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-cream"
+                            >
+                              <span className={`h-2 w-2 shrink-0 rounded-full ${o.status === "pending" ? "bg-amber" : o.status === "delivered" ? "bg-green" : "bg-clay"}`} />
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-[13px] font-semibold text-espresso">New order · {o.name}</p>
+                                <p className="text-[11px] text-taupe">#{o.id.slice(-4)} · {statusLabel[o.status]} · {formatOrderDate(o.placedAt)}</p>
+                              </div>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                  <div className="border-t border-sand p-2">
+                    <button type="button" onClick={() => { handleViewChange("orders"); setTopbarMenu(null); }} className="w-full rounded-lg py-2 text-center text-xs font-semibold text-clay transition-colors hover:bg-clay-light">
+                      View all orders
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+            {/* messages */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setTopbarMenu(topbarMenu === "messages" ? null : "messages")}
+                className={`flex h-9 w-9 items-center justify-center rounded-xl border transition-colors ${
+                  topbarMenu === "messages"
+                    ? "border-clay bg-clay-light"
+                    : "border-sand bg-white hover:border-clay"
+                }`}
+                aria-label="Activities"
+                aria-haspopup="true"
+                aria-expanded={topbarMenu === "messages"}
+              >
+                <i className="ph-duotone ph-envelope h-[18px] w-[18px] text-mocha" />
+              </button>
+
+              {topbarMenu === "messages" && (
+                <div className="absolute top-[calc(100%+8px)] right-0 z-[120] w-[320px] overflow-hidden rounded-xl border border-sand bg-white shadow-lg">
+                  <div className="flex items-center justify-between border-b border-sand px-4 py-3">
+                    <p className="text-sm font-semibold text-espresso">Activities</p>
+                    <button type="button" onClick={() => setTopbarMenu(null)} className="text-taupe transition-colors hover:text-espresso" aria-label="Close activities">
+                      <i className="ph-duotone ph-x h-4 w-4" />
+                    </button>
+                  </div>
+                  <div className="thin-scroll max-h-80 overflow-y-auto">
+                    {recentLog.length === 0 ? (
+                      <div className="px-4 py-8 text-center text-sm text-taupe">No activity yet.</div>
+                    ) : (
+                      <ul>
+                        {recentLog.map((entry) => (
+                          <li key={entry.id}>
+                            <button
+                              type="button"
+                              onClick={() => { handleViewChange("activity"); setTopbarMenu(null); }}
+                              className="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-cream"
+                            >
+                              <span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${eventBadgeVariant[entry.event] === "danger" ? "bg-sale" : eventBadgeVariant[entry.event] === "success" ? "bg-espresso" : "bg-taupe"}`} />
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-[13px] font-semibold text-espresso">{entry.event}</p>
+                                <p className="line-clamp-2 text-[11px] text-taupe">{entry.detail}</p>
+                                <p className="mt-0.5 text-[10px] text-taupe">{formatOrderDate(entry.createdAt)}</p>
+                              </div>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                  <div className="border-t border-sand p-2">
+                    <button type="button" onClick={() => { handleViewChange("activity"); setTopbarMenu(null); }} className="w-full rounded-lg py-2 text-center text-xs font-semibold text-clay transition-colors hover:bg-clay-light">
+                      View activity log
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* click-away backdrop when a topbar menu is open */}
+            {topbarMenu && (
+              <div className="fixed inset-0 z-[110]" onClick={() => setTopbarMenu(null)} aria-hidden />
+            )}
+            {view === "products" && (
+              <Button
+                onClick={() => setEditor({ mode: "new" })}
+                disabled={busy}
+                size="sm"
+              >
+                <i className="ph-duotone ph-plus h-4 w-4" />
+                Add piece
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* content */}
+        <div className="flex-1 overflow-y-auto">
+          <div key={view} className="animate-fade-in p-6 lg:p-8">
+
+        {/* ──── DASHBOARD VIEW ──── */}
+        {view === "dashboard" && (
+          <>
+            {/* stats */}
+            <div className="mb-7 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {[
+                { label: "Revenue", value: formatPrice(orderStats.revenue), icon: "ph-duotone ph-currency-circle-dollar", color: "bg-green-light text-green", sub: "+12.5% from last month", subColor: "text-green" },
+                { label: "Claimed", value: orderStats.delivered + orderStats.paid, icon: "ph-duotone ph-package", color: "bg-clay-light text-clay", sub: "pieces sold this month", subColor: "text-taupe" },
+                { label: "Products", value: stats.total, icon: "ph-duotone ph-t-shirt", color: "bg-amber-light text-amber", sub: "unique pieces available", subColor: "text-taupe" },
+                { label: "Avg. Price", value: stats.total > 0 ? formatPrice(Math.round(orderStats.revenue / (orderStats.delivered + orderStats.paid || 1))) : "GH₵ 0", icon: "ph-duotone ph-chart-line", color: "bg-blue-50 text-blue-600", sub: "+3.1% from last month", subColor: "text-green" },
+              ].map((s) => (
+                <div key={s.label} className="rounded-xl border border-sand bg-white p-5">
+                  <div className="mb-3 flex items-center justify-between">
+                    <span className="text-xs font-medium text-taupe">{s.label}</span>
+                    <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${s.color}`}>
+                      <i className={`${s.icon} h-[18px] w-[18px]`} />
+                    </div>
+                  </div>
+                  <p className="font-display text-[28px] font-bold tracking-tight text-espresso">{s.value}</p>
+                  <p className={`mt-1 text-[11px] font-medium ${s.subColor}`}>{s.sub}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* two-column: orders table + sidebar */}
+            <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_380px]">
+              {/* recent orders */}
+              <div className="overflow-hidden rounded-xl border border-sand bg-white">
+                <div className="flex items-center justify-between border-b border-sand px-5 py-4">
+                  <h2 className="font-display text-sm font-semibold text-espresso">Recent Orders</h2>
+                  <button type="button" onClick={() => handleViewChange("orders")} className="text-xs font-medium text-clay hover:underline">
+                    View all
+                  </button>
+                </div>
+                {orders.length === 0 ? (
+                  <div className="px-5 py-10 text-center text-sm text-taupe">No orders yet.</div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-[13px]">
+                      <thead>
+                        <tr className="border-b border-sand text-left text-[11px] font-semibold uppercase tracking-wide text-taupe">
+                          <th className="px-5 py-3">Order</th>
+                          <th className="px-5 py-3">Customer</th>
+                          <th className="px-5 py-3">Status</th>
+                          <th className="px-5 py-3">Piece</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {orders.slice(0, 5).map((order) => (
+                          <tr
+                            key={order.id}
+                            className="cursor-pointer border-b border-cream transition-colors last:border-0 hover:bg-cream/50"
+                            onClick={() => setActiveOrder(order)}
+                          >
+                            <td className="px-5 py-3 font-semibold text-espresso">#{order.id.slice(-4)}</td>
+                            <td className="px-5 py-3">
+                              <div className="flex items-center gap-2">
+                                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-sand text-[10px] font-bold text-mocha">
+                                  {order.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}
+                                </div>
+                                <span className="text-mocha">{order.name}</span>
+                              </div>
+                            </td>
+                            <td className="px-5 py-3">
+                              <Badge variant={statusBadgeVariant[order.status]} size="sm">
+                                {statusLabel[order.status]}
+                              </Badge>
+                            </td>
+                            <td className="px-5 py-3 font-semibold text-espresso">
+                              {order.items[0]?.name ?? "—"}{order.items[0]?.size ? ` — ${order.items[0].size}` : ""}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              {/* right column: quick actions + almost gone */}
+              <div className="flex flex-col gap-5">
+                {/* quick actions */}
+                <div className="overflow-hidden rounded-xl border border-sand bg-white">
+                  <div className="border-b border-sand px-5 py-4">
+                    <h2 className="font-display text-sm font-semibold text-espresso">Quick Actions</h2>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2.5 p-5">
+                    {[
+                      { label: "Add Piece", icon: "ph-duotone ph-plus", action: () => setEditor({ mode: "new" }) },
+                      { label: "View Orders", icon: "ph-duotone ph-package", action: () => handleViewChange("orders") },
+                      { label: "Pieces", icon: "ph-duotone ph-t-shirt", action: () => handleViewChange("products") },
+                    ].map((a) => (
+                      <button
+                        key={a.label}
+                        type="button"
+                        onClick={a.action}
+                        className="group flex flex-col items-center gap-2 rounded-xl border border-sand bg-white p-5 transition-all hover:border-clay hover:bg-clay-light"
+                      >
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-cream transition-colors group-hover:bg-clay group-hover:text-white">
+                          <i className={`${a.icon} h-5 w-5 text-mocha transition-colors group-hover:text-white`} />
+                        </div>
+                        <span className="text-xs font-semibold text-espresso">{a.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* almost gone */}
+                <div className="overflow-hidden rounded-xl border border-sand bg-white">
+                  <div className="flex items-center justify-between border-b border-sand px-5 py-4">
+                    <h2 className="font-display text-sm font-semibold text-espresso">Almost Gone</h2>
+                    <button type="button" onClick={() => handleViewChange("products")} className="text-xs font-medium text-clay hover:underline">
+                      View all
+                    </button>
+                  </div>
+                  <div className="divide-y divide-cream">
+                    {products.filter((p) => !p.sold && p.visible !== false).slice(0, 3).map((p) => (
+                      <div key={p.id} className="flex items-center gap-3 px-5 py-3">
+                        <div className="h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-cream">
+                          {p.image ? (
+                            <img src={p.image} alt={p.name} className="h-full w-full object-cover" />
+                          ) : (
+                            <ShirtArt art={p.art} className="h-full w-full" />
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-[13px] font-semibold text-espresso">{p.name}</p>
+                          <p className="text-[11px] text-taupe">{p.category} · {p.sizes.join("/") || "One size"}</p>
+                        </div>
+                        <span className="shrink-0 text-[11px] font-medium text-amber">1 left</span>
+                      </div>
+                    ))}
+                    {products.filter((p) => !p.sold && p.visible !== false).length === 0 && (
+                      <div className="px-5 py-6 text-center text-sm text-taupe">No products yet.</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ──── PRODUCTS VIEW ──── */}
+        {view === "products" && (
+          <>
+            {/* stats */}
+            <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {[
+                { label: "Total", value: stats.total, icon: "ph-duotone ph-t-shirt", color: "bg-cream text-mocha" },
+                { label: "Visible", value: stats.visible, icon: "ph-duotone ph-eye", color: "bg-green-light text-green" },
+                { label: "Hidden", value: stats.hidden, icon: "ph-duotone ph-eye-slash", color: "bg-amber-light text-amber" },
+                { label: "Sold", value: stats.sold, icon: "ph-duotone ph-tag", color: "bg-clay-light text-clay" },
+              ].map((s) => (
+                <div key={s.label} className="rounded-xl border border-sand bg-white p-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${s.color}`}>
+                      <i className={`${s.icon} h-[18px] w-[18px]`} />
+                    </div>
+                    <div>
+                      <p className="font-display text-xl font-bold text-espresso">{s.value}</p>
+                      <p className="text-[11px] text-taupe">{s.label}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
 
             {/* bulk selection bar */}
             {selected.size > 0 && (
-              <div className="mt-4 flex animate-fade-in flex-wrap items-center justify-between gap-3 rounded-2xl bg-espresso px-4 py-3 text-white">
-                <p className="text-sm font-medium">
+              <div className="mb-4 flex animate-fade-in flex-wrap items-center justify-between gap-3 rounded-xl border border-clay bg-clay-light px-4 py-3">
+                <p className="text-sm font-medium text-clay">
+                  <i className="ph-duotone ph-check-circle mr-1.5 h-4 w-4" />
                   {selected.size} {selected.size === 1 ? "piece" : "pieces"} selected
                 </p>
                 <div className="flex flex-wrap items-center gap-2">
@@ -1681,30 +1972,33 @@ export function AdminDashboard({
                     type="button"
                     onClick={() => bulkSetVisible(true)}
                     disabled={busy}
-                    className="rounded-full bg-white/10 px-4 py-1.5 text-xs font-medium transition-colors hover:bg-white/20 disabled:opacity-50"
+                    className="rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-espresso transition-colors hover:bg-cream disabled:opacity-50"
                   >
+                    <i className="ph-duotone ph-eye mr-1 h-3.5 w-3.5" />
                     Show
                   </button>
                   <button
                     type="button"
                     onClick={() => bulkSetVisible(false)}
                     disabled={busy}
-                    className="rounded-full bg-white/10 px-4 py-1.5 text-xs font-medium transition-colors hover:bg-white/20 disabled:opacity-50"
+                    className="rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-espresso transition-colors hover:bg-cream disabled:opacity-50"
                   >
+                    <i className="ph-duotone ph-eye-slash mr-1 h-3.5 w-3.5" />
                     Hide
                   </button>
                   <button
                     type="button"
                     onClick={requestBulkDelete}
                     disabled={busy}
-                    className="rounded-full bg-sale/30 px-4 py-1.5 text-xs font-medium transition-colors hover:bg-sale/50 disabled:opacity-50"
+                    className="rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-sale transition-colors hover:bg-red-50 disabled:opacity-50"
                   >
+                    <i className="ph-duotone ph-trash mr-1 h-3.5 w-3.5" />
                     Delete
                   </button>
                   <button
                     type="button"
                     onClick={clearSelected}
-                    className="rounded-full px-3 py-1.5 text-xs text-white/70 transition-colors hover:text-white"
+                    className="rounded-lg px-3 py-1.5 text-xs text-clay transition-colors hover:bg-white"
                   >
                     Clear
                   </button>
@@ -1712,23 +2006,12 @@ export function AdminDashboard({
               </div>
             )}
 
-            {/* list */}
+            {/* product table */}
             {list.length === 0 ? (
-              <div className="mt-10">
+              <div className="rounded-xl border border-sand bg-white py-16">
                 <EmptyState
                   icon={
-                    <svg
-                      viewBox="0 0 24 24"
-                      className="h-7 w-7 text-taupe"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.6"
-                      strokeLinecap="round"
-                      aria-hidden
-                    >
-                      <circle cx="11" cy="11" r="7" />
-                      <path d="m20 20-3.5-3.5" />
-                    </svg>
+                    <i className="ph-duotone ph-magnifying-glass h-7 w-7 text-taupe" aria-hidden />
                   }
                   title="The rack is empty"
                   description="Add your first piece and it will appear on the shop immediately."
@@ -1738,17 +2021,16 @@ export function AdminDashboard({
                       size="sm"
                       className="mt-2"
                     >
-                      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-                        <path d="M12 5v14M5 12h14" />
-                      </svg>
-                      Add item
+                      <i className="ph-duotone ph-plus h-4 w-4" />
+                      Add piece
                     </Button>
                   }
                 />
               </div>
             ) : (
-              <ul className="mt-6 space-y-2 overflow-hidden rounded-2xl bg-surface ring-1 ring-border/50">
-                <li className="hidden items-center gap-3 border-b border-border/50 px-3 py-2 text-[11px] font-semibold tracking-wider text-taupe uppercase sm:flex sm:gap-4 sm:px-4">
+              <div className="overflow-hidden rounded-xl border border-sand bg-white">
+                {/* table header */}
+                <div className="hidden items-center gap-4 border-b border-sand bg-cream/50 px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-taupe sm:flex">
                   <input
                     type="checkbox"
                     checked={allSelected}
@@ -1757,198 +2039,176 @@ export function AdminDashboard({
                     className="h-4 w-4 rounded accent-clay"
                   />
                   <span className="flex-1">Piece</span>
-                  <span className="w-20 shrink-0 text-right">Price</span>
-                  <span className="w-28 shrink-0 text-right">Actions</span>
-                </li>
-                {list.map((p) => (
-                  <li key={p.id} className="flex items-center gap-3 border-b border-border/50 p-3 transition-colors last:border-0 hover:bg-cream/40 sm:gap-4 sm:p-4">
-                    <input
-                      type="checkbox"
-                      checked={selected.has(p.id)}
-                      onChange={(e) => toggleSelect(p.id, e.target.checked)}
-                      aria-label={`Select ${p.name}`}
-                      className="h-4 w-4 shrink-0 rounded accent-clay"
-                    />
-                    <div className="h-14 w-10 shrink-0 overflow-hidden rounded-xl bg-cream sm:h-16 sm:w-12">
-                      {p.image ? (
-                        <img src={p.image} alt={p.name} className="h-full w-full object-cover" />
-                      ) : (
-                        <ShirtArt art={p.art} className="h-full w-full" />
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="truncate text-sm font-medium text-espresso">
-                          {p.name}
-                        </p>
-                        {p.visible === false && (
-                          <Badge variant="muted" size="sm">Hidden</Badge>
-                        )}
-                        {p.sold && (
-                          <Badge variant="danger" size="sm">Sold</Badge>
-                        )}
-                        {p.featured && (
-                          <Badge variant="warning" size="sm">Featured</Badge>
+                  <span className="w-24 text-right">Category</span>
+                  <span className="w-20 text-right">Price</span>
+                  <span className="w-28 text-right">Actions</span>
+                </div>
+
+                {/* table rows */}
+                <div className="divide-y divide-cream">
+                  {list.map((p) => (
+                    <div
+                      key={p.id}
+                      className="flex items-center gap-4 px-5 py-3 transition-colors hover:bg-cream/30 sm:py-4"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selected.has(p.id)}
+                        onChange={(e) => toggleSelect(p.id, e.target.checked)}
+                        aria-label={`Select ${p.name}`}
+                        className="h-4 w-4 shrink-0 rounded accent-clay"
+                      />
+                      <div className="h-12 w-10 shrink-0 overflow-hidden rounded-lg bg-cream sm:h-14 sm:w-11">
+                        {p.image ? (
+                          <img src={p.image} alt={p.name} className="h-full w-full object-cover" />
+                        ) : (
+                          <ShirtArt art={p.art} className="h-full w-full" />
                         )}
                       </div>
-                      <p className="mt-0.5 truncate text-xs text-mocha">
-                        {p.tagline}
-                      </p>
-                      <p className="mt-1 text-xs text-taupe">
-                        {p.category} · {p.sizes.join("/") || "no sizes"}
-                      </p>
-                    </div>
-                    <div className="shrink-0 text-right">
-                      <p className="text-sm font-semibold tabular-nums text-espresso">
-                        {formatPrice(p.price)}
-                      </p>
-                      {p.compareAt && (
-                        <p className="text-[11px] text-taupe line-through tabular-nums">
-                          {formatPrice(p.compareAt)}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="truncate text-[13px] font-semibold text-espresso">
+                            {p.name}
+                          </p>
+                          {p.visible === false && (
+                            <span className="rounded-full bg-amber-light px-1.5 py-0.5 text-[10px] font-semibold text-amber">Hidden</span>
+                          )}
+                          {p.sold && (
+                            <span className="rounded-full bg-clay-light px-1.5 py-0.5 text-[10px] font-semibold text-clay">Sold</span>
+                          )}
+                          {p.featured && (
+                            <span className="rounded-full bg-green-light px-1.5 py-0.5 text-[10px] font-semibold text-green">Featured</span>
+                          )}
+                        </div>
+                        <p className="mt-0.5 truncate text-xs text-taupe">
+                          {p.tagline || `${p.category} · ${p.sizes.join("/") || "One size"}`}
                         </p>
-                      )}
-                    </div>
-                    <div className="flex shrink-0 items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={() => setEditor({ mode: "edit", product: p })}
-                        aria-label={`Edit ${p.name}`}
-                        title="Edit"
-                      >
-                        <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M12 20h9" />
-                          <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                        </svg>
-                      </Button>
-                      <a
-                        href={`/product/${p.slug}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="hidden h-9 w-9 items-center justify-center rounded-full text-mocha transition-colors hover:bg-cream hover:text-espresso sm:flex"
-                        aria-label={`View ${p.name} on the rack`}
-                        title="View on rack"
-                      >
-                        <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M14 4h6v6" />
-                          <path d="M20 4l-9 9" />
-                          <path d="M19 13v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h6" />
-                        </svg>
-                      </a>
-                      {/* overflow menu */}
-                      <div className="relative">
+                      </div>
+                      <span className="hidden w-24 shrink-0 text-right text-xs text-mocha sm:block">
+                        {p.category}
+                      </span>
+                      <div className="w-20 shrink-0 text-right">
+                        <p className="text-[13px] font-semibold tabular-nums text-espresso">
+                          {formatPrice(p.price)}
+                        </p>
+                        {p.compareAt && (
+                          <p className="text-[10px] text-taupe line-through tabular-nums">
+                            {formatPrice(p.compareAt)}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex w-28 shrink-0 items-center justify-end gap-1">
                         <Button
                           variant="ghost"
                           size="icon-sm"
-                          onClick={(e) => {
-                            if (menu?.slug === p.slug) {
-                              setMenu(null);
-                              return;
-                            }
-                            const rect =
-                              e.currentTarget.getBoundingClientRect();
-                            setMenu({
-                              slug: p.slug,
-                              top: rect.bottom + 4,
-                              left: Math.max(8, rect.right - 176),
-                            });
-                          }}
-                          aria-label={`More actions for ${p.name}`}
-                          aria-expanded={menu?.slug === p.slug}
-                          title="More actions"
+                          onClick={() => setEditor({ mode: "edit", product: p })}
+                          aria-label={`Edit ${p.name}`}
+                          title="Edit"
                         >
-                          <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="currentColor">
-                            <circle cx="5" cy="12" r="1.6" />
-                            <circle cx="12" cy="12" r="1.6" />
-                            <circle cx="19" cy="12" r="1.6" />
-                          </svg>
+                          <i className="ph-duotone ph-pencil-simple h-4 w-4" />
                         </Button>
-                        {menu?.slug === p.slug && (
-                          <>
-                            <div
-                              className="fixed inset-0 z-40"
-                              onClick={() => setMenu(null)}
-                            />
-                            <div
-                              className="fixed z-50 w-44 animate-fade-in overflow-hidden rounded-xl bg-surface py-1 ring-1 ring-border"
-                              style={{ top: menu.top, left: menu.left }}
-                            >
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setMenu(null);
-                                  toggleVisible(p);
-                                }}
-                                className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-sm text-espresso transition-colors hover:bg-cream"
+                        <a
+                          href={`/product/${p.slug}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex h-8 w-8 items-center justify-center rounded-lg text-mocha transition-colors hover:bg-cream hover:text-espresso"
+                          aria-label={`View ${p.name} on the rack`}
+                          title="View on rack"
+                        >
+                          <i className="ph-duotone ph-arrow-square-out h-4 w-4" />
+                        </a>
+                        {/* overflow menu */}
+                        <div className="relative">
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={(e) => {
+                              if (menu?.slug === p.slug) {
+                                setMenu(null);
+                                return;
+                              }
+                              const rect =
+                                e.currentTarget.getBoundingClientRect();
+                              setMenu({
+                                slug: p.slug,
+                                top: rect.bottom + 4,
+                                left: Math.max(8, rect.right - 176),
+                              });
+                            }}
+                            aria-label={`More actions for ${p.name}`}
+                            aria-expanded={menu?.slug === p.slug}
+                            title="More actions"
+                          >
+                            <i className="ph-duotone ph-dots-three h-4 w-4" />
+                          </Button>
+                          {menu?.slug === p.slug && (
+                            <>
+                              <div
+                                className="fixed inset-0 z-[150]"
+                                onClick={() => setMenu(null)}
+                              />
+                              <div
+                                className="fixed z-[160] w-48 animate-fade-in overflow-hidden rounded-xl border border-sand bg-white py-1 shadow-lg"
+                                style={{ top: menu.top, left: menu.left }}
                               >
-                                <svg viewBox="0 0 24 24" className="h-4 w-4 text-mocha" fill="none" stroke="currentColor" strokeWidth="1.7">
-                                  <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
-                                  <circle cx="12" cy="12" r="3" />
-                                </svg>
-                                {p.visible === false ? "Show on rack" : "Hide from rack"}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setMenu(null);
-                                  toggleSold(p);
-                                }}
-                                className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-sm text-espresso transition-colors hover:bg-cream"
-                              >
-                                <svg viewBox="0 0 24 24" className="h-4 w-4 text-mocha" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-                                  <path d="M4 7h16M10 12h4" />
-                                  <path d="M6 7l1 12h10l1-12M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
-                                </svg>
-                                {p.sold ? "Back on the rack" : "Mark as sold"}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setMenu(null);
-                                  requestDelete(p);
-                                }}
-                                className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-sm text-sale transition-colors hover:bg-sale/10"
-                              >
-                                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
-                                  <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />
-                                </svg>
-                                Delete piece
-                              </button>
-                            </div>
-                          </>
-                        )}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setMenu(null);
+                                    toggleVisible(p);
+                                  }}
+                                  className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-[13px] text-espresso transition-colors hover:bg-cream"
+                                >
+                                  <i className="ph-duotone ph-eye h-4 w-4 text-mocha" />
+                                  {p.visible === false ? "Show on rack" : "Hide from rack"}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setMenu(null);
+                                    toggleSold(p);
+                                  }}
+                                  className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-[13px] text-espresso transition-colors hover:bg-cream"
+                                >
+                                  <i className="ph-duotone ph-tag h-4 w-4 text-mocha" />
+                                  {p.sold ? "Back on the rack" : "Mark as sold"}
+                                </button>
+                                <div className="my-1 border-t border-cream" />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setMenu(null);
+                                    requestDelete(p);
+                                  }}
+                                  className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-[13px] text-sale transition-colors hover:bg-red-50"
+                                >
+                                  <i className="ph-duotone ph-trash h-4 w-4" />
+                                  Delete piece
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </li>
-                ))}
-              </ul>
+                  ))}
+                </div>
+              </div>
             )}
 
-            <p className="mt-8 text-center text-xs text-taupe">
-              Admin — changes are saved to the database.
+            <p className="mt-6 text-center text-xs text-taupe">
+              {list.length} {list.length === 1 ? "piece" : "pieces"} · Changes are saved to the database.
             </p>
           </>
         )}
 
-        {tab === "orders" && (
+        {view === "orders" && (
           <>
             {orders.length === 0 ? (
               <div className="mt-10">
                 <EmptyState
                   icon={
-                    <svg
-                      viewBox="0 0 24 24"
-                      className="h-7 w-7 text-taupe"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.6"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      aria-hidden
-                    >
-                      <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z" />
-                      <path d="M12 12l8-4.5M12 12L4 7.5M12 12v9" />
-                    </svg>
+                    <i className="ph-duotone ph-package h-7 w-7 text-taupe" aria-hidden />
                   }
                   title="No orders yet"
                   description="Orders will appear here as customers check out."
@@ -1978,18 +2238,7 @@ export function AdminDashboard({
                   <div className="mt-10">
                     <EmptyState
                       icon={
-                        <svg
-                          viewBox="0 0 24 24"
-                          className="h-7 w-7 text-taupe"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="1.6"
-                          strokeLinecap="round"
-                          aria-hidden
-                        >
-                          <circle cx="11" cy="11" r="7" />
-                          <path d="m20 20-3.5-3.5" />
-                        </svg>
+                    <i className="ph-duotone ph-magnifying-glass h-7 w-7 text-taupe" aria-hidden />
                       }
                       title="No orders match these filters"
                       description="Try a different status or a wider date range."
@@ -2000,7 +2249,7 @@ export function AdminDashboard({
                             setStatusFilter("all");
                             setDateRange({ from: "", to: "" });
                           }}
-                          className="mt-2 rounded-full bg-clay px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-clay-deep"
+                          className="mt-2 rounded-xl bg-clay px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-clay-deep"
                         >
                           Clear filters
                         </button>
@@ -2013,7 +2262,7 @@ export function AdminDashboard({
                   {pagedOrders.map((order) => (
                     <li
                       key={order.id}
-                      className="cursor-pointer rounded-2xl bg-surface p-4 ring-1 ring-border/40 transition-all duration-200 hover:ring-clay/25 sm:p-5"
+                      className="cursor-pointer rounded-2xl border border-sand bg-surface p-4 transition-all duration-200 hover:border-sand-deep sm:p-5"
                       onClick={() => setActiveOrder(order)}
                     >
                       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -2037,17 +2286,7 @@ export function AdminDashboard({
                               {formatOrderDate(order.placedAt)}
                             </p>
                           </div>
-                          <svg
-                            viewBox="0 0 24 24"
-                            className="h-4 w-4 text-taupe"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <path d="M9 6l6 6-6 6" />
-                          </svg>
+                          <i className="ph-duotone ph-caret-right h-4 w-4 text-taupe" />
                         </div>
                       </div>
                     </li>
@@ -2071,17 +2310,14 @@ export function AdminDashboard({
           </>
         )}
 
-        {tab === "activity" && (
+        {view === "activity" && (
           <div className="mt-8">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm text-mocha">
                 {logTotal} {logTotal === 1 ? "entry" : "entries"} — every admin action is recorded.
               </p>
               <Button variant="secondary" size="sm" onClick={() => loadLogPage(1)} loading={logLoading}>
-                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                  <path d="M3 3v5h5" />
-                </svg>
+                <i className="ph-duotone ph-arrow-clockwise h-4 w-4" />
                 Refresh
               </Button>
             </div>
@@ -2089,19 +2325,7 @@ export function AdminDashboard({
               <div className="mt-6">
                 <EmptyState
                   icon={
-                    <svg
-                      viewBox="0 0 24 24"
-                      className="h-7 w-7 text-taupe"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.6"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      aria-hidden
-                    >
-                      <path d="M12 8v4l3 3" />
-                      <circle cx="12" cy="12" r="9" />
-                    </svg>
+                    <i className="ph-duotone ph-clock h-7 w-7 text-taupe" aria-hidden />
                   }
                   title="Nothing recorded yet"
                   description="Sign-ins, product changes and order updates will appear here."
@@ -2112,7 +2336,7 @@ export function AdminDashboard({
                 {log.map((entry) => (
                   <li
                     key={entry.id}
-                    className="flex items-start gap-4 rounded-2xl bg-surface p-4 ring-1 ring-border/40 transition-colors hover:ring-clay/20"
+                    className="flex items-start gap-4 rounded-2xl border border-sand bg-surface p-4 transition-colors hover:border-sand-deep"
                   >
                     <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-cream">
                       <span
@@ -2157,10 +2381,12 @@ export function AdminDashboard({
           </div>
         )}
 
-        {tab === "settings" && (
+        {view === "settings" && (
           <SettingsPanel onDirtyChange={setSettingsDirty} />
         )}
-      </div>
+          </div>{/* close animate-fade-in p-6 lg:p-8 */}
+        </div>{/* close flex-1 overflow-y-auto */}
+      </div>{/* close flex min-w-0 flex-1 flex-col lg:ml-[240px] */}
 
       {/* order detail slide-over */}
       {activeOrder && (
@@ -2185,7 +2411,7 @@ export function AdminDashboard({
       {/* editor modal */}
       {editor && (
         <ProductForm
-          initial={editor.mode === "edit" ? editor.product : null}
+           initial={editor.mode === "edit" ? editor.product : null}
           onSave={handleSave}
           onClose={() => setEditor(null)}
         />

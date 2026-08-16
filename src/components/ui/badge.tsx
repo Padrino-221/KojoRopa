@@ -9,11 +9,11 @@ interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
 }
 
 const variantClasses: Record<BadgeVariant, string> = {
-  default: "bg-surface text-mocha ring-1 ring-border",
+  default: "bg-cream text-mocha",
   primary: "bg-clay text-white",
   success: "bg-espresso text-white",
-  warning: "bg-gold/10 text-gold ring-1 ring-gold/20",
-  danger: "bg-sale/10 text-sale ring-1 ring-sale/20",
+  warning: "bg-gold/10 text-gold",
+  danger: "bg-sale/10 text-sale",
   muted: "bg-cream text-taupe",
 };
 
@@ -26,7 +26,7 @@ function Badge({ variant = "default", size = "sm", className = "", children, ...
   return (
     <span
       className={[
-        "inline-flex shrink-0 items-center rounded-full font-semibold tracking-wide uppercase",
+        "inline-flex shrink-0 items-center rounded-lg font-semibold tracking-wide uppercase",
         variantClasses[variant],
         sizeClasses[size],
         className,

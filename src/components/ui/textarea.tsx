@@ -11,11 +11,11 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
         ref={ref}
         className={[
           "w-full rounded-xl bg-surface px-3.5 py-2.5 text-sm text-espresso",
-          "ring-1 ring-border placeholder:text-taupe",
+          "border border-sand placeholder:text-taupe",
           "transition-colors resize-none",
           error
-            ? "ring-sale focus:ring-sale/30"
-            : "focus:border-clay focus:ring-2 focus:ring-clay/20",
+            ? "border-sale focus:border-sale focus:ring-2 focus:ring-sale/15"
+            : "focus:border-clay focus:ring-2 focus:ring-clay/15",
           "focus:outline-none",
           className,
         ].join(" ")}

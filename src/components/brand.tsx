@@ -38,7 +38,7 @@ export function Brand({
     <>
       {logo}
       <span
-        className={`min-w-0 truncate ${onDark ? "text-white" : "text-espresso"} ${nameClassName}`}
+        className={`min-w-0 ${onDark ? "text-white" : "text-espresso"} ${nameClassName}`}
       >
         {name}
       </span>
@@ -49,11 +49,11 @@ export function Brand({
 
   if (href) {
     return (
-      <Link href={href} className={`${wrap} min-w-0 overflow-hidden transition-opacity hover:opacity-70`}>
+      <Link href={href} className={`${wrap} min-w-0 transition-opacity hover:opacity-70`}>
         {content}
       </Link>
     );
   }
 
-  return <span className={`${wrap} min-w-0 overflow-hidden`}>{content}</span>;
+  return <span className={`${wrap} min-w-0`}>{content}</span>;
 }

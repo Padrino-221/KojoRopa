@@ -2,6 +2,7 @@ import Link from "next/link";
 import { formatPrice, formatOrderDate } from "@/lib/format";
 import type { OrderItemModel } from "@/generated/prisma/models";
 import { getAllSettings } from "@/lib/actions/settings";
+import { CheckoutSteps } from "@/components/checkout-steps";
 
 export interface ReceiptOrder {
   id: string;
@@ -21,20 +22,12 @@ export interface ReceiptOrder {
 export async function OrderReceipt({ order }: { order: ReceiptOrder }) {
   const s = await getAllSettings();
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6 sm:py-12 lg:py-16">
+    <div className="mx-auto max-w-2xl px-4 pb-16 sm:px-6 lg:pb-20">
+      <CheckoutSteps step="confirmation" />
+
       <div className="animate-pop text-center">
-        <div className="mx-auto flex h-16 w-16 animate-pop items-center justify-center rounded-full bg-clay/10 ring-1 ring-clay/20 sm:h-20 sm:w-20">
-          <svg
-            viewBox="0 0 24 24"
-            className="h-8 w-8 text-clay sm:h-10 sm:w-10"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M5 13l4 4L19 7" />
-          </svg>
+        <div className="mx-auto flex h-16 w-16 animate-pop items-center justify-center rounded-full bg-teal-light sm:h-20 sm:w-20">
+          <i className="ph-duotone ph-check h-8 w-8 text-clay sm:h-10 sm:w-10" />
         </div>
         <h1 className="mt-5 font-display text-3xl tracking-tight text-espresso sm:mt-6 sm:text-4xl lg:text-5xl">
           Order confirmed
@@ -58,7 +51,7 @@ export async function OrderReceipt({ order }: { order: ReceiptOrder }) {
       </div>
 
       {/* summary */}
-      <div className="mt-8 rounded-2xl bg-surface p-4 ring-1 ring-border/40 sm:mt-10 sm:p-6 lg:p-8">
+      <div className="mt-8 rounded-2xl bg-surface p-4 sm:mt-10 sm:p-6 lg:p-8">
         <h2 className="font-display text-lg text-espresso sm:text-xl">Your pieces</h2>
         <ul className="mt-4 divide-y divide-border sm:mt-5">
           {order.items.map((line) => (

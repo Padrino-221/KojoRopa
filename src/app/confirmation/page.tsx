@@ -20,19 +20,8 @@ export default async function ConfirmationPage(
   if (!order) {
     return (
       <div className="mx-auto flex max-w-lg flex-col items-center gap-4 px-4 py-20 text-center sm:py-24">
-        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-cream sm:h-16 sm:w-16">
-          <svg
-            viewBox="0 0 24 24"
-            className="h-7 w-7 text-taupe"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <circle cx="12" cy="12" r="9" />
-            <path d="M15.5 8.5l-2 5-5 2 2-5 5-2z" />
-          </svg>
+        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-light sm:h-16 sm:w-16">
+          <i className="ph-duotone ph-receipt h-7 w-7 text-clay" />
         </div>
         <h1 className="font-display text-2xl text-espresso sm:text-3xl">
           No order to confirm here
@@ -63,19 +52,8 @@ export default async function ConfirmationPage(
     }
     return (
       <div className="mx-auto flex max-w-lg flex-col items-center gap-4 px-4 py-20 text-center sm:py-24">
-        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-cream sm:h-16 sm:w-16">
-          <svg
-            viewBox="0 0 24 24"
-            className="h-7 w-7 text-taupe"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <rect x="7" y="2.5" width="10" height="19" rx="2.5" />
-            <path d="M11 18.5h2" />
-          </svg>
+        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-light sm:h-16 sm:w-16">
+          <i className="ph-duotone ph-hourglass h-7 w-7 text-clay" />
         </div>
         <h1 className="font-display text-2xl text-espresso sm:text-3xl">
           Payment pending

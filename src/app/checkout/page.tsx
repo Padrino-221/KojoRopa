@@ -11,8 +11,75 @@ import { createOrderAction } from "@/lib/actions/orders";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { CheckoutSteps } from "@/components/checkout-steps";
+
+/* ——— Section card ——— */
+
+function SectionCard({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-2xl bg-surface p-5 sm:p-6">
+      <h2 className="font-display text-[15px] font-semibold tracking-tight text-espresso">
+        {title}
+      </h2>
+      <div className="mt-4">{children}</div>
+    </section>
+  );
+}
+
+/* ——— Selectable radio card (prototype radio-group) ——— */
+
+function RadioOption({
+  checked = false,
+  disabled = false,
+  icon,
+  label,
+}: {
+  checked?: boolean;
+  disabled?: boolean;
+  icon: string;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      aria-pressed={checked}
+      className={[
+        "flex items-center gap-2.5 rounded-xl border px-4 py-3.5 text-[13px] font-medium transition-colors",
+        checked
+          ? "border-clay bg-teal-light"
+          : "border-sand bg-white hover:border-sand-deep",
+        disabled ? "cursor-not-allowed opacity-60" : "",
+      ].join(" ")}
+    >
+      <span
+        className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border-2 ${
+          checked ? "border-clay" : "border-sand-deep"
+        }`}
+      >
+        {checked && <span className="h-2.5 w-2.5 rounded-full bg-clay" />}
+      </span>
+      <i
+        className={`ph-duotone ph-${icon} h-4 w-4 shrink-0 ${
+          checked ? "text-clay" : "text-mocha"
+        }`}
+      />
+      <span className="text-left">{label}</span>
+      {disabled && (
+        <span className="ml-auto rounded-full bg-cream px-2 py-0.5 text-[10px] font-semibold text-taupe">
+          Soon
+        </span>
+      )}
+    </button>
+  );
+}
 
 export default function CheckoutPage() {
   const { items, subtotal, deliveryFee, clearCart, isHydrated } = useCart();
@@ -70,7 +137,7 @@ export default function CheckoutPage() {
 
   if (!isHydrated) {
     return (
-      <div className="mx-auto max-w-7xl animate-pulse px-4 py-20 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-[1120px] animate-pulse px-4 py-20 sm:px-6 lg:px-10">
         <div className="h-10 w-64 rounded-full bg-sand" />
         <div className="mt-10 grid gap-10 lg:grid-cols-[1fr_0.6fr]">
           <div className="h-96 rounded-2xl bg-cream" />
@@ -84,20 +151,7 @@ export default function CheckoutPage() {
     return (
       <div className="mx-auto flex max-w-lg flex-col items-center gap-4 px-4 py-24 text-center">
         <EmptyState
-          icon={
-            <svg
-              viewBox="0 0 24 24"
-              className="h-7 w-7 text-taupe"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M6 7h12l1 13H5L6 7Z" />
-              <path d="M9 7V6a3 3 0 0 1 6 0v1" />
-            </svg>
-          }
+          icon={<i className="ph-duotone ph-shopping-bag h-7 w-7 text-taupe" />}
           title="Your bag is empty"
           description="Add a piece or two from the rack before checking out."
           action={
@@ -114,66 +168,22 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
-      <div className="flex items-center gap-3">
-        <Link href="/#shop" className="text-mocha transition-colors hover:text-espresso">
-          <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M19 12H5M12 19l-7-7 7-7" />
-          </svg>
-        </Link>
-        <h1 className="font-display text-3xl tracking-tight text-espresso sm:text-4xl">
-          Checkout
-        </h1>
-      </div>
+    <div className="mx-auto max-w-[1120px] px-4 pb-16 sm:px-6 lg:px-10">
+      <h1 className="sr-only">Checkout</h1>
+      <CheckoutSteps step="checkout" />
 
       <form
         onSubmit={handleSubmit}
-        className="mt-8 grid items-start gap-8 lg:grid-cols-[1fr_0.55fr]"
+        className="grid items-start gap-5 lg:grid-cols-[1fr_420px] lg:gap-8"
       >
         {/* form column */}
-        <div className="space-y-6">
-          {/* cart items list */}
-          <section>
-            <h2 className="font-display text-xl text-espresso">Your Items</h2>
-            <div className="mt-4 space-y-3">
-              {items.map((line) => (
-                <div
-                  key={`${line.productId}-${line.size}`}
-                  className="flex items-center gap-4 rounded-2xl bg-surface p-4 ring-1 ring-border/50"
-                >
-                  <div className="h-20 w-16 shrink-0 overflow-hidden rounded-xl bg-cream">
-                    {line.image ? (
-                      <img src={line.image} alt={line.name} className="h-full w-full object-cover" />
-                    ) : (
-                      <ShirtArt art={line.art} className="h-full w-full" />
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-espresso">
-                      {line.name}
-                    </p>
-                    <p className="text-xs text-mocha">
-                      {line.size} · {formatPrice(line.price)} each
-                    </p>
-                  </div>
-                  <p className="text-sm tabular-nums text-espresso">
-                    {formatPrice(line.price * line.qty)}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {/* contact */}
-          <section>
-            <h2 className="flex items-center gap-3 font-display text-xl text-espresso">
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-clay text-xs font-semibold text-white">
-                1
-              </span>
-              Contact
-            </h2>
-            <div className="mt-4">
-              <Label htmlFor="email" required>Email</Label>
+        <div className="space-y-5">
+          {/* Contact */}
+          <SectionCard title="Contact">
+            <div>
+              <Label htmlFor="email" required>
+                Email address
+              </Label>
               <Input
                 id="email"
                 type="email"
@@ -183,37 +193,42 @@ export default function CheckoutPage() {
                 placeholder="you@example.com"
               />
             </div>
-          </section>
+          </SectionCard>
 
-          {/* delivery */}
-          <section>
-            <h2 className="flex items-center gap-3 font-display text-xl text-espresso">
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-clay text-xs font-semibold text-white">
-                2
-              </span>
-              Delivery
-            </h2>
+          {/* Delivery */}
+          <SectionCard title="Delivery method">
+            <div className="grid max-w-sm gap-2.5">
+              <RadioOption checked icon="truck" label="Delivery" />
+            </div>
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <div>
-                <Label htmlFor="firstName" required>First name</Label>
+                <Label htmlFor="firstName" required>
+                  First name
+                </Label>
                 <Input
                   id="firstName"
                   required
                   value={form.firstName}
                   onChange={set("firstName")}
+                  placeholder="Kofi"
                 />
               </div>
               <div>
-                <Label htmlFor="lastName" required>Last name</Label>
+                <Label htmlFor="lastName" required>
+                  Last name
+                </Label>
                 <Input
                   id="lastName"
                   required
                   value={form.lastName}
                   onChange={set("lastName")}
+                  placeholder="Mensah"
                 />
               </div>
               <div className="sm:col-span-2">
-                <Label htmlFor="address" required>Street address</Label>
+                <Label htmlFor="address" required>
+                  Street address
+                </Label>
                 <Input
                   id="address"
                   required
@@ -222,126 +237,154 @@ export default function CheckoutPage() {
                   placeholder="Street and number"
                 />
               </div>
-              <div className="sm:col-span-2">
-                <Label htmlFor="city" required>City</Label>
+              <div>
+                <Label htmlFor="city" required>
+                  City
+                </Label>
                 <Input
                   id="city"
                   required
                   value={form.city}
                   onChange={set("city")}
+                  placeholder="Accra"
                 />
               </div>
-              <div className="sm:col-span-2">
-                <Label htmlFor="country" required>Country</Label>
-                <Input id="country" value="Ghana" disabled readOnly />
-                <p className="mt-1.5 text-xs text-taupe">
-                  We currently ship within Ghana only.
-                </p>
-              </div>
-            </div>
-          </section>
-
-          {/* payment */}
-          <section>
-            <h2 className="flex items-center gap-3 font-display text-xl text-espresso">
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-clay text-xs font-semibold text-white">
-                3
-              </span>
-              Payment
-            </h2>
-            <div className="mt-4 space-y-4">
               <div>
-                <Label htmlFor="phone" required>Mobile Money number</Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  required
-                  value={form.phone}
-                  onChange={set("phone")}
-                  placeholder="e.g. 0244 000 001"
-                />
-                <p className="mt-1.5 text-xs text-taupe">
-                  You&apos;ll receive a USSD prompt on your phone to confirm payment.
-                </p>
+                <Label htmlFor="country" required>
+                  Country
+                </Label>
+                <Input id="country" value="Ghana" disabled readOnly />
               </div>
             </div>
-          </section>
+          </SectionCard>
+
+          {/* Payment */}
+          <SectionCard title="Payment">
+            <div className="grid max-w-sm gap-2.5">
+              <RadioOption checked icon="credit-card" label="Mobile Money" />
+            </div>
+            <div className="mt-4">
+              <Label htmlFor="phone" required>
+                MoMo phone number
+              </Label>
+              <Input
+                id="phone"
+                type="tel"
+                required
+                value={form.phone}
+                onChange={set("phone")}
+                placeholder="e.g. 0244 000 001"
+              />
+              <p className="mt-1.5 text-xs text-taupe">
+                You&apos;ll receive a USSD prompt on your phone to confirm
+                payment.
+              </p>
+            </div>
+          </SectionCard>
         </div>
 
-        {/* summary */}
-        <Card padding="lg" className="lg:sticky lg:top-24">
-          <h2 className="font-display text-xl text-espresso">Order summary</h2>
-          <ul className="mt-5 max-h-72 space-y-4 overflow-y-auto thin-scroll pr-1">
-            {items.map((line) => (
-              <li key={`${line.productId}-${line.size}`} className="flex items-center gap-3">
-                <div className="h-14 w-11 shrink-0 overflow-hidden rounded-xl bg-cream">
-                  {line.image ? (
-                    <img src={line.image} alt={line.name} className="h-full w-full object-cover" />
-                  ) : (
-                    <ShirtArt art={line.art} className="h-full w-full" />
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-espresso">
-                    {line.name}
-                  </p>
-                  <p className="text-xs text-mocha">
-                    {line.size} · qty {line.qty}
-                  </p>
-                </div>
-                <p className="text-sm tabular-nums text-espresso">
-                  {formatPrice(line.price * line.qty)}
-                </p>
-              </li>
-            ))}
-          </ul>
+        {/* order summary */}
+        <aside className="lg:sticky lg:top-24">
+          <div className="rounded-2xl bg-surface p-5 sm:p-6">
+            <h2 className="font-display text-[15px] font-semibold tracking-tight text-espresso">
+              Order summary
+            </h2>
 
-          <dl className="mt-5 space-y-3 text-sm">
-            <div className="flex justify-between text-mocha">
-              <dt>Subtotal</dt>
-              <dd className="tabular-nums">{formatPrice(subtotal)}</dd>
+            <div className="mt-4 space-y-3 border-b border-sand pb-4">
+              {items.map((line) => (
+                <div
+                  key={`${line.productId}-${line.size}`}
+                  className="flex gap-3.5 py-1.5"
+                >
+                  <div className="h-20 w-16 shrink-0 overflow-hidden rounded-lg border border-sand bg-cream">
+                    {line.image ? (
+                      <img
+                        src={line.image}
+                        alt={line.name}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <ShirtArt art={line.art} className="h-full w-full" />
+                    )}
+                  </div>
+                  <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
+                    <p className="truncate text-[13px] font-semibold text-espresso">
+                      {line.name}
+                    </p>
+                    <p className="text-xs text-taupe">
+                      Size {line.size}
+                      {line.qty > 1 ? ` · qty ${line.qty}` : ""}
+                    </p>
+                    <p className="mt-1 text-sm font-bold tabular-nums text-espresso">
+                      {formatPrice(line.price * line.qty)}
+                    </p>
+                  </div>
+                </div>
+              ))}
             </div>
-            {deliveryFee > 0 && (
-              <div className="flex justify-between text-mocha">
-                <dt>Delivery charge</dt>
-                <dd className="tabular-nums">{formatPrice(deliveryFee)}</dd>
+
+            <dl className="mt-4 space-y-2.5 text-[13px]">
+              <div className="flex items-center justify-between">
+                <dt className="text-mocha">Subtotal</dt>
+                <dd className="font-semibold tabular-nums text-espresso">
+                  {formatPrice(subtotal)}
+                </dd>
               </div>
+              <div className="flex items-center justify-between">
+                <dt className="text-mocha">Delivery</dt>
+                <dd className="tabular-nums">
+                  {deliveryFee > 0 ? (
+                    <span className="font-semibold text-espresso">
+                      {formatPrice(deliveryFee)}
+                    </span>
+                  ) : (
+                    <span className="rounded-full bg-teal-light px-2 py-0.5 text-xs font-semibold text-clay">
+                      Free
+                    </span>
+                  )}
+                </dd>
+              </div>
+              <div className="flex items-center justify-between border-t border-sand pt-3">
+                <dt className="text-sm font-bold text-espresso">Total</dt>
+                <dd className="font-display text-xl font-bold tabular-nums text-espresso">
+                  {formatPrice(total)}
+                </dd>
+              </div>
+            </dl>
+
+            <Button
+              type="submit"
+              disabled={placing}
+              loading={placing}
+              className="mt-6 w-full py-4 font-display text-sm font-semibold tracking-wide"
+            >
+              {placing
+                ? "Placing order…"
+                : `Place claim · ${formatPrice(total)}`}
+            </Button>
+
+            {error && (
+              <p role="alert" className="mt-3 text-center text-xs text-sale">
+                {error}
+              </p>
             )}
-            <div className="flex justify-between border-t border-border pt-3 text-base font-semibold text-espresso">
-              <dt>Total</dt>
-              <dd className="font-display text-2xl tabular-nums">
-                {formatPrice(total)}
-              </dd>
+
+            <div className="mt-5 flex flex-col gap-3 border-t border-sand pt-5">
+              <span className="flex items-center gap-2.5 text-xs text-taupe">
+                <i className="ph-duotone ph-shield-check h-4 w-4 shrink-0 text-clay" />
+                Secure checkout — your data is protected
+              </span>
+              <span className="flex items-center gap-2.5 text-xs text-taupe">
+                <i className="ph-duotone ph-check h-4 w-4 shrink-0 text-clay" />
+                Every piece is verified authentic by Kojosropa
+              </span>
+              <span className="flex items-center gap-2.5 text-xs text-taupe">
+                <i className="ph-duotone ph-arrow-left h-4 w-4 shrink-0 text-clay" />
+                Free returns within 14 days
+              </span>
             </div>
-          </dl>
-
-          <Button
-            type="submit"
-            disabled={placing}
-            loading={placing}
-            className="mt-6 w-full py-4 text-sm tracking-wide"
-          >
-            {placing ? "Placing order…" : `Place Order · ${formatPrice(total)}`}
-          </Button>
-
-          {error && (
-            <p role="alert" className="mt-3 text-center text-xs text-sale">
-              {error}
-            </p>
-          )}
-
-          <ul className="mt-5 space-y-2 text-xs text-mocha">
-            <li className="flex items-center gap-2">
-              <span className="text-clay">✓</span> Free returns within 14 days
-            </li>
-            <li className="flex items-center gap-2">
-              <span className="text-clay">✓</span> Each piece is one of one
-            </li>
-            <li className="flex items-center gap-2">
-              <span className="text-clay">✓</span> Ships from Accra in 1–3 days
-            </li>
-          </ul>
-        </Card>
+          </div>
+        </aside>
       </form>
     </div>
   );

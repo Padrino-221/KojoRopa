@@ -16,6 +16,7 @@ export interface CartLine {
   productId: string;
   slug: string;
   name: string;
+  category: string;
   size: string;
   price: number;
   qty: number;
@@ -106,6 +107,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
             productId: product.id,
             slug: product.slug,
             name: product.name,
+            category: product.category,
             size,
             price: product.price,
             qty: 1,
