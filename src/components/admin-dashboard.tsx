@@ -1215,8 +1215,9 @@ export function AdminDashboard({
   initialLog: AdminLogRow[];
   initialLogTotal: number;
 }) {
-  const adminHeading = useSiteSetting("adminHeading", "Manage the rack");
-  const adminDescription = useSiteSetting("adminDescription", "Changes are saved to the database and update the shop instantly.");
+  // Admin chrome text is fixed — no longer configurable via site settings.
+  const adminHeading = "Manage the rack";
+  const adminDescription = "Changes are saved to the database and update the shop instantly.";
   const { toast } = useToast();
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [orders, setOrders] = useState<AdminOrder[]>(initialOrders);
